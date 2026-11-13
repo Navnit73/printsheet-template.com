@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
-  --foreground: #171717;
+  --surface: #fafafa;
+  --surface-muted: #f4f4f5;
+  --foreground: #09090b;
+  --muted-foreground: #52525b;
+  --border: #e4e4e7;
+  --accent: #4d7c0f;
+  --accent-hover: #3f6212;
+  --accent-soft: #f7fee7;
 }
 
 @theme inline {
@@ -12,15 +20,36 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background-color: #ffffff;
+  color: #09090b;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #ffffff;
+  color: #09090b;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Subtle architectural grid background for studio hero & preview canvas */
+.bg-print-grid {
+  background-color: #fafafa;
+  background-image:
+    linear-gradient(to right, rgba(24, 24, 27, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(24, 24, 27, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.bg-cutting-mat {
+  background-color: #f4f4f5;
+  background-image:
+    radial-gradient(rgba(24, 24, 27, 0.12) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }
