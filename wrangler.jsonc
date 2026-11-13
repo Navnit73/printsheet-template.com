@@ -16,11 +16,9 @@
 			"service": "printsheet-template-com"
 		}
 	],
-	"images": {
-		"binding": "IMAGES"
-	},
 	"observability": {
 		"enabled": true
-	}
+	},
+	"upload_source_maps": false
 }
 

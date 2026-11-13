@@ -8,6 +8,8 @@ import { PageShell } from "@/components/page/PageShell";
 
 const PREFIX = "/jar-bottle-labels";
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return getRouteSlugs(PREFIX);
 }

@@ -8,6 +8,8 @@ import { PageShell } from "@/components/page/PageShell";
 
 const PREFIX = "/how-to";
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return getRouteSlugs(PREFIX);
 }

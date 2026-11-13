@@ -2,11 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   trailingSlash: true,
-  cacheComponents: true,
-  partialPrefetching: true,
   poweredByHeader: false,
   images: {
-    formats: ["image/avif", "image/webp"],
+    unoptimized: true,
   },
   async headers() {
     return [

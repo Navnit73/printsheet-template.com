@@ -8,6 +8,8 @@ import { PageShell } from "@/components/page/PageShell";
 
 const PREFIX = "/labels-stickers";
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return getRouteSlugs(PREFIX);
 }
