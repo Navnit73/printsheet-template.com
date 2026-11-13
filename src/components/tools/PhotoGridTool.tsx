@@ -20,14 +20,6 @@ import {
   type PaperSizeId,
 } from "@/lib/pdf-utils";
 
-interface SlotRect {
-  xFrac: number; // 0..1 inside printable area
-  yFrac: number;
-  wFrac: number;
-  hFrac: number;
-  fixedSizeMm?: { w: number; h: number };
-}
-
 interface LayoutPreset {
   id: string;
   label: string;
@@ -573,21 +565,26 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-3xl bg-[#f5f5f7] p-4 sm:p-6 space-y-4">
       {/* Top toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-5 py-3.5">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3.5">
+        <div
+          role="group"
+          aria-label="Photo sheet layout presets"
+          className="flex flex-wrap items-center gap-1.5"
+        >
           {presets.map((p) => {
             const active = p.id === preset.id;
             return (
               <button
                 key={p.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => selectPreset(p)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                className={`min-h-[36px] rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer ${
                   active
-                    ? "bg-lime-700 text-white shadow-xs"
-                    : "border border-zinc-300 bg-white text-zinc-800 hover:border-zinc-900"
+                    ? "bg-[#4d7c0f] text-white"
+                    : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced] hover:text-zinc-950"
                 }`}
               >
                 {p.label}
@@ -602,21 +599,22 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
       </div>
 
       {/* Main split workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* Controls sidebar */}
-        <div className="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-zinc-200 p-5 space-y-5 bg-white">
+        <div className="lg:col-span-4 rounded-2xl bg-white p-5 space-y-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+            <p className="text-xs font-bold tracking-tight text-zinc-950 mb-2.5">
               1. Upload Photos
             </p>
             <div className="flex flex-wrap gap-2">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-zinc-950 px-3.5 py-2 text-xs font-semibold text-white hover:bg-zinc-800 transition">
-                <ImagePlus className="h-4 w-4 text-lime-400" />
+              <label className="min-h-[36px] inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#4d7c0f] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#3f6212] transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#3f6212]">
+                <ImagePlus aria-hidden="true" className="h-4 w-4 text-white" />
                 <span>
                   {preset.duplicateFirst ? "Choose Photo" : "Add Photos"}
                 </span>
                 <input
                   type="file"
+                  aria-label={preset.duplicateFirst ? "Choose photo file" : "Add photo files"}
                   accept="image/*"
                   multiple={!preset.duplicateFirst}
                   onChange={handleFileChange}
@@ -626,19 +624,19 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
               <button
                 type="button"
                 onClick={handleLoadSamples}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-medium text-zinc-800 hover:bg-zinc-50"
+                className="min-h-[36px] inline-flex items-center gap-1.5 rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs font-semibold text-zinc-800 hover:bg-[#ebeced] cursor-pointer"
               >
-                <Sparkles className="h-3.5 w-3.5 text-lime-700" />
+                <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-[#3f6212]" />
                 Load Samples
               </button>
               {images.length > 1 && (
                 <button
                   type="button"
                   onClick={rotateImageList}
-                  className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-                  title="Cycle photo order"
+                  aria-label="Cycle photo order"
+                  className="min-h-[36px] inline-flex items-center gap-1 rounded-xl bg-[#f5f5f7] px-2.5 py-2 text-xs font-medium text-zinc-700 hover:bg-[#ebeced] cursor-pointer"
                 >
-                  <RotateCw className="h-3.5 w-3.5" />
+                  <RotateCw aria-hidden="true" className="h-3.5 w-3.5" />
                   Cycle
                 </button>
               )}
@@ -646,9 +644,10 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
                 <button
                   type="button"
                   onClick={() => setImages([])}
-                  className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-2 text-xs text-zinc-600 hover:text-zinc-950"
+                  aria-label="Clear uploaded photos"
+                  className="min-h-[36px] inline-flex items-center gap-1 rounded-xl bg-[#f5f5f7] px-2.5 py-2 text-xs text-zinc-700 hover:text-zinc-950 cursor-pointer"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
                   Clear
                 </button>
               )}
@@ -658,7 +657,7 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
                 {images.map((src, idx) => (
                   <div
                     key={idx}
-                    className="relative h-11 w-11 overflow-hidden rounded-md border border-zinc-200"
+                    className="relative h-11 w-11 overflow-hidden rounded-xl bg-[#f5f5f7]"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -674,13 +673,17 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
+              <label
+                htmlFor="photo-paper-size"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
                 Paper Size
               </label>
               <select
+                id="photo-paper-size"
                 value={paper}
                 onChange={(e) => setPaper(e.target.value as PaperSizeId)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-xs text-zinc-900 focus:border-lime-700 focus:outline-none"
+                className="w-full rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-900"
               >
                 {Object.values(PAPER_SIZES).map((ps) => (
                   <option key={ps.id} value={ps.id}>
@@ -690,15 +693,19 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
+              <label
+                htmlFor="photo-orientation"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
                 Orientation
               </label>
               <select
+                id="photo-orientation"
                 value={orientation}
                 onChange={(e) =>
                   setOrientation(e.target.value as "portrait" | "landscape")
                 }
-                className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-xs text-zinc-900 focus:border-lime-700 focus:outline-none"
+                className="w-full rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-900"
               >
                 <option value="portrait">Portrait</option>
                 <option value="landscape">Landscape</option>
@@ -707,42 +714,55 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
+            <div className="rounded-xl bg-[#f5f5f7] p-2.5">
+              <label
+                htmlFor="photo-margin-mm"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
                 Margin ({marginMm} mm)
               </label>
               <input
+                id="photo-margin-mm"
                 type="range"
                 min={0}
                 max={20}
                 value={marginMm}
                 onChange={(e) => setMarginMm(Number(e.target.value))}
-                className="w-full accent-lime-700"
+                className="w-full accent-[#4d7c0f]"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
+            <div className="rounded-xl bg-[#f5f5f7] p-2.5">
+              <label
+                htmlFor="photo-spacing-mm"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
                 Spacing ({gutterMm} mm)
               </label>
               <input
+                id="photo-spacing-mm"
                 type="range"
                 min={0}
                 max={15}
                 value={gutterMm}
                 onChange={(e) => setGutterMm(Number(e.target.value))}
-                className="w-full accent-lime-700"
+                className="w-full accent-[#4d7c0f]"
               />
             </div>
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <div className="flex rounded-lg border border-zinc-300 p-0.5 text-xs">
+            <div
+              role="group"
+              aria-label="Photo fit mode"
+              className="flex rounded-xl bg-[#f5f5f7] p-1 text-xs"
+            >
               <button
                 type="button"
+                aria-pressed={fitMode === "cover"}
                 onClick={() => setFitMode("cover")}
-                className={`rounded-md px-2.5 py-1 font-medium ${
+                className={`min-h-[30px] rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
                   fitMode === "cover"
-                    ? "bg-zinc-950 text-white"
+                    ? "bg-white text-zinc-950"
                     : "text-zinc-700"
                 }`}
               >
@@ -750,10 +770,11 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
               </button>
               <button
                 type="button"
+                aria-pressed={fitMode === "contain"}
                 onClick={() => setFitMode("contain")}
-                className={`rounded-md px-2.5 py-1 font-medium ${
+                className={`min-h-[30px] rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
                   fitMode === "contain"
-                    ? "bg-zinc-950 text-white"
+                    ? "bg-white text-zinc-950"
                     : "text-zinc-700"
                 }`}
               >
@@ -761,61 +782,71 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
               </button>
             </div>
 
-            <label className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-700 cursor-pointer">
+            <label className="min-h-[32px] inline-flex items-center gap-1.5 text-xs font-medium text-zinc-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={showCutGuides}
                 onChange={(e) => setShowCutGuides(e.target.checked)}
-                className="rounded border-zinc-300 accent-lime-700"
+                className="h-4 w-4 rounded accent-[#4d7c0f]"
               />
-              <Scissors className="h-3.5 w-3.5 text-zinc-500" />
+              <Scissors aria-hidden="true" className="h-3.5 w-3.5 text-zinc-600" />
               Cut marks
             </label>
           </div>
 
           {preset.captionArea && (
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">
+              <label
+                htmlFor="photo-caption-text"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
                 Bottom Caption / Title
               </label>
               <input
+                id="photo-caption-text"
                 type="text"
                 value={captionText}
                 onChange={(e) => setCaptionText(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-xs text-zinc-900 focus:border-lime-700 focus:outline-none"
+                className="w-full rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-900"
                 placeholder="Add caption text..."
               />
             </div>
           )}
 
-          <div className="pt-2 border-t border-zinc-200 space-y-2">
+          <div className="pt-2 space-y-2">
             <button
               type="button"
               onClick={handleDownloadPdf}
               disabled={isExporting}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-lime-700 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-lime-800 disabled:opacity-60 transition cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#4d7c0f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#3f6212] disabled:bg-zinc-200 disabled:text-zinc-600 disabled:cursor-not-allowed transition cursor-pointer"
             >
-              <Download className="h-4 w-4" />
+              <Download aria-hidden="true" className="h-4 w-4" />
               {isExporting
                 ? "Building Print-Ready PDF..."
                 : "Download Print-Ready PDF"}
             </button>
-            <p className="text-[11px] text-zinc-500 text-center">
+            <p className="text-[11px] text-zinc-600 text-center">
               100% browser-side · Print at{" "}
               <strong className="text-zinc-800">Actual Size (100%)</strong>
             </p>
             {statusMsg && (
-              <p className="text-xs text-lime-800 bg-lime-50 border border-lime-200 rounded-lg px-3 py-1.5 text-center">
+              <p
+                role="status"
+                aria-live="polite"
+                className="text-xs text-[#365314] bg-[#eef6e4] rounded-xl px-3 py-2 text-center"
+              >
                 {statusMsg}
               </p>
             )}
           </div>
         </div>
 
-        {/* Live sheet preview */}
-        <div className="lg:col-span-8 bg-cutting-mat p-6 sm:p-8 flex items-center justify-center min-h-[420px]">
+        {/* Live sheet preview — Flat borderless surface */}
+        <div className="lg:col-span-8 rounded-2xl bg-white p-6 sm:p-8 flex items-center justify-center min-h-[420px]">
           <div
-            className="relative bg-white shadow-lg border border-zinc-300"
+            role="region"
+            aria-label={`Live photo sheet layout preview with ${computedSlots.length} slots`}
+            className="relative bg-[#f5f5f7] rounded-xl"
             style={{
               aspectRatio: `${orientedPaper.widthMm} / ${orientedPaper.heightMm}`,
               width: orientation === "landscape" ? "min(100%, 540px)" : "min(100%, 380px)",
@@ -833,11 +864,7 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
               return (
                 <div
                   key={idx}
-                  className={`absolute overflow-hidden flex items-center justify-center ${
-                    showCutGuides
-                      ? "border border-dashed border-zinc-400"
-                      : "border border-zinc-200"
-                  } bg-zinc-50`}
+                  className="absolute overflow-hidden flex items-center justify-center rounded-md bg-white"
                   style={{
                     left: `${leftPct}%`,
                     top: `${topPct}%`,
@@ -856,10 +883,10 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
                     />
                   ) : (
                     <div className="text-center px-1">
-                      <span className="block text-[10px] font-mono font-semibold text-zinc-400">
+                      <span className="block text-[10px] font-mono font-semibold text-zinc-600">
                         {Math.round(slot.w)}×{Math.round(slot.h)}mm
                       </span>
-                      <span className="block text-[10px] text-zinc-400">
+                      <span className="block text-[10px] text-zinc-600">
                         Slot {idx + 1}
                       </span>
                     </div>

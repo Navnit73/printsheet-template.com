@@ -203,3 +203,4 @@ export function drawCropMarksPdf(
   doc.line(x + w + offset, y + h, x + w + offset + markLen, y + h);
   doc.line(x + w, y + h + offset, x + w, y + h + offset + markLen);
 }
+

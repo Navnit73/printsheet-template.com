@@ -226,7 +226,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
       "passport photos on a4 sheet",
     ],
     targetWordCount: 1100,
-    toolEngine: "photo-grid",
+    toolEngine: "passport-sheet",
     requiresLocalRulesNote: true,
   },
   T07: {
@@ -249,7 +249,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
       "passport 4x6 template",
     ],
     targetWordCount: 1100,
-    toolEngine: "photo-grid",
+    toolEngine: "passport-sheet",
     requiresLocalRulesNote: true,
     requiresBrandNonAffiliationNote: true,
   },
@@ -1657,3 +1657,4 @@ export function getPageByUrl(url: string): PageMeta | undefined {
 export function getPagesByCluster(cluster: PageMeta["cluster"]): PageMeta[] {
   return ALL_PAGES.filter((p) => p.cluster === cluster);
 }
+

@@ -95,6 +95,7 @@ export type ClusterId =
 
 export type ToolEngineKind =
   | "photo-grid"
+  | "passport-sheet"
   | "poster-splitter"
   | "business-card"
   | "label-sheet"
@@ -155,3 +156,4 @@ export interface PageContent {
   relatedLinks?: { targetId: PageId; anchor: string; summary?: string }[];
   faqs?: { question: string; answer: string }[];
 }
+
