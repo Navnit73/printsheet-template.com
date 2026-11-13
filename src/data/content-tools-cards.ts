@@ -29,67 +29,190 @@ interface CardToolInput {
   relatedH3s: { targetId: PageId; anchor: string; desc: string }[];
 }
 
+const CARD_TOOL_TAILOR: Record<
+  string,
+  {
+    stepsLead: string;
+    uploadHint: string;
+    sheetPickHint: string;
+    presetSyncHint: string;
+    cropGuideHint: string;
+    previewHint: string;
+    exportHint: string;
+    layoutsLead: string;
+    settingsLead: string;
+    trayNote: string;
+    scale100: string;
+    safeMargin: string;
+    pdfVsJpg: string;
+    projectsLead: string;
+    projectVerb: (p: string) => string;
+    tipsLead: string;
+    tipVerb: (t: string) => string;
+  }
+> = {
+  T11: {
+    stepsLead: "Turn any single exported PNG/JPG card graphic—or live form text—into a cropped 8-up or 10-up sheet in under a minute.",
+    uploadHint: "Drop an existing 3.5 × 2 inch card artwork exported from Canva/Figma, or stay in Edit Mode to compose crisp text cards.",
+    sheetPickHint: "Choose 10-up A4 (90 × 55 mm / 85 × 55 mm) or 10-up US Letter (3.5 × 2 in) depending on your printer tray and guillotine.",
+    presetSyncHint: "Each grid option locks uniform horizontal and vertical card cells mathematically across A4 or Letter margins.",
+    cropGuideHint: "Keep crisp hairline corner crop marks active for plain heavy cardstock, leaving gutters clean across perforated faces.",
+    previewHint: "Verify font size legibility on the zoom preview, then enable mirrored Page 2 if adding website links or services on backs.",
+    exportHint: "Download crisp 10-up vector PDF and print one alignment check on plain 80 gsm sheet before loading heavy 280 gsm card stock.",
+    layoutsLead: "Choose between classic 10-up tight efficiency or generous 8-up trim-gutter layouts across international paper standards.",
+    settingsLead: "Card imposition fails mostly through quiet PDF shrinkage—lock these exact driver tolerances before cutting stacks.",
+    trayNote: "Match A4 (210 × 297 mm) or US Letter (8.5 × 11 in) inside both the sheet generator and OS tray preferences.",
+    scale100: "Always force Actual Size (100%) scaling so 88.9 × 50.8 mm US cards never shrink to awkward non-wallet rectangles.",
+    safeMargin: "Keep company names, phone digits, and social handles 3 mm away from crop corners so rotary blades never graze lettering.",
+    pdfVsJpg: "Native vector PDF ensures tiny 7 pt email addresses and micro QR squares print dark and razor crisp on cardstock.",
+    projectsLead: "In-house 10-up sheets let startups, contractors, and side hustles test new pitches overnight without waiting on commercial printers.",
+    projectVerb: (p) => `Printing ${p.toLowerCase()} in small 20-to-50-card runs lets you refresh phone numbers or offers zero-waste anytime.`,
+    tipsLead: "Quick cardstock weight and trimmer habits that elevate home-printed sheets to print-shop crispness.",
+    tipVerb: (t) => `Putting "${t.toLowerCase()}" first avoids crooked cuts and smeared ink across dark heavyweight business card sheets.`,
+  },
+  T12: {
+    stepsLead: "Design clean printable cardstock sheets straight inside your browser without clunky Word label tables or design software.",
+    uploadHint: "Add your own brand logo PNG or pick clean vector typography directly in the live business card builder above.",
+    sheetPickHint: "Toggle 10-up Letter, 10-up A4, or perforated-compatible coordinates tailored cleanly to retail blank card packs.",
+    presetSyncHint: "Pre-calculated card matrices center ten uniform rectangles symmetrically on page so both front and back line up cleanly.",
+    cropGuideHint: "Switch crop ticks ON for un-scored smooth matte cardstock sheets trimmed with a ruler or steel guillotine.",
+    previewHint: "Check high-contrast alignment inside the full-page grid preview and turn on back-side text or appointment lines if needed.",
+    exportHint: "Generate a watermark-free PDF and send it straight to a heavy matte rear tray at crisp high-quality ink settings.",
+    layoutsLead: "Start with clean blank margins or classic typographic arrangements ready to peel or trim cleanly out of any sheet.",
+    settingsLead: "Heavyweight card sheets behave differently than thin copy paper—verify paper thickness ratings before bulk feeding.",
+    trayNote: "Select Thick Paper / Matte Cardstock (220–300 gsm) so rollers slow down and ink bonds instead of smudging rollers.",
+    scale100: "Disable browser Shrink-to-Fit borders carefully—unwanted 95% scaling pushes outer card rows inside perforation slots.",
+    safeMargin: "Leave 3–4 mm quiet whitespace inside card frames so perforated tear-out notches or trimmer cuts stay sharp and neat.",
+    pdfVsJpg: "Vector PDF prevents soft gray compression speckles across clean white backgrounds and razor-sharp dark sans-serif titles.",
+    projectsLead: "DIY blank-card PDFs work brilliantly for appointment cards, referral vouchers, pop-up booth handouts, and temporary badges.",
+    projectVerb: (p) => `On-demand sheets for ${p.toLowerCase()} let you adapt QR links and promos right before opening an event booth.`,
+    tipsLead: "Essential tray-feeding and ink-curing steps for thicker matte card sheets.",
+    tipVerb: (t) => `Following "${t.toLowerCase()}" stops paper jams inside U-turn trays and prevents wet cardstock ink transfer.`,
+  },
+  T13: {
+    stepsLead: "Pick a minimal, balanced card template, edit contact details in seconds, and output a 10-card print sheet.",
+    uploadHint: "Swap in your company tagline, phone, email, and crisp optional vCard/URL QR badge straight inside our minimalist editor.",
+    sheetPickHint: "Confirm standard regional dimensions (US 3.5 × 2 in vs UK/EU 85 × 55 mm vs AU/IN 90 × 55 mm) before creating sheets.",
+    presetSyncHint: "Preset safe margins lock balanced typography baselines across all 10 cards evenly without drifting off grid.",
+    cropGuideHint: "Print clean corner hairlines on heavyweight un-cut card stock to eliminate ruler math during hand slicing.",
+    previewHint: "Inspect spacing between website text, role labels, and accent dividers before optionally adding a clean mirrored back.",
+    exportHint: "Click Download PDF to grab your clean template run at 100% physical dimension—zero subscription fees.",
+    layoutsLead: "Clean modernist card templates emphasize generous whitespace and scannable contact hierarchy over distracting clipart.",
+    settingsLead: "Minimalist white-background card templates print remarkably cleanly at home—avoid full black ink floods that warp sheets.",
+    trayNote: "Feed 250–300 gsm archival matte or cream textured cardstock one or two sheets at a time via manual rear bypass slots.",
+    scale100: "Select Actual Size (100%) in Acrobat/Preview so card dimensions slide smoothly into slim leather and metal pocket wallets.",
+    safeMargin: "Maintain at least 3.5 mm inner margin around fine rule dividers and corner monograms for clean uniform trim lines.",
+    pdfVsJpg: "Native vector font rendering keeps razor-crisp minimalist templates readable even at compact 6.5 pt footer sizes.",
+    projectsLead: "Structured card templates give solo founders, tutors, realtors, and photographers consistent identity sheets overnight.",
+    projectVerb: (p) => `Structured templates for ${p.toLowerCase()} help teams ship cohesive stationery across staff members in minutes.`,
+    tipsLead: "Design clarity and trimmer selection guidelines for sharp minimalist business card templates.",
+    tipVerb: (t) => `Using "${t.toLowerCase()}" delivers studio-crisp card edges even from modest home desk trimmers.`,
+  },
+  T14: {
+    stepsLead: "Compose single-sided or mirrored double-sided business cards directly online with live QR code encoding.",
+    uploadHint: "Type contact lines or upload custom square artwork; toggle on the instant vector QR generator for portfolio or booking links.",
+    sheetPickHint: "Select 10-up A4 or Letter imposition matching your card dimensions and dual-sided flip paper stock.",
+    presetSyncHint: "Double-sided mode calculates mirror-reversed Page 2 columns automatically so Page 1 and Page 2 match back-to-back.",
+    cropGuideHint: "Print hairline cut marks ONLY on the front page—never double print trim lines on the back where feed drift shows.",
+    previewHint: "Inspect both the front contact panel and optional back tagline/appointment card side-by-side before exporting.",
+    exportHint: "Save the 2-page duplex PDF and print Page 1 first, flip along the long edge cleanly, and verify on plain paper first.",
+    layoutsLead: "Modern online card layouts pair bold vector QR contact shortcuts with scannable single-column contact lines.",
+    settingsLead: "Two-sided home printing introduces 1–2 mm mechanical roller drift—design card backs cleanly to forgive slight tolerances.",
+    trayNote: "Use opaque 280–300 gsm uncoated or matte coated double-sided cardstock so dark print never shows ghosted through paper.",
+    scale100: "Keep scaling locked strictly at 100% across both Page 1 and Page 2; tiny scale differences break back-to-back alignment.",
+    safeMargin: "Allow a generous 4 mm inner margin on double-sided designs and avoid tight full-bleed color borders on home printers.",
+    pdfVsJpg: "Single 2-page PDF bundles exact vector front typography alongside razor-sharp SVG-derived QR matrices on Page 2.",
+    projectsLead: "Creating custom cards completely online removes designer turnaround wait times when numbers, roles, or QR pages change.",
+    projectVerb: (p) => `Instant browser authoring makes ${p.toLowerCase()} effortless right before networking mixers or client pitches.`,
+    tipsLead: "Duplex orientation testing and QR sizing checks so phones scan every printed business card instantaneously.",
+    tipVerb: (t) => `Completing "${t.toLowerCase()}" catches short-edge vs long-edge flip mixups before wasting thick cardstock.`,
+  },
+  T15: {
+    stepsLead: "Align typography or custom designs precisely onto pre-perforated Avery 5371, 8371, 8871 (Letter) or C32011 (A4) sheets.",
+    uploadHint: "Build clean contact cards inside the workspace or upload 3.5 × 2 inch art tuned for clean micro-perforated edges.",
+    sheetPickHint: "Choose US Letter Avery 10-up (19 mm top / 19 mm side offsets) or A4 C32011 perforated packs to lock exact grid pitch.",
+    presetSyncHint: "Avery mode eliminates trim gutters between touching rows and columns (0 mm gap) matching flush micro-perf seams.",
+    cropGuideHint: "Turn Crop Marks OFF when printing onto perforated Avery cards so no stray black ticks stain clean torn card corners.",
+    previewHint: "Verify design margins sit well inside flush edges—light backgrounds protect cleanly against micro-perforated tear drift.",
+    exportHint: "Export 100% exact PDF coordinates and test on ordinary copy paper held behind an Avery pack before feeding stock.",
+    layoutsLead: "Perforated-safe layouts keep designs neatly centered away from fine serrated seams for crisp tool-free card snapping.",
+    settingsLead: "Flush 10-up perforated stock leaves zero paper-cut forgiveness if print scaling or tray paper guides wobble even slightly.",
+    trayNote: "Snug rear paper-guide sliders flush against Avery Letter or A4 perforated card packs so sheets enter dead straight.",
+    scale100: "Confirm Actual Size (100% scale) carefully—Fit-to-Page shrinkage ruins all 5 row breaks down a perforated sheet.",
+    safeMargin: "Maintain a generous 4–5 mm white safety zone around edges and strictly avoid dark bleed backgrounds on perforated stock.",
+    pdfVsJpg: "Exact millimeter vector PDF matches physical perforated tear rows way more consistently than Word template margin sliders.",
+    projectsLead: "Pre-perforated Avery packs shine when you want tool-free, uniform corners in hotel rooms or before early conferences.",
+    projectVerb: (p) => `Matching ${p.toLowerCase()} to exact Avery dimensions skips messy scissor work while producing crisp, uniform edges.`,
+    tipsLead: "Pre-print window-check and folding-seam separation advice for smooth Avery card edges.",
+    tipVerb: (t) => `Putting "${t.toLowerCase()}" first guarantees all ten perforated cards pop cleanly without ragged corner nibs.`,
+  },
+  T16: {
+    stepsLead: "Format regional visiting cards (90 × 50 mm Indian/Asian, 85 × 55 mm UK/EU, or classic 90 × 55 mm) onto 10-up sheets.",
+    uploadHint: "Type bilingual titles, WhatsApp numbers, GST/business lines, or crisp QR contact links neatly inside the visiting card canvas.",
+    sheetPickHint: "Select A4 10-up regional visiting sizes tailored for 300 gsm textured ivory or bright matte cardstock across India/EU.",
+    presetSyncHint: "Visiting presets maintain balanced regional proportions (wider 90 × 50 mm vs taller 85 × 55 mm UK pockets) cleanly 10-up.",
+    cropGuideHint: "Keep faint corner trim marks ON when taking PDFs to local digital copy shops or trimming plain A4 board sheets at home.",
+    previewHint: "Verify dual-number formatting (+country code + mobile) and optional address wrapping on the zoomed card canvas.",
+    exportHint: "Generate crisp A4 visiting card PDFs ready for in-house office printing or walk-in copy center SRA3/A4 card trays.",
+    layoutsLead: "Clean visiting card arrangements honor compact international pocket dimensions while keeping contact lines legible at a glance.",
+    settingsLead: "International A4 office printers often default to subtle edge auto-fit unless explicitly told Actual Size 100%.",
+    trayNote: "Verify A4 (210 × 297 mm) rather than Letter in both PDF viewer and driver defaults across Commonwealth and European offices.",
+    scale100: "Lock Print Scale at 100% so sleek 90 × 50 mm or 85 × 55 mm visiting cards fit standard desktop cardholders.",
+    safeMargin: "Allow clean 3.5 mm inner buffers around decorative borders and corner monograms for sharp straight cuts.",
+    pdfVsJpg: "Portable vector PDF opens identically on office Mac, Windows, and copy-center RIP workstations with zero font shift.",
+    projectsLead: "Visiting card PDFs let small shop owners, consultants, clinics, and tailors reprint clean 50-card sets locally anytime.",
+    projectVerb: (p) => `Ready-to-slice 10-up visiting sheets streamline ${p.toLowerCase()} without steep minimum-order print runs.`,
+    tipsLead: "Quick cardstock selection and contrast guidance for polished local visiting card batches.",
+    tipVerb: (t) => `Practicing "${t.toLowerCase()}" ensures WhatsApp numbers and shop timings come off matte paper razor sharp.`,
+  },
+};
+
 function buildCardToolContent(spec: CardToolInput): PageContent {
+  const t = CARD_TOOL_TAILOR[spec.id] ?? CARD_TOOL_TAILOR.T11;
   const sections: HeadingNode[] = [
     {
       level: 2,
       text: spec.h2Steps,
-      paragraphs: [
-        "Build and export an exact-scale sheet directly in your browser—no desktop software, login, or design file conversion needed.",
-      ],
+      paragraphs: [t.stepsLead],
       children: [
         {
           level: 3,
           text: spec.steps[0],
-          paragraphs: [
-            "Upload an existing card artwork image or stay in Edit Card Details to build a clean card directly in the live editor.",
-          ],
+          paragraphs: [t.uploadHint],
         },
         {
           level: 3,
           text: spec.steps[1],
-          paragraphs: [
-            "Select A4 10-up (90 × 55 mm), US Letter 10-up (3.5 × 2 in), or 8-up sheet presets depending on your region and card stock.",
-          ],
+          paragraphs: [t.sheetPickHint],
           children: [
             {
               level: 4,
               text: spec.step2Sub[0],
-              paragraphs: [
-                "Switching sheet presets automatically adjusts card dimensions, gutters, and centering on A4 or Letter paper.",
-              ],
+              paragraphs: [t.presetSyncHint],
             },
             {
               level: 4,
               text: spec.step2Sub[1],
-              paragraphs: [
-                "Keep Crop marks enabled for razor-sharp cuts with a guillotine, or disable them when feeding pre-perforated card sheets.",
-              ],
+              paragraphs: [t.cropGuideHint],
             },
           ],
         },
         {
           level: 3,
           text: spec.steps[2],
-          paragraphs: [
-            "Review the close-up front preview and the full-sheet grid indicator. Enable Include Back Side to generate a matching Page 2 for two-sided printing.",
-          ],
+          paragraphs: [t.previewHint],
         },
         {
           level: 3,
           text: spec.steps[3],
-          paragraphs: [
-            "Click Download PDF and print at 100% / Actual Size on 250–300 gsm card stock after verifying alignment on plain paper.",
-          ],
+          paragraphs: [t.exportHint],
         },
       ],
     },
     {
       level: 2,
       text: spec.h2Layouts,
-      paragraphs: [
-        "Choose a layout preset below to start with balanced typography, safe margins, and print-ready spacing.",
-      ],
+      paragraphs: [t.layoutsLead],
       children: spec.presets.map((p) => ({
         level: 3 as const,
         text: p.name,
@@ -103,9 +226,7 @@ function buildCardToolContent(spec: CardToolInput): PageContent {
     {
       level: 2,
       text: spec.h2Settings,
-      paragraphs: [
-        "Accurate scaling makes the difference between clean, symmetrical cards and off-centre cuts. Follow these paper and print-dialog checks before running heavy card stock.",
-      ],
+      paragraphs: [t.settingsLead],
       children: [
         {
           level: 3,
@@ -114,9 +235,7 @@ function buildCardToolContent(spec: CardToolInput): PageContent {
             {
               level: 4,
               text: spec.paperNote,
-              paragraphs: [
-                "Match the PDF sheet size (A4 or US Letter) to the exact physical paper pack loaded in your printer tray.",
-              ],
+              paragraphs: [t.trayNote],
             },
           ],
         },
@@ -127,16 +246,12 @@ function buildCardToolContent(spec: CardToolInput): PageContent {
             {
               level: 4,
               text: "Print at 100% or Actual Size",
-              paragraphs: [
-                "Turn off 'Fit to Page' or 'Shrink to Printable Area' in your print dialog so a 90 × 55 mm card never shrinks to 86 × 52 mm.",
-              ],
+              paragraphs: [t.scale100],
             },
             {
               level: 4,
               text: "Keep a safe margin",
-              paragraphs: [
-                "Keep names, phone numbers, and QR codes at least 3 mm inside the card edge so minor paper feed skew never clips a letter.",
-              ],
+              paragraphs: [t.safeMargin],
             },
           ],
         },
@@ -152,9 +267,7 @@ function buildCardToolContent(spec: CardToolInput): PageContent {
             {
               level: 4,
               text: "PDF versus JPG output",
-              paragraphs: [
-                "Always print business cards from a PDF rather than a raw JPG so vector text, accent rules, and QR codes stay crisp at 600–1200 DPI.",
-              ],
+              paragraphs: [t.pdfVsJpg],
             },
           ],
         },
@@ -163,32 +276,24 @@ function buildCardToolContent(spec: CardToolInput): PageContent {
     {
       level: 2,
       text: spec.h2Projects,
-      paragraphs: [
-        "Printing your own sheets on demand lets you update phone numbers, QR links, or event titles immediately without ordering 500 outdated cards.",
-      ],
+      paragraphs: [t.projectsLead],
       children: spec.projects.map((proj) => ({
         level: 3 as const,
         text: proj,
-        paragraphs: [
-          `For ${proj.toLowerCase()}, generating a 10-card sheet PDF means you can print a fresh batch of 20 or 50 cards whenever an event comes up.`,
-        ],
+        paragraphs: [t.projectVerb(proj)],
       })),
     },
     {
       level: 2,
       text: "Tips for cleaner, sharper prints",
-      paragraphs: [
-        "Follow these three quick production tips and check our size reference before feeding heavy card stock.",
-      ],
+      paragraphs: [t.tipsLead],
       inlineLinks: [
         { targetId: "G05", anchor: "business card dimensions template" },
       ],
-      children: spec.tips.map((t) => ({
+      children: spec.tips.map((tip) => ({
         level: 3 as const,
-        text: t,
-        paragraphs: [
-          `Applying this habit (${t.toLowerCase()}) keeps edges crisp and prevents ink rub or misaligned backs.`,
-        ],
+        text: tip,
+        paragraphs: [t.tipVerb(tip)],
       })),
     },
     {
@@ -309,6 +414,16 @@ export const CARD_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         anchor: "how to print multiple business cards on one sheet canva",
         desc: "Step-by-step workflow for tiling Canva card exports onto one sheet.",
       },
+      {
+        targetId: "H06",
+        anchor: "how to print multiple business cards on one sheet indesign",
+        desc: "Compare InDesign N-up imposition against fast browser PDF card sheets.",
+      },
+      {
+        targetId: "B09",
+        anchor: "home business card printer",
+        desc: "Compare per-card ink and heavy board costs against commercial print shops.",
+      },
     ],
   }),
 
@@ -400,6 +515,11 @@ export const CARD_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         anchor: "print business cards at home",
         desc: "Read the full guide on paper weight, printer settings, and cutting.",
       },
+      {
+        targetId: "B07",
+        anchor: "student business card template",
+        desc: "See 15 profession-ready card structure ideas for freelancers and grads.",
+      },
     ],
   }),
 
@@ -488,6 +608,16 @@ export const CARD_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "T12",
         anchor: "printable business cards",
         desc: "Download blank printable sheets or minimal cut-ready card PDFs.",
+      },
+      {
+        targetId: "B07",
+        anchor: "business cards examples templates",
+        desc: "Explore role-specific layouts from student cards to real estate and trades.",
+      },
+      {
+        targetId: "B08",
+        anchor: "creative business card design ideas",
+        desc: "Browse 25 high-contrast minimalist layouts engineered to cut cleanly at home.",
       },
     ],
   }),
@@ -579,6 +709,21 @@ export const CARD_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "T16",
         anchor: "visiting card design template",
         desc: "Design regional visiting cards and name cards with QR links.",
+      },
+      {
+        targetId: "H08",
+        anchor: "print double sided business cards at home",
+        desc: "Prevent upside-down or shifted card backs with our 1-minute duplex flip test.",
+      },
+      {
+        targetId: "B08",
+        anchor: "creative business card design ideas",
+        desc: "Discover clean QR, typographic, and monochrome card layout concepts.",
+      },
+      {
+        targetId: "B09",
+        anchor: "home business card printer",
+        desc: "Compare home cardstock ink costs vs ordering finished batches locally.",
       },
     ],
   }),
@@ -769,6 +914,11 @@ export const CARD_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "T12",
         anchor: "printable business cards",
         desc: "Download blank card sheets or simple printable cards.",
+      },
+      {
+        targetId: "H06",
+        anchor: "how to print multiple business cards on one sheet pdf",
+        desc: "Compare InDesign layout imposition with browser-generated 10-up visiting sheets.",
       },
     ],
   }),

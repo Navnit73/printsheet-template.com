@@ -2,7 +2,10 @@ import type { MetadataRoute } from "next";
 import { ALL_PAGES, SITE_URL } from "@/data/site-meta";
 import type { PageMeta } from "@/types/spec";
 
-const LAST_MODIFIED = new Date("2025-02-20T00:00:00.000Z");
+const HUB_MODIFIED = new Date("2026-11-13T00:00:00.000Z");
+const CONTENT_MODIFIED = new Date("2026-11-13T00:00:00.000Z");
+
+const INDEX_DIRECTORY_URLS = ["/guides/", "/how-to/", "/blog/"];
 
 function getPriority(page: PageMeta): number {
   if (page.type === "Homepage") return 1.0;
@@ -13,13 +16,29 @@ function getPriority(page: PageMeta): number {
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return ALL_PAGES.map((page) => ({
+  const pageEntries: MetadataRoute.Sitemap = ALL_PAGES.filter(
+    (page) => !page.isCaseStudyScaffold
+  ).map((page) => ({
     url: `${SITE_URL}${page.url}`,
-    lastModified: LAST_MODIFIED,
+    lastModified:
+      page.type === "Homepage" || page.type === "Hub" || page.type === "Tool"
+        ? HUB_MODIFIED
+        : CONTENT_MODIFIED,
     changeFrequency:
       page.type === "Tool" || page.type === "Hub" || page.type === "Homepage"
         ? "weekly"
         : "monthly",
     priority: getPriority(page),
   }));
+
+  const directoryEntries: MetadataRoute.Sitemap = INDEX_DIRECTORY_URLS.map(
+    (url) => ({
+      url: `${SITE_URL}${url}`,
+      lastModified: HUB_MODIFIED,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    })
+  );
+
+  return [...pageEntries, ...directoryEntries];
 }

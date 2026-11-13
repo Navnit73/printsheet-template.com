@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, IdCard, Printer } from "lucide-react";
+import { ArrowRight, IdCard } from "lucide-react";
+import { BrandMark } from "@/components/layout/BrandLogo";
 
 export const metadata: Metadata = {
   title: "Page Not Found | Print Sheet Maker",
@@ -15,9 +16,7 @@ export const metadata: Metadata = {
 export default function NotFound() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 text-center space-y-6">
-      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f5f5f7] text-[#3f6212] mx-auto">
-        <Printer className="h-6 w-6" aria-hidden="true" />
-      </div>
+      <BrandMark className="h-12 w-12 mx-auto" />
 
       <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-zinc-950">
         Page Not Found (404)

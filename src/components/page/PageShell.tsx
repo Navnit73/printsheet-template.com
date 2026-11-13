@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   AlertTriangle,
   ArrowRight,
@@ -21,13 +22,7 @@ import {
 import { ToolWorkspace } from "@/components/tools/ToolWorkspace";
 import { HomeQuickStudio } from "@/components/tools/HomeQuickStudio";
 import { JsonLd } from "@/components/seo/JsonLd";
-
-function slugifyHeading(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+import { assignHeadingIds } from "@/lib/headings";
 
 function EditorialFigure({
   image,
@@ -48,13 +43,17 @@ function EditorialFigure({
     >
       <div>
         <div className="relative overflow-hidden rounded-2xl bg-white aspect-[16/9]">
-          <img
+          <Image
             src={image.src}
             alt={image.alt}
             width={image.width}
             height={image.height}
             loading="lazy"
-            decoding="async"
+            sizes={
+              compact
+                ? "(max-width: 768px) 100vw, 320px"
+                : "(max-width: 1024px) 100vw, 840px"
+            }
             className="w-full h-full object-cover transition duration-300 hover:scale-[1.01]"
           />
         </div>
@@ -113,9 +112,9 @@ function MidContentCtaBanner({
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#3f6212]">
             — {midBanner.eyebrow} —
           </p>
-          <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-zinc-950 leading-snug">
+          <p className="text-xl sm:text-2xl font-extrabold tracking-tight text-zinc-950 leading-snug">
             {midBanner.heading}
-          </h3>
+          </p>
           <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed">
             {midBanner.body}
           </p>
@@ -157,12 +156,13 @@ function MidContentCtaBanner({
 function renderHeadingBlock(
   node: HeadingNode,
   idx: number,
+  headingIds: Map<HeadingNode, string>,
   isCardGridSection = false,
   sectionImage?: PageImageSpec,
   sectionCtaHref?: string,
   sectionCtaLabel?: string
 ) {
-  const id = slugifyHeading(node.text);
+  const id = headingIds.get(node) || `section-${idx}`;
 
   if (node.level === 2) {
     const isHubToolsSection =
@@ -258,7 +258,7 @@ function renderHeadingBlock(
             }
           >
             {node.children.map((child, cIdx) =>
-              renderHeadingBlock(child, cIdx, useCardGrid)
+              renderHeadingBlock(child, cIdx, headingIds, useCardGrid)
             )}
           </div>
         )}
@@ -444,7 +444,7 @@ function renderHeadingBlock(
         {node.children && node.children.length > 0 && (
           <div className="mt-4 space-y-4 pl-4">
             {node.children.map((child, cIdx) =>
-              renderHeadingBlock(child, cIdx, false)
+              renderHeadingBlock(child, cIdx, headingIds, false)
             )}
           </div>
         )}
@@ -607,13 +607,14 @@ export function PageShell({
     ? content.introParagraphs.slice(1)
     : [];
 
-  const pageImages = getPageImages(meta, content);
+  const pageImages = getPageImages(meta);
   const ctas = getPageCtas(meta, content);
   const hasSixOrMoreSections = content.sections.length >= 6;
+  const headingIds = assignHeadingIds(content.sections);
 
   return (
     <>
-      <JsonLd meta={meta} content={content} />
+      <JsonLd meta={meta} content={content} headingIds={headingIds} />
 
       {/* Top Studio Hero */}
       <div className="bg-white">
@@ -626,7 +627,7 @@ export function PageShell({
           {!isHome && (
             <nav
               aria-label="Breadcrumb"
-              className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500"
+              className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-zinc-600"
             >
               <Link
                 href="/"
@@ -636,7 +637,7 @@ export function PageShell({
               </Link>
               {parentHub && parentHub.id !== "HOME" && (
                 <>
-                  <ChevronRight className="h-3.5 w-3.5 text-zinc-400" />
+                  <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-zinc-400" />
                   <Link
                     href={parentHub.url}
                     className="font-medium text-zinc-600 hover:text-[#4d7c0f] transition"
@@ -645,7 +646,7 @@ export function PageShell({
                   </Link>
                 </>
               )}
-              <ChevronRight className="h-3.5 w-3.5 text-zinc-400" />
+              <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-zinc-400" />
               <span className="text-zinc-950 font-semibold truncate max-w-[260px] sm:max-w-none">
                 {meta.primaryKeyword}
               </span>
@@ -670,7 +671,7 @@ export function PageShell({
           </h1>
 
           {!isHome && (
-            <p className="mt-2 text-sm sm:text-base font-medium text-zinc-500 max-w-3xl">
+            <p className="mt-2 text-sm sm:text-base font-medium text-zinc-600 max-w-3xl">
               {content.subtitle}
             </p>
           )}
@@ -790,7 +791,7 @@ export function PageShell({
         <section
           id="interactive-studio-workspace"
           aria-label="Interactive Print Sheet Tool"
-          className="scroll-mt-20 mx-auto max-w-6xl px-4 pt-2 sm:pt-3 sm:px-6"
+          className="scroll-mt-20 mx-auto max-w-[1440px] px-4 pt-2 sm:pt-3 sm:px-6 lg:px-8"
         >
           {isHome ? (
             <HomeQuickStudio />
@@ -837,6 +838,7 @@ export function PageShell({
                   {renderHeadingBlock(
                     section,
                     idx,
+                    headingIds,
                     false,
                     sectionImg,
                     ctas.midBanner.primary.href,
@@ -985,7 +987,7 @@ export function PageShell({
                 </p>
                 <ul className="space-y-1.5 text-xs">
                   {content.sections.map((s) => {
-                    const anchor = slugifyHeading(s.text);
+                    const anchor = headingIds.get(s) || "section";
                     return (
                       <li key={anchor}>
                         <a
@@ -1012,7 +1014,7 @@ export function PageShell({
 
               {parentHub && (
                 <div className="rounded-3xl bg-[#f5f5f7] p-5 space-y-2">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-600">
                     Category Hub
                   </p>
                   <div className="rounded-2xl bg-white p-3.5 space-y-1.5">
@@ -1023,7 +1025,7 @@ export function PageShell({
                       <span>{parentHub.primaryKeyword}</span>
                       <ArrowUpRight className="h-3.5 w-3.5 text-[#4d7c0f]" />
                     </Link>
-                    <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    <p className="text-[11px] text-zinc-600 leading-relaxed">
                       Browse every tool, size guide, and tutorial in this
                       collection.
                     </p>

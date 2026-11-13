@@ -542,6 +542,48 @@ export const HOME_AND_HUB_CONTENT: Partial<Record<PageId, PageContent>> = {
       },
       {
         level: 2,
+        text: "Photo sheet yield & paper size chart",
+        paragraphs: [
+          "Compare how many trimmed photo prints fit onto ISO A4 (210 × 297 mm), US Letter (8.5 × 11 in), and standard 4×6-inch photo paper without accidental aspect cropping.",
+        ],
+        table: {
+          headers: ["Target Photo Size", "A4 Capacity", "US Letter Capacity", "Best Tool Preset"],
+          rows: [
+            ["5 × 7 in (127 × 178 mm)", "2 per sheet", "2 per sheet", "2 Photos Per Page Maker"],
+            ["4 × 6 in / 4R (102 × 152 mm)", "2 per sheet", "2 per sheet", "Printable 4×6 Photo Template"],
+            ["3.5 × 5 in (9 × 13 cm)", "4 per sheet (2×2)", "4 per sheet (2×2)", "4 Photos Per Page Maker"],
+            ["Wallet (2.5 × 3.5 in)", "8–9 per sheet", "8–9 per sheet", "Photo Sheet Maker / Duplicate"],
+            ["35 × 45 mm Biometric ID", "16–20 per A4 (6 per 4×6)", "16 per Letter", "Passport Photo Sheet Maker"],
+            ["Wall Poster (A2 / A1)", "4–16 tiled A4 pages", "4–16 tiled Letter pages", "Multi-Page Poster Splitter"],
+          ],
+        },
+        children: [
+          {
+            level: 3,
+            text: "Choosing glossy vs matte inkjet paper",
+            paragraphs: [
+              "Choose microporous glossy or satin pearl 240–270 gsm photo sheets for wall frames and family snapshots, or switch to bright matte presentation cardstock when framing behind reflective glass or making school projects.",
+            ],
+            inlineLinks: [
+              { targetId: "B06", anchor: "a4 inkjet photo paper" },
+              { targetId: "H13", anchor: "print 4x6 photos at home" },
+            ],
+          },
+          {
+            level: 3,
+            text: "Avoiding involuntary driver crops",
+            paragraphs: [
+              "Home operating system print wizards frequently enable Borderless Overscan (~3–4% zoom), stretching biometric 35 × 45 mm passport head heights out of compliance. Exporting a locked-margin PDF and printing at Actual Size (100%) prevents unwanted crops across Windows 11, macOS, and Photoshop workflows.",
+            ],
+            inlineLinks: [
+              { targetId: "H03", anchor: "how to print multiple images on one page in photoshop" },
+              { targetId: "H04", anchor: "how to print multiple pictures on one page epson iprint" },
+            ],
+          },
+        ],
+      },
+      {
+        level: 2,
         text: "Frequently asked questions",
         children: [
           {
@@ -759,6 +801,46 @@ export const HOME_AND_HUB_CONTENT: Partial<Record<PageId, PageContent>> = {
       },
       {
         level: 2,
+        text: "Business card size, stock weight & sheet matrix",
+        paragraphs: [
+          "Match regional card dimensions cleanly to your paper tray and choose opaque cardstock thickness rated smoothly for your home feed path.",
+        ],
+        table: {
+          headers: ["Region / Standard", "Trim Size", "Sheet Grid Yield", "Compatible Packs"],
+          rows: [
+            ["US & Canada Standard", "3.5 × 2 in (88.9 × 50.8 mm)", "10 per Letter (2×5)", "Avery 5371 / 8371 / 8871 / 28878"],
+            ["UK & Europe ISO", "85 × 55 mm", "10 per A4 (2×5)", "Avery C32011 / Plain A4 300 gsm"],
+            ["Australia & India Visiting", "90 × 50 mm / 90 × 55 mm", "10 per A4 (2×5)", "Plain 280–350 gsm matte board"],
+            ["Oversized Guillotine Margin", "85 × 55 mm + 4 mm gap", "8 per Sheet (2×4)", "DIY Heavy Stock with bleed"],
+          ],
+        },
+        children: [
+          {
+            level: 3,
+            text: "Home inkjets vs digital copy shops",
+            paragraphs: [
+              "Short runs of 20 to 100 matte or silk-coated cards cost just pennies per sheet on a rear-feed pigment inkjet compared with shipping waits at commercial litho shops.",
+            ],
+            inlineLinks: [
+              { targetId: "B09", anchor: "home business card printer" },
+              { targetId: "H08", anchor: "print double sided business cards at home" },
+            ],
+          },
+          {
+            level: 3,
+            text: "Exporting Canva & InDesign card designs",
+            paragraphs: [
+              "Keep names, phone numbers, and vector QR badges inset 3 mm inside card borders so single-card exports tile seamlessly onto crisp 10-up PDFs.",
+            ],
+            inlineLinks: [
+              { targetId: "H06", anchor: "how to print multiple business cards on one sheet indesign" },
+              { targetId: "B08", anchor: "creative business card design ideas" },
+            ],
+          },
+        ],
+      },
+      {
+        level: 2,
         text: "Frequently asked questions",
         children: [
           {
@@ -947,6 +1029,48 @@ export const HOME_AND_HUB_CONTENT: Partial<Record<PageId, PageContent>> = {
             inlineLinks: [{ targetId: "G09", anchor: "avery template 28878" }],
             paragraphs: [
               "Decode common five-digit template numbers and match compatible non-brand label sheets without extra software.",
+            ],
+          },
+        ],
+      },
+      {
+        level: 2,
+        text: "Common A4 label grid & sticker sheet chart",
+        paragraphs: [
+          "Reference the exact cell dimensions and per-sheet capacities for everyday A4 mailing, warehouse SKU barcode, name badge, and round vinyl sticker sheets.",
+        ],
+        table: {
+          headers: ["Sheet Code / Type", "Grid Matrix", "Label Size", "Ideal Use Case"],
+          rows: [
+            ["L7160 / J8160 Address", "3 × 7 (21 per A4)", "63.5 × 38.1 mm", "Return mailers, pantry tubs, FBA boxes"],
+            ["L7163 / Shipping", "2 × 7 (14 per A4)", "99.1 × 38.1 mm", "Parcel courier labels, folders"],
+            ["L7165 / Event Badges", "2 × 4 (8 per A4)", "99.1 × 67.7 mm", "Conference name tags, large parcels"],
+            ["L7159 / SKU Barcodes", "3 × 8 (24 per A4)", "63.5 × 33.9 mm", "Code 128 & EAN-13 inventory tags"],
+            ["Circle Sticker Matrix", "4 × 6 / 5 × 7", "25 to 63.5 mm dia.", "Tamper seals, jar lids, bakery closures"],
+            ["Full-Sheet Uncut Vinyl", "Custom Grid", "Up to 200 × 287 mm", "Cricut Print-Then-Cut & custom kiss-cuts"],
+          ],
+        },
+        children: [
+          {
+            level: 3,
+            text: "Choosing adhesive stock that lasts",
+            paragraphs: [
+              "Pair uncoated matte label packs with laser or office inkjet mailers, or upgrade to coated A4 printable waterproof vinyl paired with cold laminate when stickers face moisture, bottle coolers, or frequent outdoor handling.",
+            ],
+            inlineLinks: [
+              { targetId: "B12", anchor: "a4 sticker paper officeworks" },
+              { targetId: "B11", anchor: "custom sticker sheet printing" },
+            ],
+          },
+          {
+            level: 3,
+            text: "Matching barcodes and attendee badges",
+            paragraphs: [
+              "Preserve clean white quiet zones around SKU barcodes on 24-up sheets and keep large, high-contrast attendee typography centered inside 8-up adhesive or cardstock event name tags.",
+            ],
+            inlineLinks: [
+              { targetId: "T21", anchor: "barcode sticker a4 sheet" },
+              { targetId: "T23", anchor: "free name tag maker" },
             ],
           },
         ],
@@ -1144,6 +1268,49 @@ export const HOME_AND_HUB_CONTENT: Partial<Record<PageId, PageContent>> = {
             ],
             paragraphs: [
               "Inspiration for food jars, gift spreads, backyard honey batches, and small-batch candle workflows.",
+            ],
+          },
+        ],
+      },
+      {
+        level: 2,
+        text: "Jar, candle & bottle wrap size chart",
+        paragraphs: [
+          "Measure the flat cylinder height between curved jar shoulders and heel before converting container diameter into exact wraparound strip widths (Circumference = pi × Diameter − 4 mm seam gap).",
+        ],
+        table: {
+          headers: ["Container Style", "Common Volume", "Suggested Front Label", "Lid Circle Match"],
+          rows: [
+            ["Spice Shaker Glass", "100 ml (3.4 oz)", "48 × 30 mm / 50 × 35 mm", "38 mm Circle"],
+            ["4 oz Honey / Jam Hex", "110–190 ml", "52 × 40 mm Front", "50–55 mm Circle"],
+            ["8 oz Regular Mason", "240–250 ml", "65 × 55 mm Front", "60–65 mm Lid Insert"],
+            ["16 oz Wide Mason", "475 ml", "82 × 54 mm Oval / Wrap", "75–80 mm Wide Lid"],
+            ["8 oz Candle Tumbler", "230 ml", "75 × 60 mm Front / 215 mm Wrap", "38 mm Base Warning"],
+            ["750 ml Wine / 330 ml Beer", "330–750 ml", "90 × 105 mm / 95 × 75 mm", "12–15 mm Neck Collar"],
+            ["10 ml Oil Dropper Vial", "5–15 ml", "45 × 20 mm Full Wrap", "N/A"],
+          ],
+        },
+        children: [
+          {
+            level: 3,
+            text: "Preventing bubbles and lifting seams",
+            paragraphs: [
+              "Wipe curved glass bottles with isopropyl alcohol to strip mold release oils, stick labels strictly across cylindrical straight-wall zones, and avoid stretching across compound shoulder curves.",
+            ],
+            inlineLinks: [
+              { targetId: "G10", anchor: "4 oz jar label template" },
+              { targetId: "H14", anchor: "jar label template word" },
+            ],
+          },
+          {
+            level: 3,
+            text: "Small-batch candle & beverage finishes",
+            paragraphs: [
+              "Use textured cream matte paper on dry soy candle tumblers or switch to waterproof BOPP vinyl and laser polyester for chilled condiment, kombucha, and gift bottle runs.",
+            ],
+            inlineLinks: [
+              { targetId: "B02", anchor: "best label printer for candles" },
+              { targetId: "B10", anchor: "candy jar labels template free" },
             ],
           },
         ],

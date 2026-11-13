@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Printer } from "lucide-react";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 
 export function SiteFooter() {
   return (
@@ -7,14 +7,11 @@ export function SiteFooter() {
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1 space-y-3">
-            <Link href="/" className="inline-flex items-center gap-2.5 text-zinc-950">
-              <span
-                aria-hidden="true"
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-[#3f6212]"
-              >
-                <Printer className="h-4 w-4" />
-              </span>
-              <span className="text-sm font-bold tracking-tight">Print Sheet Maker</span>
+            <Link
+              href="/"
+              className="inline-flex items-center hover:opacity-85 transition"
+            >
+              <BrandLogo size="footer" />
             </Link>
             <p className="text-xs leading-relaxed text-zinc-600">
               Free browser-based print layout tools for A4, A3, Letter, and 4×6 sheets. No sign-up required; all PDF rendering runs locally on your device.
@@ -205,7 +202,26 @@ export function SiteFooter() {
           </nav>
         </div>
 
-        <div className="mt-10 rounded-2xl bg-white p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-zinc-600">
+        <div className="mt-8 pt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-600">
+          <span className="font-bold text-zinc-950">Browse Resources:</span>
+          <Link href="/guides/" className="hover:text-[#3f6212] font-medium transition">
+            Print Size Guides
+          </Link>
+          <Link href="/how-to/" className="hover:text-[#3f6212] font-medium transition">
+            Step-by-Step Print Tutorials
+          </Link>
+          <Link href="/blog/" className="hover:text-[#3f6212] font-medium transition">
+            Print Blog &amp; Comparisons
+          </Link>
+          <Link
+            href="/photo-sheets/passport-photo-sheet-maker/"
+            className="hover:text-[#3f6212] font-medium transition"
+          >
+            Passport Photo Sheet Maker
+          </Link>
+        </div>
+
+        <div className="mt-6 rounded-2xl bg-white p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-zinc-600">
           <p>
             Independent print layout utility. Not affiliated with Avery, Canva, Cricut, Epson, Adobe, Microsoft, Kodak, or any third-party brand mentioned in compatibility guides.
           </p>

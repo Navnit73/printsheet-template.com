@@ -826,7 +826,7 @@ export function PassportSheetTool({
   );
 
   return (
-    <div className="rounded-3xl bg-[#f5f5f7] p-4 sm:p-6 space-y-4">
+    <div className="rounded-3xl bg-[#f5f5f7] p-3 sm:p-4 lg:p-5 space-y-3">
       <input
         ref={fileInputRef}
         type="file"
@@ -836,50 +836,50 @@ export function PassportSheetTool({
         className="hidden"
       />
 
-      {/* TOP BAR: Flat Borderless Upload Bar */}
+      {/* TOP BAR: Compact Flat Borderless Upload Bar */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`rounded-2xl p-4 sm:p-5 transition-colors ${
+        className={`rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 transition-colors ${
           isDragging ? "bg-[#eef6e4]" : "bg-white"
         }`}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <div
               aria-hidden="true"
-              className="w-11 h-11 rounded-xl bg-[#eef6e4] text-[#3f6212] flex items-center justify-center shrink-0"
+              className="w-9 h-9 rounded-xl bg-[#eef6e4] text-[#3f6212] flex items-center justify-center shrink-0"
             >
-              <Upload className="w-5 h-5" strokeWidth={1.75} />
+              <Upload className="w-4 h-4" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm sm:text-base font-bold tracking-tight text-zinc-950">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <p className="text-xs sm:text-sm font-bold tracking-tight text-zinc-950 truncate">
                   {imageSrc
                     ? "Passport Photo Loaded on Sheet"
-                    : "Upload Your Passport Photo (Drag & Drop or Choose File)"}
+                    : "Upload Your Passport Photo"}
                 </p>
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-semibold text-[#365314]">
-                  <Sparkles aria-hidden="true" className="w-3 h-3 text-[#3f6212]" />
-                  100% Private In-Browser
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#eef6e4] px-2 py-0.5 text-[10px] font-semibold text-[#365314] shrink-0">
+                  <Sparkles aria-hidden="true" className="w-2.5 h-2.5 text-[#3f6212]" />
+                  100% Private
                 </span>
               </div>
-              <p className="text-xs text-zinc-600 mt-0.5 leading-relaxed">
+              <p className="text-[11px] text-zinc-600 truncate">
                 {imageSrc
-                  ? `Formatted to ${photoWidthMm} × ${photoHeightMm} mm (${activePhotoCount} copies on ${currentPaper.shortName}).`
-                  : "Supports JPG, PNG, WebP. Select your country size & paper below—your live 300 DPI sheet updates instantly."}
+                  ? `${photoWidthMm} × ${photoHeightMm} mm · ${activePhotoCount} copies on ${currentPaper.shortName}`
+                  : "Drag & drop JPG, PNG, or WebP — live 300 DPI sheet updates instantly."}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="min-h-[38px] px-4 py-2.5 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] text-white font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition cursor-pointer"
+              className="min-h-[36px] px-3.5 py-1.5 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
-              <Upload aria-hidden="true" className="w-4 h-4" />
+              <Upload aria-hidden="true" className="w-3.5 h-3.5" />
               <span>{imageSrc ? "Change Photo" : "Choose Photo"}</span>
             </button>
 
@@ -887,7 +887,7 @@ export function PassportSheetTool({
               <button
                 type="button"
                 onClick={handleLoadSample}
-                className="min-h-[38px] px-3.5 py-2.5 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800 font-semibold text-xs sm:text-sm transition cursor-pointer"
+                className="min-h-[36px] px-3 py-1.5 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800 font-semibold text-xs inline-flex items-center justify-center transition cursor-pointer"
               >
                 Try Sample Photo
               </button>
@@ -896,7 +896,7 @@ export function PassportSheetTool({
                 type="button"
                 onClick={handleReset}
                 aria-label="Clear uploaded photo"
-                className="min-h-[38px] px-3 py-2.5 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-700 font-semibold text-xs sm:text-sm inline-flex items-center gap-1.5 transition cursor-pointer"
+                className="min-h-[36px] px-3 py-1.5 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-700 font-semibold text-xs inline-flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <RotateCcw aria-hidden="true" className="w-3.5 h-3.5" />
                 <span>Clear</span>
@@ -907,278 +907,287 @@ export function PassportSheetTool({
       </div>
 
       {/* MAIN STUDIO WORKSPACE: CONTROLS + LIVE PRINT PREVIEW */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* LEFT COLUMN: COUNTRY, PAPER, LAYOUT & EXPORT CONTROLS */}
-        <div className="lg:col-span-5 space-y-3.5">
-          {/* 1. Country / ID Standard Selection */}
-          <div className="rounded-2xl bg-white p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold tracking-tight text-zinc-950">
-                1. Country &amp; Photo Size
-              </p>
-              <span className="font-mono text-[11px] font-bold text-[#365314] bg-[#eef6e4] px-2.5 py-0.5 rounded-full">
-                {photoWidthMm} × {photoHeightMm} mm
-              </span>
-            </div>
-
-            <div
-              role="group"
-              aria-label="Passport photo country standard"
-              className="grid grid-cols-1 sm:grid-cols-2 gap-2"
-            >
-              {PASSPORT_STANDARDS.map((std) => {
-                const active = photoStandardId === std.id;
-                return (
-                  <button
-                    key={std.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => setPhotoStandardId(std.id)}
-                    className={`p-3 rounded-xl text-left transition cursor-pointer ${
-                      active
-                        ? "bg-[#eef6e4] text-zinc-950"
-                        : "bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-zinc-950 truncate">
-                        <span aria-hidden="true">{std.flag} </span>
-                        {std.regionCode}
-                      </span>
-                      <span
-                        className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
-                          active
-                            ? "bg-white text-[#365314]"
-                            : "bg-white text-zinc-700"
-                        }`}
-                      >
-                        {std.widthMm}×{std.heightMm}
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-zinc-600 block truncate mt-0.5">
-                      {std.name}
-                    </span>
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                aria-pressed={photoStandardId === "custom"}
-                onClick={() => setPhotoStandardId("custom")}
-                className={`p-3 rounded-xl text-left transition cursor-pointer ${
-                  photoStandardId === "custom"
-                    ? "bg-[#eef6e4] text-zinc-950"
-                    : "bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-xs font-bold text-zinc-950">
-                    Custom Size
-                  </span>
-                  <span className="font-mono text-[10px] font-bold text-zinc-700 bg-white px-1.5 py-0.5 rounded-md">
-                    {safeCustomW}×{safeCustomH}
-                  </span>
-                </div>
-                <span className="text-[11px] text-zinc-600 block truncate mt-0.5">
-                  Any width × height (mm)
-                </span>
-              </button>
-            </div>
-
-            {photoStandardId === "custom" && (
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <label
-                  htmlFor="passport-custom-width-mm"
-                  className="text-[11px] font-bold text-zinc-700 block"
-                >
-                  Width (mm)
-                  <input
-                    id="passport-custom-width-mm"
-                    type="number"
-                    min={15}
-                    max={120}
-                    value={customPhotoWidth}
-                    onChange={(e) =>
-                      setCustomPhotoWidth(Number(e.target.value))
-                    }
-                    className="mt-1 w-full bg-[#f5f5f7] rounded-xl px-3 py-2 text-xs font-mono text-zinc-950"
-                  />
-                </label>
-                <label
-                  htmlFor="passport-custom-height-mm"
-                  className="text-[11px] font-bold text-zinc-700 block"
-                >
-                  Height (mm)
-                  <input
-                    id="passport-custom-height-mm"
-                    type="number"
-                    min={15}
-                    max={120}
-                    value={customPhotoHeight}
-                    onChange={(e) =>
-                      setCustomPhotoHeight(Number(e.target.value))
-                    }
-                    className="mt-1 w-full bg-[#f5f5f7] rounded-xl px-3 py-2 text-xs font-mono text-zinc-950"
-                  />
-                </label>
-              </div>
-            )}
-          </div>
-
-          {/* 2. Paper Format & Copies */}
-          <div className="rounded-2xl bg-white p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold tracking-tight text-zinc-950">
-                2. Paper Sheet Size
-              </p>
-              <button
-                type="button"
-                aria-label={`Toggle paper orientation (currently ${orientation})`}
-                onClick={() =>
-                  setOrientation(
-                    orientation === "landscape" ? "portrait" : "landscape"
-                  )
-                }
-                className="min-h-[32px] inline-flex items-center gap-1.5 rounded-full bg-[#f5f5f7] px-3 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-[#ebeced] cursor-pointer"
-              >
-                <RefreshCw aria-hidden="true" className="w-3 h-3 text-[#3f6212]" />
-                <span className="capitalize">{orientation}</span>
-              </button>
-            </div>
-
-            <div
-              role="group"
-              aria-label="Paper sheet size"
-              className="grid grid-cols-2 sm:grid-cols-3 gap-2"
-            >
-              {PASSPORT_PAPER_SIZES.map((paper) => {
-                const active = paperSizeId === paper.id;
-                return (
-                  <button
-                    key={paper.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => handlePaperChange(paper.id)}
-                    className={`p-2.5 rounded-xl text-left transition cursor-pointer ${
-                      active
-                        ? "bg-[#eef6e4] text-zinc-950"
-                        : "bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-bold text-xs text-zinc-950">
-                        {paper.shortName}
-                      </span>
-                      {paper.badge && (
-                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-white text-[#365314]">
-                          {paper.badge}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-zinc-600 font-mono block mt-0.5">
-                      {paper.widthMm}×{paper.heightMm}mm
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Copies & Cut Guides */}
-            <div className="pt-2 space-y-2.5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+        {/* LEFT COLUMN (CONTROLS & EXPORT) — Single Unified Compact Panel */}
+        <div className="order-2 lg:order-1 lg:col-span-7 xl:col-span-6 rounded-2xl bg-white p-3.5 sm:p-4 flex flex-col justify-between gap-3">
+          <div className="space-y-3">
+            {/* 1. Country / ID Standard Selection */}
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-zinc-700">
-                  Photos on Sheet
-                </span>
-                <span className="text-xs font-mono font-bold text-zinc-950">
-                  {activePhotoCount} / {maxCapacity} max
+                <p className="text-xs font-bold tracking-tight text-zinc-950">
+                  1. Country &amp; Photo Size
+                </p>
+                <span className="font-mono text-[11px] font-bold text-[#365314] bg-[#eef6e4] px-2 py-0.5 rounded-full">
+                  {photoWidthMm} × {photoHeightMm} mm
                 </span>
               </div>
+
               <div
                 role="group"
-                aria-label="Number of photos on sheet"
-                className="flex items-center gap-1.5"
+                aria-label="Passport photo country standard"
+                className="grid grid-cols-2 sm:grid-cols-3 gap-1.5"
               >
-                {copyPresets.map((count) => {
-                  const isSelected = activePhotoCount === count;
+                {PASSPORT_STANDARDS.map((std) => {
+                  const active = photoStandardId === std.id;
                   return (
                     <button
-                      key={count}
+                      key={std.id}
                       type="button"
-                      aria-pressed={isSelected}
-                      onClick={() =>
-                        setPhotoCountOverride(
-                          count === maxCapacity ? null : count
-                        )
-                      }
-                      className={`min-h-[34px] flex-1 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                        isSelected
-                          ? "bg-zinc-950 text-white"
-                          : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced]"
+                      aria-pressed={active}
+                      onClick={() => setPhotoStandardId(std.id)}
+                      className={`min-h-[44px] px-2.5 py-2 rounded-xl text-left transition cursor-pointer ${
+                        active
+                          ? "bg-[#eef6e4] text-zinc-950"
+                          : "bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800"
                       }`}
                     >
-                      {count} {count === maxCapacity ? "(Max)" : ""}
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[11px] sm:text-xs font-bold text-zinc-950 truncate">
+                          <span aria-hidden="true">{std.flag} </span>
+                          {std.regionCode}
+                        </span>
+                        <span
+                          className={`font-mono text-[9.5px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
+                            active
+                              ? "bg-white text-[#365314]"
+                              : "bg-white text-zinc-700"
+                          }`}
+                        >
+                          {std.widthMm}×{std.heightMm}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-zinc-600 block truncate mt-0.5">
+                        {std.name}
+                      </span>
                     </button>
                   );
                 })}
-              </div>
 
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-xs font-semibold text-zinc-700">
-                  Cut Guides
-                </span>
                 <button
                   type="button"
-                  aria-expanded={showAdvancedSpacing}
-                  onClick={() => setShowAdvancedSpacing(!showAdvancedSpacing)}
-                  className="min-h-[32px] inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-[#3f6212] hover:bg-[#f5f5f7] cursor-pointer"
+                  aria-pressed={photoStandardId === "custom"}
+                  onClick={() => setPhotoStandardId("custom")}
+                  className={`min-h-[44px] px-2.5 py-2 rounded-xl text-left transition cursor-pointer ${
+                    photoStandardId === "custom"
+                      ? "bg-[#eef6e4] text-zinc-950"
+                      : "bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800"
+                  }`}
                 >
-                  <SlidersHorizontal aria-hidden="true" className="w-3 h-3" />
-                  <span>
-                    {showAdvancedSpacing
-                      ? "Hide Margin/Gap"
-                      : `Margin ${marginMm}mm · Gap ${gapMm}mm`}
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] sm:text-xs font-bold text-zinc-950 truncate">
+                      Custom Size
+                    </span>
+                    <span className="font-mono text-[9.5px] font-bold text-zinc-700 bg-white px-1.5 py-0.5 rounded-md shrink-0">
+                      {safeCustomW}×{safeCustomH}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-zinc-600 block truncate mt-0.5">
+                    Any width × height (mm)
                   </span>
+                </button>
+              </div>
+
+              {photoStandardId === "custom" && (
+                <div className="grid grid-cols-2 gap-2 pt-0.5">
+                  <label
+                    htmlFor="passport-custom-width-mm"
+                    className="text-[11px] font-bold text-zinc-700 block"
+                  >
+                    Width (mm)
+                    <input
+                      id="passport-custom-width-mm"
+                      type="number"
+                      min={15}
+                      max={120}
+                      value={customPhotoWidth}
+                      onChange={(e) =>
+                        setCustomPhotoWidth(Number(e.target.value))
+                      }
+                      className="mt-1 w-full bg-[#f5f5f7] rounded-xl px-3 py-1.5 text-xs font-mono text-zinc-950"
+                    />
+                  </label>
+                  <label
+                    htmlFor="passport-custom-height-mm"
+                    className="text-[11px] font-bold text-zinc-700 block"
+                  >
+                    Height (mm)
+                    <input
+                      id="passport-custom-height-mm"
+                      type="number"
+                      min={15}
+                      max={120}
+                      value={customPhotoHeight}
+                      onChange={(e) =>
+                        setCustomPhotoHeight(Number(e.target.value))
+                      }
+                      className="mt-1 w-full bg-[#f5f5f7] rounded-xl px-3 py-1.5 text-xs font-mono text-zinc-950"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Paper Format, Copies & Cut Guides */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold tracking-tight text-zinc-950">
+                  2. Paper Sheet Size &amp; Layout
+                </p>
+                <button
+                  type="button"
+                  aria-label={`Toggle paper orientation (currently ${orientation})`}
+                  onClick={() =>
+                    setOrientation(
+                      orientation === "landscape" ? "portrait" : "landscape"
+                    )
+                  }
+                  className="min-h-[30px] inline-flex items-center gap-1.5 rounded-full bg-[#f5f5f7] px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-[#ebeced] cursor-pointer"
+                >
+                  <RefreshCw aria-hidden="true" className="w-3 h-3 text-[#3f6212]" />
+                  <span className="capitalize">{orientation}</span>
                 </button>
               </div>
 
               <div
                 role="group"
-                aria-label="Cut guide style"
-                className="grid grid-cols-4 gap-1.5"
+                aria-label="Paper sheet size"
+                className="grid grid-cols-3 sm:grid-cols-5 gap-1.5"
               >
-                {(
-                  [
-                    { id: "corner", label: "Corner" },
-                    { id: "dashed", label: "Dashed" },
-                    { id: "solid", label: "Solid" },
-                    { id: "none", label: "None" },
-                  ] as const
-                ).map((style) => {
-                  const isSelected = guideStyle === style.id;
+                {PASSPORT_PAPER_SIZES.map((paper) => {
+                  const active = paperSizeId === paper.id;
                   return (
                     <button
-                      key={style.id}
+                      key={paper.id}
                       type="button"
-                      aria-pressed={isSelected}
-                      onClick={() => setGuideStyle(style.id)}
-                      className={`min-h-[34px] py-2 px-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                        isSelected
-                          ? "bg-[#eef6e4] text-[#365314] font-bold"
-                          : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced]"
+                      aria-pressed={active}
+                      onClick={() => handlePaperChange(paper.id)}
+                      className={`min-h-[42px] px-2 py-1.5 rounded-xl text-left transition cursor-pointer ${
+                        active
+                          ? "bg-[#eef6e4] text-zinc-950"
+                          : "bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800"
                       }`}
                     >
-                      {style.label}
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-bold text-[11px] text-zinc-950 truncate">
+                          {paper.shortName}
+                        </span>
+                        {paper.badge && (
+                          <span className="hidden xl:inline-block text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-white text-[#365314] shrink-0">
+                            {paper.badge}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[9.5px] text-zinc-600 font-mono block truncate mt-0.5">
+                        {paper.widthMm}×{paper.heightMm}mm
+                      </span>
                     </button>
                   );
                 })}
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-zinc-700">
+                      Photos on Sheet
+                    </span>
+                    <span className="text-[11px] font-mono font-bold text-zinc-950">
+                      {activePhotoCount} / {maxCapacity} max
+                    </span>
+                  </div>
+                  <div
+                    role="group"
+                    aria-label="Number of photos on sheet"
+                    className="flex items-center gap-1"
+                  >
+                    {copyPresets.map((count) => {
+                      const isSelected = activePhotoCount === count;
+                      return (
+                        <button
+                          key={count}
+                          type="button"
+                          aria-pressed={isSelected}
+                          aria-label={`${count} photos${count === maxCapacity ? " (maximum)" : ""}`}
+                          onClick={() =>
+                            setPhotoCountOverride(
+                              count === maxCapacity ? null : count
+                            )
+                          }
+                          className={`min-h-[34px] flex-1 py-1.5 px-1 rounded-xl text-[11px] font-bold transition cursor-pointer ${
+                            isSelected
+                              ? "bg-zinc-950 text-white"
+                              : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced]"
+                          }`}
+                        >
+                          {count}
+                          {count === maxCapacity ? " max" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-zinc-700">
+                      Cut Guides
+                    </span>
+                    <button
+                      type="button"
+                      aria-expanded={showAdvancedSpacing}
+                      onClick={() =>
+                        setShowAdvancedSpacing(!showAdvancedSpacing)
+                      }
+                      className="inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[11px] font-semibold text-[#3f6212] hover:bg-[#f5f5f7] cursor-pointer"
+                    >
+                      <SlidersHorizontal aria-hidden="true" className="w-3 h-3" />
+                      <span>
+                        {showAdvancedSpacing
+                          ? "Hide Spacing"
+                          : `${marginMm}/${gapMm}mm`}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div
+                    role="group"
+                    aria-label="Cut guide style"
+                    className="grid grid-cols-4 gap-1"
+                  >
+                    {(
+                      [
+                        { id: "corner", label: "Corner" },
+                        { id: "dashed", label: "Dashed" },
+                        { id: "solid", label: "Solid" },
+                        { id: "none", label: "None" },
+                      ] as const
+                    ).map((style) => {
+                      const isSelected = guideStyle === style.id;
+                      return (
+                        <button
+                          key={style.id}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => setGuideStyle(style.id)}
+                          className={`min-h-[34px] py-1.5 px-1 rounded-xl text-[11px] font-semibold transition cursor-pointer ${
+                            isSelected
+                              ? "bg-[#eef6e4] text-[#365314] font-bold"
+                              : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced]"
+                          }`}
+                        >
+                          {style.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               {showAdvancedSpacing && (
-                <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="grid grid-cols-2 gap-2.5 pt-0.5">
                   <label
                     htmlFor="passport-gap-mm"
-                    className="block rounded-xl bg-[#f5f5f7] p-2.5"
+                    className="block rounded-xl bg-[#f5f5f7] p-2"
                   >
                     <div className="flex justify-between text-[11px] font-semibold text-zinc-700 mb-1">
                       <span>Gap</span>
@@ -1198,7 +1207,7 @@ export function PassportSheetTool({
                   </label>
                   <label
                     htmlFor="passport-margin-mm"
-                    className="block rounded-xl bg-[#f5f5f7] p-2.5"
+                    className="block rounded-xl bg-[#f5f5f7] p-2"
                   >
                     <div className="flex justify-between text-[11px] font-semibold text-zinc-700 mb-1">
                       <span>Margin</span>
@@ -1222,7 +1231,7 @@ export function PassportSheetTool({
           </div>
 
           {/* 3. Export & Print Controls */}
-          <div className="rounded-2xl bg-white p-4 sm:p-5 space-y-3">
+          <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold tracking-tight text-zinc-950">
                 3. Download or Print Sheet
@@ -1235,13 +1244,13 @@ export function PassportSheetTool({
             <div
               role="group"
               aria-label="Export file format"
-              className="grid grid-cols-3 gap-2"
+              className="grid grid-cols-3 gap-1.5"
             >
               {(
                 [
-                  { id: "pdf", title: "PDF", sub: "Home Print" },
-                  { id: "jpeg", title: "JPEG", sub: "Photo Kiosk" },
-                  { id: "png", title: "PNG", sub: "Lossless" },
+                  { id: "pdf", title: "PDF", shortSub: "Home", sub: "Home Print" },
+                  { id: "jpeg", title: "JPEG", shortSub: "Kiosk", sub: "Photo Kiosk" },
+                  { id: "png", title: "PNG", shortSub: "Lossless", sub: "Lossless" },
                 ] as const
               ).map((fmt) => {
                 const isSelected = exportFormat === fmt.id;
@@ -1251,71 +1260,74 @@ export function PassportSheetTool({
                     type="button"
                     aria-pressed={isSelected}
                     onClick={() => setExportFormat(fmt.id)}
-                    className={`p-2.5 rounded-xl text-left transition cursor-pointer ${
+                    className={`min-h-[34px] px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-1 transition cursor-pointer ${
                       isSelected
                         ? "bg-[#eef6e4] text-zinc-950"
                         : "bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800"
                     }`}
                   >
-                    <span className="font-bold text-xs text-zinc-950 block">
+                    <span className="font-bold text-xs text-zinc-950">
                       {fmt.title}
                     </span>
-                    <span className="text-[10px] text-zinc-600 block">
-                      {fmt.sub}
+                    <span className="text-[10px] text-zinc-600 truncate">
+                      <span className="sm:hidden">{fmt.shortSub}</span>
+                      <span className="hidden sm:inline">{fmt.sub}</span>
                     </span>
                   </button>
                 );
               })}
             </div>
 
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={isExporting}
-              className="w-full py-3 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] disabled:bg-zinc-200 disabled:text-zinc-600 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
-            >
-              <Download aria-hidden="true" className="w-4 h-4" />
-              <span>
-                {isExporting
-                  ? "Generating Sheet..."
-                  : `Download ${exportFormat.toUpperCase()} Sheet (${activePhotoCount} Photos)`}
-              </span>
-            </button>
-
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 type="button"
-                onClick={handlePrint}
-                className="min-h-[38px] py-2.5 px-3 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-900 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                onClick={handleExport}
+                disabled={isExporting}
+                className="flex-1 min-h-[42px] py-2.5 px-4 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] disabled:bg-zinc-200 disabled:text-zinc-600 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                <Printer aria-hidden="true" className="w-3.5 h-3.5 text-[#3f6212]" />
-                <span>Print 1:1 Scale</span>
+                <Download aria-hidden="true" className="w-4 h-4 shrink-0" />
+                <span>
+                  {isExporting
+                    ? "Generating Sheet..."
+                    : `Download ${exportFormat.toUpperCase()} (${activePhotoCount} Photos)`}
+                </span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="min-h-[38px] py-2.5 px-3 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-900 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                {copied ? (
-                  <>
-                    <CheckCheck aria-hidden="true" className="w-3.5 h-3.5 text-[#3f6212]" />
-                    <span className="text-[#365314] font-bold">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy aria-hidden="true" className="w-3.5 h-3.5 text-zinc-700" />
-                    <span>Copy Image</span>
-                  </>
-                )}
-              </button>
+              <div className="grid grid-cols-2 sm:flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="min-h-[38px] sm:min-h-[42px] py-2 px-3 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-900 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <Printer aria-hidden="true" className="w-3.5 h-3.5 text-[#3f6212]" />
+                  <span>Print 1:1</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="min-h-[38px] sm:min-h-[42px] py-2 px-3 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-900 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  {copied ? (
+                    <>
+                      <CheckCheck aria-hidden="true" className="w-3.5 h-3.5 text-[#3f6212]" />
+                      <span className="text-[#365314] font-bold">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy aria-hidden="true" className="w-3.5 h-3.5 text-zinc-700" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {statusMessage && (
               <div
                 role="status"
                 aria-live="polite"
-                className="rounded-xl bg-[#eef6e4] px-3.5 py-2.5 text-xs font-medium text-[#365314]"
+                className="rounded-xl bg-[#eef6e4] px-3 py-2 text-xs font-medium text-[#365314]"
               >
                 {statusMessage}
               </div>
@@ -1324,42 +1336,43 @@ export function PassportSheetTool({
         </div>
 
         {/* RIGHT COLUMN: LIVE 300 DPI PRINT PREVIEW STAGE — Flat Borderless Surface */}
-        <div className="lg:col-span-7 rounded-2xl bg-white p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-zinc-600 text-xs mb-3">
-            <div className="flex items-center gap-2 font-mono text-[11px]">
+        <div className="order-1 lg:order-2 lg:col-span-5 xl:col-span-6 rounded-2xl bg-white p-3.5 sm:p-4 flex flex-col justify-between h-full">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-zinc-600 text-xs mb-2.5">
+            <div className="flex items-center gap-2 font-mono text-[11px] min-w-0">
               <span
                 aria-hidden="true"
                 className="inline-block w-2 h-2 rounded-full bg-[#4d7c0f] shrink-0"
               />
-              <span className="text-zinc-950 font-bold">
+              <span className="text-zinc-950 font-bold truncate">
                 Live Print Preview (300 DPI)
               </span>
-              <span aria-hidden="true" className="text-zinc-600">
+              <span aria-hidden="true" className="text-zinc-600 hidden sm:inline">
                 ·
               </span>
-              <span className="text-zinc-600">{currentPaper.name}</span>
+              <span className="text-zinc-600 hidden sm:inline truncate">
+                {currentPaper.shortName}
+              </span>
             </div>
 
-            <span className="rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-mono text-[#365314] font-semibold">
+            <span className="rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-mono text-[#365314] font-semibold shrink-0">
               {activePhotoCount} × ({photoWidthMm}×{photoHeightMm} mm)
             </span>
           </div>
 
-          <div className="w-full flex items-center justify-center p-4 sm:p-6 min-h-[260px] sm:min-h-[420px] max-h-[540px] overflow-hidden bg-[#f5f5f7] rounded-2xl">
+          <div className="w-full flex-1 flex items-center justify-center p-3 sm:p-5 min-h-[180px] sm:min-h-[300px] lg:min-h-[350px] overflow-hidden bg-[#f5f5f7] rounded-xl">
             <canvas
               ref={canvasRef}
               role="img"
               aria-label={`Live 300 DPI print sheet preview showing ${activePhotoCount} passport photos (${photoWidthMm} by ${photoHeightMm} mm) on ${currentPaper.name}`}
-              className="max-w-full max-h-[340px] sm:max-h-[460px] w-auto h-auto rounded-lg bg-white"
+              className="max-w-full max-h-[195px] sm:max-h-[320px] lg:max-h-[380px] xl:max-h-[410px] w-auto h-auto rounded-lg bg-white"
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-600 mt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-600 mt-2.5">
             <div className="flex items-center gap-1.5">
               <Info aria-hidden="true" className="w-3.5 h-3.5 text-[#3f6212] shrink-0" />
               <span>
-                Verify head height &amp; background rules with your passport
-                office. Print at{" "}
+                Verify background &amp; head size rules. Print at{" "}
                 <strong className="text-zinc-900">100% Actual Size</strong>.
               </span>
             </div>

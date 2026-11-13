@@ -29,67 +29,266 @@ interface PhotoToolSpecInput {
   relatedH3s: { targetId: PageId; anchor: string; desc: string }[];
 }
 
+const PHOTO_TOOL_TAILOR: Record<
+  string,
+  {
+    stepsLead: string;
+    uploadHint: string;
+    gridHint: string;
+    orientHint: string;
+    gapHint: string;
+    cropHint: string;
+    exportHint: string;
+    presetsIntro: string;
+    settingsLead: string;
+    trayNote: string;
+    scale100: string;
+    marginRule: string;
+    pdfVsJpg: string;
+    projectsLead: string;
+    projectVerb: (proj: string) => string;
+    tipsLead: string;
+    tipVerb: (tip: string) => string;
+  }
+> = {
+  T01: {
+    stepsLead: "Arrange mixed portrait and landscape images onto one sheet inside your browser in four quick steps—no layout software needed.",
+    uploadHint: "Batch-select 3, 6, 8, 9, or 10 JPG, PNG, or WebP pictures directly from desktop folders or phone camera rolls.",
+    gridHint: "Tap the 2×2, 3×2, 3×3, or 5×2 preset grid matching how many photos you want per A4, A3, or Letter page.",
+    orientHint: "Match sheet orientation (Portrait vs Landscape) to whether most uploaded shots are tall verticals or wide horizontals.",
+    gapHint: "Use a 4–8 mm cut gutter when separating individual prints with scissors, or set 0–2 mm spacing for tight contact-sheet catalogs.",
+    cropHint: "Choose Crop to Fill for sleek equal rectangles, or switch to Fit Whole to preserve full wide-angle edges without trimming.",
+    exportHint: "Download the locked-scale PDF and print at 100% / Actual Size so multi-photo frames hold clean, uniform proportions.",
+    presetsIntro: "Each preset calculates multi-up photo frames and margins automatically so 3 to 10 pictures balance across the sheet.",
+    settingsLead: "Even crisp multi-photo sheets shrink asymmetrically if browser PDF drivers override margins. Lock these tray settings first.",
+    trayNote: "Confirm A4, A3, or US Letter selection in your print dialog matches the exact paper pack sitting in your inkjet tray.",
+    scale100: "Turn off Fit to Printable Area or Shrink Oversized Pages so your calculated photo grid holds exact printed centimetres.",
+    marginRule: "Keep an 8–10 mm outer sheet margin when printing onto borderless-incapable office trays so outer photo rims are never clipped.",
+    pdfVsJpg: "Native PDF locks millimeter frame placement across copy shops and laptops, whereas raw JPG files depend on erratic DPI tags.",
+    projectsLead: "Grouping multiple shots onto one A4 or A3 sheet cuts specialty glossy photo paper costs sharply across everyday projects.",
+    projectVerb: (p) => `Consolidating photos for ${p.toLowerCase()} onto a single master PDF speeds up cutting and keeps frame widths consistent.`,
+    tipsLead: "Apply these quick pre-print checks to keep skin tones accurate and frame edges crisp on heavyweight photo paper.",
+    tipVerb: (tip) => `Prioritizing "${tip.toLowerCase()}" saves glossy ink sheets from awkward aspect-ratio clipping or soft 72 DPI stretching.`,
+  },
+  T02: {
+    stepsLead: "Fit two generous half-page photos (~13 × 18 cm / 5 × 7 in equivalent) onto one sheet cleanly in four steps.",
+    uploadHint: "Drop two high-resolution portraits or landscapes from your device—both slots resize cleanly without uploading to any server.",
+    gridHint: "Select the 2-photo stack on Landscape or Portrait A4/Letter to maximize printed photo area for framing and albums.",
+    orientHint: "Switch to Landscape paper for two upright 5×7 portrait shots side-by-side, or Portrait paper for two wide horizontal frames.",
+    gapHint: "Keep a crisp 6–10 mm center cutter gutter so a single straight slice splits both 5×7-sized prints cleanly down the middle.",
+    cropHint: "Pick Cover to fill each generous half-page frame symmetrically, or Contain to keep the complete camera sensor ratio visible.",
+    exportHint: "Export the two-photo PDF and print at 100% scale on heavyweight 200+ gsm glossy or luster photo paper.",
+    presetsIntro: "Our 2-up templates turn one economical A4 sheet into two clear 5×7-equivalent display photos with one straight cut.",
+    settingsLead: "Two-photo sheets span nearly the full paper area, so driver Shrink-to-Fit margins create noticeable uneven side borders.",
+    trayNote: "Verify A4 (210 × 297 mm) or US Letter cardstock selection matches your glossy pack before sending the two-up job.",
+    scale100: "Print strictly at Actual Size (100%) so both half-page frames drop straight into standard 5×7-inch and 13×18 cm picture frames.",
+    marginRule: "Maintain at least a 5 mm perimeter margin unless using dedicated Borderless Glossy mode on a rear-feed photo printer.",
+    pdfVsJpg: "Exporting a 2-up PDF keeps both embedded images crisp at print time without macOS Preview or Windows Photos re-compressing detail.",
+    projectsLead: "Printing two photos per page halves photo paper waste when making gift portraits, portfolio spreads, and greeting inserts.",
+    projectVerb: (p) => `A 2-up sheet sizes ${p.toLowerCase()} comfortably for wall frames and clean desk stands with minimal paper trimming.`,
+    tipsLead: "Run these simple half-page photo checks so dual prints come off glossy sheets balanced and ready for a straight middle cut.",
+    tipVerb: (tip) => `Taking a moment to "${tip.toLowerCase()}" guarantees two evenly centered prints without uneven top or bottom borders.`,
+  },
+  T03: {
+    stepsLead: "Arrange four crisp quadrant photos (~9 × 13 cm each) across one A4 or Letter page with a clean cross-cut guide.",
+    uploadHint: "Load four favorite travel shots, product photos, or event highlights directly into the live 2×2 preview workspace.",
+    gridHint: "Activate the classic 2×2 quadrant preset or switch to a 4-strip column layout for narrow photo-booth bookmarks.",
+    orientHint: "Keep Portrait orientation for vertical 3:4/2:3 phone snapshots, or toggle Landscape when printing four wide DSLR scenes.",
+    gapHint: "A 4–6 mm white cross gutter creates classic gallery borders and leaves forgiving tolerance for sliding a paper trimmer.",
+    cropHint: "Toggle Crop to Fill so all four quadrants match identical rectangle heights, or Fit Whole for mixed portrait/landscape ratios.",
+    exportHint: "Click Download Print-Ready PDF and run it at 100% scale onto A4 photo glossy or matte presentation paper.",
+    presetsIntro: "Each 4-photo grid balances vertical and horizontal symmetry so just one crosswise and one lengthwise cut finishes all four prints.",
+    settingsLead: "With four quadrants sharing vertical height, fit-to-page driver squeezing leaves thinner left-right borders than top-bottom.",
+    trayNote: "Lock the same paper size (A4 or US Letter) in both browser tool controls and your operating system print dialog.",
+    scale100: "Force 100% / Actual Size scaling so all four prints measure uniform ~9 × 13 cm dimensions ready for small desktop frames.",
+    marginRule: "A 6–8 mm outer page border keeps corner frames safely inside non-borderless office laser and home inkjet mechanical feed paths.",
+    pdfVsJpg: "PDF delivery holds crisp white border symmetry across Windows and macOS print queues where JPG photo wizards add auto-crops.",
+    projectsLead: "Four-up sheets hit the sweet spot between vivid snapshot detail and economical ink-per-print cost for craft projects.",
+    projectVerb: (p) => `Four-quadrant formatting keeps ${p.toLowerCase()} uniform in scale and quick to slice in under thirty seconds.`,
+    tipsLead: "Use these four-shot formatting habits to keep color consistency and straight cuts clean across every 2×2 print.",
+    tipVerb: (tip) => `Remembering to "${tip.toLowerCase()}" prevents mismatched image orientations from turning side-by-side quadrants sideways.`,
+  },
+  T04: {
+    stepsLead: "Repeat one image 4, 6, 8, 9, 12, or 16 times across a single page in one step-and-repeat pass.",
+    uploadHint: "Select your master portrait, logo badge, QR flyer, or product card once—the repeat engine populates every slot instantly.",
+    gridHint: "Choose how many identical copies you need per sheet (from 2 large flyers to 16 crisp wallet-sized giveaways).",
+    orientHint: "Flip sheet orientation between Portrait and Landscape to test which grid yields higher print yield per A4 page.",
+    gapHint: "Set 0 mm hairline touch cuts when using a rotary trimmer cleanly, or add 3–5 mm spacing between thick bordered badges.",
+    cropHint: "Lock exact aspect preservation so copying an image 9 or 16 times never squashes logos or portraits out of round.",
+    exportHint: "Download one compact PDF containing your entire repeated sheet and save it for instant future re-runs.",
+    presetsIntro: "Step-and-repeat presets tile one high-res image edge-to-edge without duplicating gigabytes of redundant file uploads.",
+    settingsLead: "Step-and-repeat grids need identical millimeter pitch on every copy—make sure print drivers do not auto-shrink outer rows.",
+    trayNote: "Double check tray settings (A4 photo matte vs Letter glossy) so repeated wallet sheets match your cardstock pack.",
+    scale100: "Disable Fit to Page so repeated wallet prints, locker stickers, or loyalty cards keep consistent exact measurements.",
+    marginRule: "Allow a 5–6 mm tray grip margin around the sheet perimeter so printer rollers never drag ink across corner duplicate tiles.",
+    pdfVsJpg: "Step-and-repeat PDF reuses one clean embedded image resource rather than saving lower-quality screenshots.",
+    projectsLead: "Repeating one picture per sheet eliminates repetitive copy-pasting inside Word or slide decks whenever handing out dozens.",
+    projectVerb: (p) => `Batch tiling turns ${p.toLowerCase()} into a fast one-sheet job rather than printing wasteful single pictures.`,
+    tipsLead: "Quick resolution and trimming reminders when tiling one master photograph many times per sheet.",
+    tipVerb: (tip) => `Taking time to "${tip.toLowerCase()}" ensures the twelfth cut copy looks just as balanced and unclipped as the first.`,
+  },
+  T05: {
+    stepsLead: "Enlarge one high-resolution image across 2×2 (4 pages), 3×3 (9 pages), or 4×4 (16 pages) with clean alignment overlap.",
+    uploadHint: "Load your sharpest original poster image, classroom chart, or pattern file straight into the multi-page tile slicer.",
+    gridHint: "Choose 2×2 (4 A4 sheets ≈ A2 size), 3×3 (9 sheets), or 4×4 (16 sheets) to set target physical wall dimensions.",
+    orientHint: "Match tile page orientation to your poster shape—tall vertical portraits slice efficiently onto Portrait A4 tiles.",
+    gapHint: "Configure a 10–15 mm overlap margin (instead of blank gap) so neighboring paper edges tape flat behind the trimmed seam.",
+    cropHint: "Let the slicer proportionally fill the target poster canvas cleanly so no edge tile prints half-empty white strips.",
+    exportHint: "Export the multi-page poster PDF, verify Actual Size (100%), and assemble tiles row by row with matte tape.",
+    presetsIntro: "Poster tiling calculates proportional pixel slicing and optional overlap glue tabs automatically across 4 to 16 printer sheets.",
+    settingsLead: "A tiny 2% scale difference breaks poster grid seams across 3-foot spans—lock 100% actual scaling before printing all tiles.",
+    trayNote: "Feed identical plain 100–160 gsm A4 or Letter matte presentation paper throughout the entire multi-page run.",
+    scale100: "Select Actual Size (100%) strictly—Shrink to Printable Area creates thin white gaps inside tiled seam edges.",
+    marginRule: "Keep trim marks enabled along sheet edges so a steel ruler slices right down the 5 mm overlap boundary cleanly.",
+    pdfVsJpg: "Multi-page vector PDF delivers numbered tile pages in exact row-column order so assembly on the floor takes minutes.",
+    projectsLead: "Desktop poster splitting turns an ordinary home printer into a large-format wall banner, sewing pattern, or event backdrop generator.",
+    projectVerb: (p) => `Multi-page tiling makes oversized ${p.toLowerCase()} achievable on standard office paper without commercial plotter wait times.`,
+    tipsLead: "Essential pixel-density and seam-taping practices so tiled wall prints look unified from normal viewing distance.",
+    tipVerb: (tip) => `Remembering to "${tip.toLowerCase()}" avoids soft pixel blocks when enlarging photos across 4 or 9 joined sheets.`,
+  },
+  T06: {
+    stepsLead: "Arrange 35 × 45 mm (EU/UK/IN/AU) or 2 × 2 inch (US/India Visa) passport photos onto one compliant A4 sheet.",
+    uploadHint: "Choose your crisp plain-background ID portrait—nothing leaves your computer, keeping personal biometric photos completely private.",
+    gridHint: "Pick the exact country preset (UK 35×45 mm, US 2×2 in, Schengen 35×45 mm) to fit 8, 12, or 20 photos onto A4/Letter.",
+    orientHint: "Leave A4 sheets in standard Portrait layout so multiple neat rows of 35 × 45 mm ID photos fit with clean trimming corridors.",
+    gapHint: "Keep 4–6 mm white spacing plus corner cut marks between passport frames so scissor cuts never bite into shoulders.",
+    cropHint: "Align the live crop box carefully so eye level and crown-to-chin proportions satisfy official country passport biometric rules.",
+    exportHint: "Export the calibration PDF and print strictly at 100% scale with Borderless turned OFF on glossy photo paper.",
+    presetsIntro: "Calibrated government dimension presets enforce exact 35 × 45 mm and 51 × 51 mm bounding boxes directly in PDF coordinates.",
+    settingsLead: "Embassies and passport offices reject prints off by even 2–3 mm—follow every 100% scaling setting rigidly.",
+    trayNote: "Confirm physical A4 photo paper vs US Letter cardstock selection carefully so scale never compresses vertically.",
+    scale100: "Disable Fit to Page and Borderless overscan—even 3% borderless enlargement pushes head heights outside official biometric zones.",
+    marginRule: "Maintain a generous 10–12 mm page outer margin so home inkjet rollers keep sheet corners completely flat and un-skewed.",
+    pdfVsJpg: "Exporting exact-scale PDF prevents kiosk or Windows print dialogs from arbitrarily cropping 35 × 45 mm photos into wide 4:3 slots.",
+    projectsLead: "Generating multiple biometric ID copies at home saves high photo-booth charges across passports, visas, rail passes, and badges.",
+    projectVerb: (p) => `A curated multi-up A4 ID sheet handles ${p.toLowerCase()} with crisp backup copies left in your travel folder.`,
+    tipsLead: "Critical government inspection checks—lighting, matte vs gloss stock, and millimeter verification with a ruler—before mailing.",
+    tipVerb: (tip) => `Making sure you "${tip.toLowerCase()}" protects applications from frustrating biometric template rejections.`,
+  },
+  T07: {
+    stepsLead: "Place 4 or 6 official passport photos onto a single cheap 4 × 6 inch (10 × 15 cm) drugstore or home photo sheet.",
+    uploadHint: "Drop your compliant passport portrait cleanly inside the browser—zero third-party uploads of sensitive identity pictures.",
+    gridHint: "Pick 6× European/UK 35 × 45 mm photos per 4×6 sheet, or 6× compact 2 × 2 inch US frames carefully packed onto 4×6.",
+    orientHint: "Switch the 4×6 template to Landscape for three-across columns of tall 35 × 45 mm photos (2 rows × 3 columns = 6 prints).",
+    gapHint: "Allow small 2–3 mm cut corridors between ID blocks, trimming cleanly with a steel straightedge after kiosk pickup.",
+    cropHint: "Verify neutral grey/off-white background lighting and balanced shoulder symmetry inside each preview box before exporting.",
+    exportHint: "Save as a crisp PDF (or high-DPI image if uploading to a 4×6 lab print kiosk) and select uncropped 4×6 printing.",
+    presetsIntro: "Our 4×6 passport sheet templates pack the maximum legal photo count onto the cheapest single photo-lab print format worldwide.",
+    settingsLead: "Photo kiosks often apply subtle 'Auto-Crop' edge zoom by default unless you disable borderless zoom at checkout.",
+    trayNote: "Set paper to exact 4 × 6 inch (101.6 × 152.4 mm) when loading mini glossy trays in Canon Selphy, Epson, or HP Envy printers.",
+    scale100: "Keep 100% Actual Size scale active; Borderless auto-expansion zooms a 4×6 print ~3% and slightly enlarges the 35 × 45 mm frame.",
+    marginRule: "Leave at least a 2–3 mm safety margin around the 4×6 outer rim so kiosk roller cutters never trim outer head edges.",
+    pdfVsJpg: "Home inkjet printers honor exact millimeters via PDF; retail lab kiosks accept 1200 × 1800 px at 100% 'do not crop' mode.",
+    projectsLead: "Packing 4–6 ID prints onto a single 4×6 kiosk sheet routinely turns a \$15 booth fee into a \$0.35 print.",
+    projectVerb: (p) => `Lab-sized 4×6 templates let you complete ${p.toLowerCase()} locally using any drugstore photo terminal.`,
+    tipsLead: "Ruler-verify finished 4×6 passport prints at home before cutting apart and submitting with official forms.",
+    tipVerb: (tip) => `Remembering to "${tip.toLowerCase()}" avoids kiosk over-cropping slicing off the sides of 2 × 2 inch photos.`,
+  },
+  T08: {
+    stepsLead: "Generate clean 1-up, 2-up, or 4-up printable layouts scaled exactly for 4 × 6 inch (101.6 × 152.4 mm / 4R) paper.",
+    uploadHint: "Load one showcase photo or two to four snapshots for multi-up 4×6 glossy postcard printing.",
+    gridHint: "Select single full-bleed 4×6, split 2-up 3×4 inch pockets, or 4-up wallet grids tuned specifically for 4R paper.",
+    orientHint: "Match Landscape 4×6 orientation for wide 3:2 DSLR photos, or Portrait 4×6 for vertical smartphone snaps.",
+    gapHint: "Add crisp 3–5 mm classic Polaroid-style white framing borders around edges, or tighten spacing to 2 mm for crisp splits.",
+    cropHint: "Check Crop to Fill carefully on 4:3 phone photos—3:2 4×6 paper trims roughly 10% off the top and bottom unless Fit Whole is on.",
+    exportHint: "Download exact 4×6 PDF coordinates or double-up two 4R images onto one A4 sheet when printing at home.",
+    presetsIntro: "Each 4×6 preset respects the true 2:3 (101.6 × 152.4 mm) aspect ratio and protects image edges from aggressive lab trims.",
+    settingsLead: "Most modern smartphone cameras shoot 4:3 rather than 3:2—choosing the right Fit mode preserves important photo heads and corners.",
+    trayNote: "Feed 4×6-inch rear photo tray glossy sheets with the glossy coated side facing according to your printer feeder icon.",
+    scale100: "Use Actual Size (100%) with manual borders if framing in standard 4×6 mats, or subtle borderless mode only for scenery without text.",
+    marginRule: "Keep a minimum 4 mm white margin around split 2-up 3×4 mini-prints so separating them leaves clean edges.",
+    pdfVsJpg: "PDF output handles calibrated white margins around 4R frames reliably across both home trays and photo-center uploads.",
+    projectsLead: "Pre-framed 4×6 sheets make scrapbook pockets, fridge magnets, recipe cards, and thank-you postcards effortless to batch print.",
+    projectVerb: (p) => `Dedicated 4R geometry fits ${p.toLowerCase()} smoothly into standard 4×6 archival sleeves without awkward trimming.`,
+    tipsLead: "Small ratio and ink-drying tips for clean, fingerprint-free glossy 4×6 home prints.",
+    tipVerb: (tip) => `Habitually making sure you "${tip.toLowerCase()}" keeps smartphone edges intact on classic 3:2 4×6 paper.`,
+  },
+  T09: {
+    stepsLead: "Combine 2, 4, 6, or 9 photos into a tight, balanced 4 × 6 inch postcard collage sized cleanly for instant printing.",
+    uploadHint: "Select 2 to 9 JPG/PNG snapshots at once and drag or cycle slots until colors and faces sit evenly balanced.",
+    gridHint: "Pick clean 2×1, 2×2, 3×2, or 3×3 collage matrices engineered cleanly around 101.6 × 152.4 mm 4R dimensions.",
+    orientHint: "Switch the 4×6 collage canvas between Portrait and Landscape depending on whether it lands in a vertical or horizontal frame.",
+    gapHint: "Adjust crisp interior collage frame lines from tight 1.5 mm mosaic gaps up to generous 5 mm gallery-style white separators.",
+    cropHint: "Preview cell framing up close before exporting so faces inside skinny collage strips stay centered cleanly.",
+    exportHint: "Export at full print scale (300 DPI equivalent PDF) ready for local pharmacy print pickup or home rear-tray feeding.",
+    presetsIntro: "Balanced 4×6 collage templates automate even inner gutters and clean outer postcard margins with zero manual ruler nudging.",
+    settingsLead: "Dense 6-up and 9-up collages on tiny 4×6 cards look cluttered if thick printer auto-borders squeeze inner cells.",
+    trayNote: "Specify 4 × 6 inch / 4R Borderless or Minimal-Margin setting when sending 4×6 collage sheets to color inkjets.",
+    scale100: "Print at 100% scale (avoid extreme overscan zoom) so edge mosaic shots on 4×6 collages do not clip against frame mats.",
+    marginRule: "Keeping a clean 4 mm outer white border around the whole 4×6 collage guarantees framing mats never cover edge tiles.",
+    pdfVsJpg: "PDF collage layout stays ultra sharp at 1200 × 1800 px equivalent resolution without messaging-app compression blur.",
+    projectsLead: "Mini 4×6 collages make affordable photo booth keepsakes, seasonal postcards, mood snippets, and locker pin-ups.",
+    projectVerb: (p) => `Compact 4×6 grids turn ${p.toLowerCase()} into affordable, album-ready story cards in seconds.`,
+    tipsLead: "Visual curation tips so crowded 4×6 postcard collages remain balanced and clear rather than visually noisy.",
+    tipVerb: (tip) => `Remembering to "${tip.toLowerCase()}" gives tiny 4×6 collage tiles cleaner breathing room inside multi-photo frames.`,
+  },
+  T10: {
+    stepsLead: "Arrange 4, 6, 9, or 12 memories into an economical full-size A4 (210 × 297 mm) collage ready for desk or wall framing.",
+    uploadHint: "Batch-load up to 12 photos straight from laptop folders or phones—process stays entirely offline inside your tab.",
+    gridHint: "Choose symmetric 2×2, 3×2, 3×3, or 4×3 A4 grids with optional clean gallery borders around every tile.",
+    orientHint: "Portrait A4 suits classic multi-row scrapbooks and year-in-review posters, while Landscape A4 creates cinema-like grids.",
+    gapHint: "Add 6–10 mm crisp gallery white spacing between tiles so each individual memory stands out distinctly inside large frames.",
+    cropHint: "Use Cycle & Fit controls carefully per tile so panoramic groups fit comfortably alongside close-up portraits.",
+    exportHint: "Export exact 210 × 297 mm A4 PDF at crisp print quality—zero login or corner watermarks attached.",
+    presetsIntro: "Large-canvas A4 collage layouts calculate mathematical border spacing across full 2480 × 3508 px print resolution.",
+    settingsLead: "Full-page A4 collages fill home trays completely—set crisp matte or glossy paper profiles so colors match screen brightness.",
+    trayNote: "Confirm standard ISO A4 paper selection (not US Letter) so balanced 10 mm top/bottom gallery margins stay equal.",
+    scale100: "Disable browser Fit-to-Page shrinkage so your finished A4 collage fills standard 21 × 29.7 cm IKEA and craft frames cleanly.",
+    marginRule: "Reserve 10–12 mm outer page breathing space so plastic frame rabbet lips never hide outer tile corners.",
+    pdfVsJpg: "Full-page A4 PDF preserves fine facial sharpness across 9 to 12 sub-images simultaneously at 300 DPI quality.",
+    projectsLead: "A4 collages give birthdays, travel milestones, and classroom boards impressive wall presence at a fraction of lab canvas prices.",
+    projectVerb: (p) => `Full-sheet A4 compositing makes ${p.toLowerCase()} frame-ready directly off an ordinary home color inkjet.`,
+    tipsLead: "Simple composition and paper weight advice so home-printed A4 collages never curl inside wall frames.",
+    tipVerb: (tip) => `Ensuring you "${tip.toLowerCase()}" stops dark ink coverage from warping lightweight office paper on multi-photo A4 collages.`,
+  },
+};
+
 function buildPhotoToolContent(spec: PhotoToolSpecInput): PageContent {
+  const t = PHOTO_TOOL_TAILOR[spec.id] ?? PHOTO_TOOL_TAILOR.T01;
   const sections: HeadingNode[] = [
     {
       level: 2,
       text: spec.h2Steps,
-      paragraphs: [
-        "Everything runs directly in your browser with zero software installation or registration. Follow the four steps below to build your sheet and export a print-ready PDF.",
-      ],
+      paragraphs: [t.stepsLead],
       children: [
         {
           level: 3,
           text: spec.steps[0],
-          paragraphs: [
-            "Select JPG, PNG, or WebP files from your computer or phone, or click Load Samples to test the layout immediately without preparing local images.",
-          ],
+          paragraphs: [t.uploadHint],
         },
         {
           level: 3,
           text: spec.steps[1],
-          paragraphs: [
-            "Pick the preset button above the workspace that matches your photo count and paper stock, then adjust margins and gutters with the sliders.",
-          ],
+          paragraphs: [t.gridHint],
           children: [
             {
               level: 4,
               text: spec.step2Sub[0],
-              paragraphs: [
-                "Switch between Portrait and Landscape in the toolbar to match the natural orientation of your images and paper tray.",
-              ],
+              paragraphs: [t.orientHint],
             },
             {
               level: 4,
               text: spec.step2Sub[1],
-              paragraphs: [
-                "Use 3–10 mm spacing between images when trimming prints apart, or tighten spacing to 0–2 mm for compact contact-sheet albums.",
-              ],
+              paragraphs: [t.gapHint],
             },
           ],
         },
         {
           level: 3,
           text: spec.steps[2],
-          paragraphs: [
-            "Toggle Crop to Fill for uniform edge-to-edge rectangles, or Fit Whole when every millimetre of the original frame must remain uncropped. Enable Cut marks to draw fine corner guides.",
-          ],
+          paragraphs: [t.cropHint],
         },
         {
           level: 3,
           text: spec.steps[3],
-          paragraphs: [
-            "Click Download Print-Ready PDF. When sending the PDF to your printer, always select Actual Size or 100% Scale in the print dialog so your sheet stays dimensionally accurate.",
-          ],
+          paragraphs: [t.exportHint],
         },
       ],
     },
     {
       level: 2,
       text: spec.h2Layouts,
-      paragraphs: [
-        "Each preset below configures the sheet grid, aspect ratio, and printable margin automatically while keeping manual overrides one click away.",
-      ],
+      paragraphs: [t.presetsIntro],
       children: spec.presets.map((p) => ({
         level: 3 as const,
         text: p.name,
@@ -103,9 +302,7 @@ function buildPhotoToolContent(spec: PhotoToolSpecInput): PageContent {
     {
       level: 2,
       text: spec.h2Settings,
-      paragraphs: [
-        "Even a carefully arranged photo sheet can shrink or shift if the printer driver applies automatic fit-to-page scaling. Use the reference settings below to keep dimensions exact.",
-      ],
+      paragraphs: [t.settingsLead],
       children: [
         {
           level: 3,
@@ -114,9 +311,7 @@ function buildPhotoToolContent(spec: PhotoToolSpecInput): PageContent {
             {
               level: 4,
               text: spec.paperNote,
-              paragraphs: [
-                "Confirm that the paper size chosen inside the tool matches the physical paper loaded in your printer tray before printing.",
-              ],
+              paragraphs: [t.trayNote],
             },
           ],
         },
@@ -127,16 +322,12 @@ function buildPhotoToolContent(spec: PhotoToolSpecInput): PageContent {
             {
               level: 4,
               text: "Print at 100% or Actual Size",
-              paragraphs: [
-                "Disable 'Fit to Printable Area' or 'Shrink Oversized Pages' in Adobe Reader, Preview, or your browser PDF viewer.",
-              ],
+              paragraphs: [t.scale100],
             },
             {
               level: 4,
               text: "Keep a safe margin",
-              paragraphs: [
-                "Most desktop inkjets leave a 3–5 mm unprintable border unless Borderless mode is enabled. Keeping a 5–10 mm margin prevents clipped edges.",
-              ],
+              paragraphs: [t.marginRule],
             },
           ],
         },
@@ -152,9 +343,7 @@ function buildPhotoToolContent(spec: PhotoToolSpecInput): PageContent {
             {
               level: 4,
               text: "PDF versus JPG output",
-              paragraphs: [
-                "PDF locks exact physical dimensions in millimetres across every printer and copy shop, whereas raw JPGs often rely on inconsistent printer DPI defaults.",
-              ],
+              paragraphs: [t.pdfVsJpg],
             },
           ],
         },
@@ -163,32 +352,24 @@ function buildPhotoToolContent(spec: PhotoToolSpecInput): PageContent {
     {
       level: 2,
       text: spec.h2Projects,
-      paragraphs: [
-        "Saving multiple photos onto a single physical sheet reduces paper and photo-ink waste while giving you consistent border sizes across every print.",
-      ],
+      paragraphs: [t.projectsLead],
       children: spec.projects.map((proj) => ({
         level: 3 as const,
         text: proj,
-        paragraphs: [
-          `Using this layout keeps ${proj.toLowerCase()} tidy, evenly spaced, and ready to trim or place straight into folders, albums, or envelopes.`,
-        ],
+        paragraphs: [t.projectVerb(proj)],
       })),
     },
     {
       level: 2,
       text: "Tips for cleaner, sharper prints",
-      paragraphs: [
-        "Check these three quick pre-flight habits before printing onto glossy or heavyweight photo sheets.",
-      ],
+      paragraphs: [t.tipsLead],
       inlineLinks: [
         { targetId: "G01", anchor: "how to print many pictures on one page" },
       ],
-      children: spec.tips.map((t) => ({
+      children: spec.tips.map((tip) => ({
         level: 3 as const,
-        text: t,
-        paragraphs: [
-          `Following this step (${t.toLowerCase()}) eliminates common home-printing headaches like uneven white borders or soft resolution.`,
-        ],
+        text: tip,
+        paragraphs: [t.tipVerb(tip)],
       })),
     },
     {
@@ -300,6 +481,11 @@ export const PHOTO_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         desc: "Dedicated 2×2 and 4-strip maker for four-photo sheets.",
       },
       {
+        targetId: "T04",
+        anchor: "print picture multiple times on one page",
+        desc: "Duplicate one photo across 4 to 16 identical wallet or tag slots.",
+      },
+      {
         targetId: "T10",
         anchor: "a4 collage maker",
         desc: "Build decorative A4 collages with titles and custom borders.",
@@ -308,6 +494,21 @@ export const PHOTO_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "T05",
         anchor: "print big picture on multiple pages",
         desc: "Split one large photo into multi-page wall poster tiles.",
+      },
+      {
+        targetId: "B01",
+        anchor: "software to print multiple photos on one page",
+        desc: "Compare browser photo grid makers with desktop print apps.",
+      },
+      {
+        targetId: "H03",
+        anchor: "how to print multiple images on one page in photoshop",
+        desc: "Compare Lightroom and Photoshop Contact Sheet II against browser grids.",
+      },
+      {
+        targetId: "H04",
+        anchor: "how to print multiple pictures on one page epson iprint",
+        desc: "Walk through mobile multi-photo layouts with Epson iPrint vs A4 PDF.",
       },
     ],
   }),
@@ -590,6 +791,11 @@ export const PHOTO_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "T06",
         anchor: "passport photo sheet maker",
         desc: "Locked 35 × 45 mm and 2 × 2 inch sheets for official IDs.",
+      },
+      {
+        targetId: "B01",
+        anchor: "app to arrange photos for printing",
+        desc: "Review free vs paid software options for multi-photo print sheets.",
       },
     ],
   }),
@@ -966,6 +1172,16 @@ export const PHOTO_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         anchor: "print multiple 4x6 photos on one page",
         desc: "Learn how two 4×6 (4R) prints fit onto a single A4 page.",
       },
+      {
+        targetId: "H13",
+        anchor: "print 4x6 photos at home",
+        desc: "Step-by-step glossy paper feeder and driver setup guide for 4R prints.",
+      },
+      {
+        targetId: "B06",
+        anchor: "a4 inkjet photo paper",
+        desc: "Compare glossy, matte, and satin photo paper when cutting 4×6 from A4.",
+      },
     ],
   }),
 
@@ -1059,6 +1275,11 @@ export const PHOTO_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         anchor: "4x6 photo booth template",
         desc: "See a wedding photographer workflow for 4×6 photo-booth strips.",
       },
+      {
+        targetId: "H04",
+        anchor: "epson print multiple photos on one page",
+        desc: "See how Epson Wi-Fi mobile apps print 4×6 collage files cleanly.",
+      },
     ],
   }),
 
@@ -1151,6 +1372,16 @@ export const PHOTO_TOOLS_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "T05",
         anchor: "print big picture on multiple pages",
         desc: "Split one big collage or image into a multi-page wall poster.",
+      },
+      {
+        targetId: "G02",
+        anchor: "how to print a big picture on multiple pages",
+        desc: "Learn tile overlap and DPI limits when scaling wall collages past A4.",
+      },
+      {
+        targetId: "H03",
+        anchor: "photoshop print multiple images on one page",
+        desc: "Follow our Adobe Photoshop & Lightroom grid export tutorial.",
       },
     ],
   }),

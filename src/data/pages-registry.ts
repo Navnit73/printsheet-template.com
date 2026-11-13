@@ -9,6 +9,7 @@ import {
   SITE_URL,
   getPageByUrl,
 } from "@/data/site-meta";
+import { getOgImageUrl } from "@/lib/seo-urls";
 import { HOME_AND_HUB_CONTENT } from "@/data/content-home-hubs";
 import { PHOTO_TOOLS_CONTENT } from "@/data/content-tools-photo";
 import { CARD_TOOLS_CONTENT } from "@/data/content-tools-cards";
@@ -80,7 +81,8 @@ export function getRouteSlugs(prefix: string): Array<{ slug: string }> {
 export function buildPageMetadata(id: PageId): Metadata {
   const meta = PAGES_META[id];
   const canonicalUrl = `${SITE_URL}${meta.url}`;
-  const ogImageUrl = `${SITE_URL}/opengraph-image`;
+  const ogImageUrl = getOgImageUrl(meta);
+  const shouldIndex = !meta.isCaseStudyScaffold;
   const isArticle =
     meta.type === "Guide" ||
     meta.type === "How-To" ||
@@ -95,23 +97,27 @@ export function buildPageMetadata(id: PageId): Metadata {
     keywords: [meta.primaryKeyword, ...(meta.secondaryKeywords || [])],
     alternates: {
       canonical: meta.url,
-      languages: {
-        "en-US": meta.url,
-        en: meta.url,
-        "x-default": meta.url,
-      },
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-video-preview": -1,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-      },
-    },
+    robots: shouldIndex
+      ? {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+          },
+        }
+      : {
+          index: false,
+          follow: true,
+          googleBot: {
+            index: false,
+            follow: true,
+          },
+        },
     openGraph: {
       title: meta.seoTitle,
       description: meta.metaDescription,
@@ -140,7 +146,7 @@ export function buildPageMetadata(id: PageId): Metadata {
 export function buildDynamicMetadata(prefix: string, slug: string): Metadata {
   const match = getPageByRoute(prefix, slug);
   if (!match) {
-    return {};
+    notFound();
   }
   return buildPageMetadata(match.meta.id);
 }

@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState } from "react";
 import { Download, ImagePlus, Scissors, Tag } from "lucide-react";
-import JsBarcode from "jsbarcode";
 import type { PageId } from "@/types/spec";
 import {
   createSamplePhotoDataUrl,
@@ -116,10 +115,11 @@ function getInitialLabelState(pageId: PageId): GridConfig {
   }
 }
 
-function generateBarcodeDataUrl(
+async function generateBarcodeDataUrl(
   code: string,
   format: "CODE128" | "EAN13" | "UPC"
-): string | null {
+): Promise<string | null> {
+  const { default: JsBarcode } = await import("jsbarcode");
   try {
     const canvas = document.createElement("canvas");
     JsBarcode(canvas, code.trim() || "123456789012", {
@@ -313,7 +313,7 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                 { align: "center" }
               );
             }
-            const bcUrl = generateBarcodeDataUrl(item.code, barcodeFormat);
+            const bcUrl = await generateBarcodeDataUrl(item.code, barcodeFormat);
             if (bcUrl) {
               const bw = Math.max(20, grid.labelW - 8);
               const bh = Math.max(12, grid.labelH - 12);

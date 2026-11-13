@@ -60,7 +60,117 @@ interface JarToolInput {
   extraLinks?: InlineLinkRef[];
 }
 
+const JAR_TOOL_TAILOR: Record<
+  string,
+  {
+    gridGeometry: string;
+    hierarchyRule: string;
+    paperLead: string;
+    paperNote: string;
+    scaleSummary: string;
+    scaleDialog: string;
+    safeMargin: string;
+    vectorLead: string;
+    vectorDetail: string;
+    faqIntro: string;
+    moreIntro: string;
+  }
+> = {
+  T24: {
+    gridGeometry: "Rectangles and round toppers stay proportionally spaced on A4 or Letter sheets so pantry sets match uniformly across shelves.",
+    hierarchyRule: "Give primary jar contents bold visual contrast while reserving compact bottom bands for packaging dates and storage guidance.",
+    paperLead: "Set your print canvas to match your adhesive paper pack before measuring wrap widths or round lids.",
+    paperNote: "Use ISO A4 (210 × 297 mm) across UK, Europe, and Australia or US Letter (8.5 × 11 in) in North America so rows align accurately.",
+    scaleSummary: "Even a small shrink-to-fit margin adjustment can make circular toppers too narrow for metal twist lids.",
+    scaleDialog: "Choose Actual Size (100%) in Acrobat or browser PDF dialogs so cylindrical wraparound strips meet cleanly at a 3–5 mm seam.",
+    safeMargin: "Keep net weight, ingredient summaries, and decorative borders 2.5 to 3 mm inside cut guides on home-trimmed jars.",
+    vectorLead: "Clean vector PDF paths prevent soft or ragged outlines around fine jar borders and compact allergen text.",
+    vectorDetail: "Raster screenshots soften small typography; native browser PDFs keep 6–7 pt ingredients razor sharp on coated adhesive sheets.",
+    faqIntro: "Practical answers covering jar diameter measurement, kitchen durability, and print scaling accuracy.",
+    moreIntro: "Jump to dedicated canning, preserve, spice, candle, bottle, or essential oil sheets from the list below.",
+  },
+  T25: {
+    gridGeometry: "Balanced oval, panel, and circle placements mirror Ball and Kerr mason jar flat faces alongside screw-band lid disks.",
+    hierarchyRule: "Keep cultivar names, brine strengths, and canning dates bold and easy to scan in dimly lit root cellars or pantries.",
+    paperLead: "Select the exact cardstock or kraft sticker stock loaded into your rear tray before generating mason jar sheets.",
+    paperNote: "Match US Letter cardstock for standard North American canning sticker packs or A4 matte sheets for UK Kilner and Mason preserves.",
+    scaleSummary: "Percentage shrinkage leaves flat lid circles undersized inside 70 mm regular-mouth and 86 mm wide-mouth screw bands.",
+    scaleDialog: "Disable Fit to Page so regular-mouth (60–65 mm flat center) and wide-mouth (75–80 mm center) lid circles match lid rings closely.",
+    safeMargin: "Keep vintage decorative borders inside a 3 mm inset on textured kraft or embossed mason jar sheets.",
+    vectorLead: "Crisp hairline borders and clean vector lines stand out vividly even on warm unbleached brown kraft label stocks.",
+    vectorDetail: "Vector output prevents feathered dark edges when printing fine mason jar date lines on home inkjet printers.",
+    faqIntro: "Answers tailored to regular-mouth vs wide-mouth mason lids, fridge moisture, and removable freezing adhesives.",
+    moreIntro: "Pair mason jar sets with traditional jam preserves, pantry spice circles, or browse our full Jar & Bottle hub.",
+  },
+  T26: {
+    gridGeometry: "Scalloped preserve panels and narrow shoulder neck seals nest densely to waste minimal sheet paper across large harvest runs.",
+    hierarchyRule: "Allocate distinct vertical zones for harvest year, fruit/floral variety, and net weight so cottage-food stalls display clearly.",
+    paperLead: "Pair paper stock choice with jam warmth—let boiled jars reach room temperature before applying permanent acrylic stickers.",
+    paperNote: "A4 waterproof matte vinyl and coated gloss sheets resist honey drips and sticky spoons cleanly across market tables.",
+    scaleSummary: "Scaling mistakes shrink neck tamper strips short so security seals fail to fold cleanly across hexagonal twist caps.",
+    scaleDialog: "Verify 100% scale before batch printing holiday baskets of 190 ml hex and 370 ml straight jam jars.",
+    safeMargin: "Inset allergen bolding ('Made in a kitchen handling...') 2.5 mm away from scissors cut borders.",
+    vectorLead: "Vector text maintains crisp batch stamps and barcode readability even on small 8 oz honey or preserve testers.",
+    vectorDetail: "Crisp PDF typography lets tiny mandatory producer addresses remain effortlessly legible alongside stylized flavor headers.",
+    faqIntro: "Key cottage food labeling checks, washable jar adhesives, and multi-up preserve yield answers.",
+    moreIntro: "Continue with canning mason jar sheets, kitchen pantry ideas, or return to the parent jar label studio.",
+  },
+  T27: {
+    gridGeometry: "Tightly packed 38 mm round lid circles and compact 48 × 30 mm spice jar fronts fit an entire spice rack onto 1–2 pages.",
+    hierarchyRule: "Make uppercase single-word spice names pop visually so drawer tops scan at a glance while prepping dinner.",
+    paperLead: "Ensure your printer media setting selects heavyweight gloss or vinyl so saturated grease-resistant inks bond cleanly.",
+    paperNote: "Print on ISO A4 or US Letter matte vinyl / coated polyester for cabinet-door and stove-adjacent steam resistance.",
+    scaleSummary: "Even 2 mm scaling drift causes small 38 mm round spice stickers to hang over bevelled magnetic or bamboo jar rims.",
+    scaleDialog: "Lock Actual Size (100%) so circular drawer lids punch cleanly with standard 1.5-inch (38 mm) lever punches.",
+    safeMargin: "Center short spice names vertically inside 38 mm circles with at least 3 mm clearance for multi-word herbs like 'Smoked Paprika'.",
+    vectorLead: "Deep monochrome or rich slate vector fills stay remarkably legible under kitchen under-cabinet LED strips.",
+    vectorDetail: "PDF vector curves keep circular spice borders clean even across dense 24-to-35-up sheet matrices.",
+    faqIntro: "Answers covering 38 mm spice cap fits, kitchen oil splashes, and matching rectangular apothecary bottles.",
+    moreIntro: "Explore full-size glass jars, Microsoft Word spice tables, or dropper vial makers next.",
+  },
+  T28: {
+    gridGeometry: "Coordinated front vessel labels and small round bottom safety decals keep poured soy and beeswax tins retail-ready.",
+    hierarchyRule: "Reserve clean negative space around fragrance notes on front tins while boxing flame safety icons onto vessel bases.",
+    paperLead: "Select textured matte, linen, or smudge-proof laser label stocks engineered to tolerate gentle warmth around candle glass.",
+    paperNote: "Confirm US Letter vs A4 sheet dimensions when pairing commercial Avery round bases with wide apothecary wraparounds.",
+    scaleSummary: "Undersized wraps create uneven gaps on matte black tins while oversized wraps buckle near shoulder tapers.",
+    scaleDialog: "Lock print scale at 100% so measured candle tin circumferences leave an exact, clean 4 mm vertical rear seam gap.",
+    safeMargin: "Keep burn-hour disclosures and warning icons cleanly inside bottom decals to stay well within safety print guidelines.",
+    vectorLead: "High-contrast minimalist vector typography prints cleanly onto matte cream and kraft textured candle labels without bleeding.",
+    vectorDetail: "Vector line rules keep delicate fragrance pyramids and bottom caution symbols sharp down to compact 5 pt text.",
+    faqIntro: "Answers on heat-tolerant candle adhesives, vessel diameter math, and mandatory ASTM/safety bottom decals.",
+    moreIntro: "Compare thermal vs inkjet candle printers or generate matching essential oil room-spray vial labels.",
+  },
+  T29: {
+    gridGeometry: "Tall front-face panels and sleek cylindrical wrap strips calculate cleanly around standard 330 ml beer and 750 ml wine glass.",
+    hierarchyRule: "Place vintage, ABV, and bold brand marks high above curved bottom punts where glass cylinders stay straightest.",
+    paperLead: "Use chill-resistant BOPP vinyl, waterproof polyester, or dry matte uncoated stock depending on ice-bucket immersion plans.",
+    paperNote: "Match landscape or portrait A4 orientation cleanly so wide horizontal wine wraps never clip near unprintable top/bottom margins.",
+    scaleSummary: "Fit-to-page driver scaling disrupts tall wine wrap seam spacing and skews paired front-and-back bottle runs.",
+    scaleDialog: "Print strictly at Actual Size (100%) and let pigment or laser prints set completely before wetting bottle glass or chilling.",
+    safeMargin: "Keep tall bottle borders 3 mm inside straight-wall glass zones to stop corners lifting near bottle shoulders or tapers.",
+    vectorLead: "Rich vector solids and crisp crest lines prevent unsightly inkjet banding across large dark craft-beer wrap areas.",
+    vectorDetail: "Full vector PDFs preserve hairline vintner accents, batch numbers, and small mandatory volume statements on every bottle.",
+    faqIntro: "Guidance on condensation-proof bottle stocks, cold-rinse glue removal, and avoiding tapered glass bubbles.",
+    moreIntro: "Compare dedicated wine printers, step down to small roller vials, or return to the jar & bottle hub.",
+  },
+  T30: {
+    gridGeometry: "Ultra-compact 45 × 20 mm and 50 × 25 mm wrap grids pack up to 48 miniature vial strips cleanly onto a single sheet.",
+    hierarchyRule: "Separate botanical or serum actives clearly from dilution ratios so tiny 10 ml rollers stay safe and effortless to identify.",
+    paperLead: "Print oil-bottle labels strictly onto BOPP vinyl, waterproof synthetic sheets, or laminated inkjets that resist citrus oils.",
+    paperNote: "Tiny 20 mm tall strips require exact sheet tray registration—calibrate A4 vs Letter margins on plain paper first.",
+    scaleSummary: "Even 4% page shrinkage reduces tiny vial wraps short of overlapping seams or squeezes 6 pt oil warnings illegible.",
+    scaleDialog: "Verify 100% scale strictly so miniature wrap lengths hug 16 mm and 22 mm amber glass vial diameters cleanly.",
+    safeMargin: "Keep tiny dilution percentages 2 mm inside trim edges—oil drips smudge uncoated ink near cut boundaries fast.",
+    vectorLead: "Zero-blur vector PDF typography is indispensable when fitting ingredient warnings onto 10 ml essential oil rollers.",
+    vectorDetail: "High-resolution vector PDFs render sharp botanical Latin names down to 5.5–6 pt without blurry pixel staircases.",
+    faqIntro: "Answers on essential-oil resistant films, overlapping vs butt-seam wraps, and small-dropper batch sizing.",
+    moreIntro: "Explore full-size bottle wraps, 38 mm spice lid seals, or the Bottle Label Printer comparison guide.",
+  },
+};
+
 function buildJarToolContent(spec: JarToolInput): PageContent {
+  const t = JAR_TOOL_TAILOR[spec.id] ?? JAR_TOOL_TAILOR.T24;
   const sections: HeadingNode[] = [
     {
       level: 2,
@@ -113,16 +223,12 @@ function buildJarToolContent(spec: JarToolInput): PageContent {
           {
             level: 4 as const,
             text: p.s1,
-            paragraphs: [
-              "Grid geometry locks cell dimensions cleanly to standard A4 and US Letter sheet packs so lids and panels trim evenly.",
-            ],
+            paragraphs: [t.gridGeometry],
           },
           {
             level: 4 as const,
             text: p.s2,
-            paragraphs: [
-              "Keep flavour, scent, weight, and date fields separated cleanly for rapid reading at arm's length.",
-            ],
+            paragraphs: [t.hierarchyRule],
           },
         ],
       })),
@@ -135,39 +241,29 @@ function buildJarToolContent(spec: JarToolInput): PageContent {
         {
           level: 3,
           text: "Page size and orientation",
-          paragraphs: [
-            "Confirm the exact paper standard loaded into your printer before exporting the PDF sheet.",
-          ],
+          paragraphs: [t.paperLead],
           children: [
             {
               level: 4,
               text: "Using A4 or Letter label sheets",
-              paragraphs: [
-                "Select A4 (210 × 297 mm) in the UK, Europe, and Australia, or US Letter (8.5 × 11 in) in North America. Mixing sheet standards causes progressive vertical drift down every row.",
-              ],
+              paragraphs: [t.paperNote],
             },
           ],
         },
         {
           level: 3,
           text: "Scale, margins and bleed",
-          paragraphs: [
-            "Locking print driver scale prevents labels from shrinking narrower than your jar lids or panels.",
-          ],
+          paragraphs: [t.scaleSummary],
           children: [
             {
               level: 4,
               text: "Print at 100% or Actual Size",
-              paragraphs: [
-                "Always disable Fit to Page or Shrink to Printable Area so circles stay exact diameter and wrap-around lengths hold their millimetre measurement.",
-              ],
+              paragraphs: [t.scaleDialog],
             },
             {
               level: 4,
               text: "Keep a safe margin",
-              paragraphs: [
-                "Keep ingredient blocks, net weight, and warning lines 2.5 to 3 mm inside the cut boundary so minor sheet skew never clips required text.",
-              ],
+              paragraphs: [t.safeMargin],
             },
           ],
         },
@@ -179,16 +275,12 @@ function buildJarToolContent(spec: JarToolInput): PageContent {
         {
           level: 3,
           text: "Print quality and file format",
-          paragraphs: [
-            "Choose crisp vector PDF output rather than screenshots or compressed raster images.",
-          ],
+          paragraphs: [t.vectorLead],
           children: [
             {
               level: 4,
               text: "PDF versus JPG output",
-              paragraphs: [
-                "Vector PDF maintains razor-sharp 6 pt ingredient text, clean rules, and exact physical dimensions across every inkjet and laser printer.",
-              ],
+              paragraphs: [t.vectorDetail],
             },
           ],
         },
@@ -210,18 +302,16 @@ function buildJarToolContent(spec: JarToolInput): PageContent {
       paragraphs: [spec.guideLinkText],
       inlineLinks: [{ targetId: "G10", anchor: spec.guideLinkAnchor }],
       callout: spec.complianceNote,
-      children: spec.tips.map((t) => ({
+      children: spec.tips.map((tip) => ({
         level: 3 as const,
-        text: t.h3,
-        paragraphs: [t.body],
+        text: tip.h3,
+        paragraphs: [tip.body],
       })),
     },
     {
       level: 2,
       text: "Frequently asked questions",
-      paragraphs: [
-        "Practical answers covering jar measurement, adhesive paper stocks, and browser-based PDF exporting.",
-      ],
+      paragraphs: [t.faqIntro],
       children: spec.faqs.map((f) => ({
         level: 3 as const,
         text: f.q,
@@ -231,9 +321,7 @@ function buildJarToolContent(spec: JarToolInput): PageContent {
     {
       level: 2,
       text: "More print sheet tools and guides",
-      paragraphs: [
-        "Explore related container sizes and sheet makers or return to the parent hub for all jar, candle, and bottle layouts.",
-      ],
+      paragraphs: [t.moreIntro],
       inlineLinks: [
         { targetId: "HB-JB", anchor: "label designs for jars" },
         ...(spec.extraLinks ?? []),
@@ -554,6 +642,12 @@ export const JAR_TOOL_CONTENT: Partial<Record<PageId, PageContent>> = {
         anchor: "2 oz jar label template",
         desc: "Compare lid diameters and flat panel heights across 2 oz to 32 oz jars.",
       },
+      {
+        heading: "Candy & pickle jar label ideas",
+        targetId: "B10",
+        anchor: "pickle jar label template",
+        desc: "Browse creative pantry, pickle, and homemade spread label ideas.",
+      },
     ],
   }),
 
@@ -694,6 +788,18 @@ export const JAR_TOOL_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "CS03",
         anchor: "honey jar labels printable",
         desc: "Read how a small beekeeper organised 120 jars in one evening using browser sheet templates.",
+      },
+      {
+        heading: "Food & gift jar label ideas",
+        targetId: "B10",
+        anchor: "candy jar labels template free",
+        desc: "Explore inspiring jam, candy, nut-butter, and gift preserve designs.",
+      },
+      {
+        heading: "Jar label template Word",
+        targetId: "H14",
+        anchor: "jam label template word",
+        desc: "Compare classic Word table layouts against exact-scale PDF jam sheets.",
       },
     ],
   }),

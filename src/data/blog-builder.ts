@@ -57,7 +57,7 @@ export function buildBlogContent(spec: BlogInput): PageContent {
       level: 2,
       text: spec.quickH2,
       paragraphs: [
-        "Before investing in software licenses, specialty media packs, or desktop printers, weigh each method against realistic batch frequency and cost per finished unit.",
+        `Before choosing between methods covered in ${spec.quickH2.toLowerCase()}, evaluate batch size, coated paper costs, and real print speed per sheet.`,
       ],
       table: spec.comparisonTable,
       callout: spec.callout,
@@ -112,7 +112,7 @@ export function buildBlogContent(spec: BlogInput): PageContent {
       level: 2,
       text: "Frequently asked questions",
       paragraphs: [
-        "Direct comparison answers covering setup costs, hardware limits, and free browser alternatives.",
+        `Practical cost, durability, and workflow answers comparing ${spec.quickSub1H3.toLowerCase()} against ${spec.hubAnchor} print sheets.`,
       ],
       children: spec.faqs.map((f) => ({
         level: 3 as const,
@@ -124,7 +124,7 @@ export function buildBlogContent(spec: BlogInput): PageContent {
       level: 2,
       text: "Related tools and guides",
       paragraphs: [
-        "Ready to move from comparing options to making sheets? Open a free generator or return to the parent hub.",
+        `Put these comparisons into practice using our ${spec.hubAnchor} studio or explore ${spec.relatedH3s.map((r) => r.anchor).slice(0, 2).join(" and ")}.`,
       ],
       inlineLinks: [{ targetId: spec.hubId, anchor: spec.hubAnchor }],
       children: spec.relatedH3s.map((r) => ({

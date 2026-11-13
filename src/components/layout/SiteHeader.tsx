@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { IdCard, Printer } from "lucide-react";
+import { IdCard } from "lucide-react";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 
 const NAV_LINKS = [
   { href: "/photo-sheets/", label: "Photo Sheets" },
@@ -14,17 +15,9 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
         <Link
           href="/"
-          className="inline-flex items-center gap-2.5 text-zinc-950 hover:opacity-85 transition"
+          className="inline-flex items-center hover:opacity-85 transition"
         >
-          <span
-            aria-hidden="true"
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f5f5f7] text-[#3f6212]"
-          >
-            <Printer className="h-4 w-4" strokeWidth={2} />
-          </span>
-          <span className="text-sm font-bold tracking-tight">
-            Print Sheet Maker
-          </span>
+          <BrandLogo size="header" />
         </Link>
 
         <nav
@@ -44,7 +37,7 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/guides/how-to-print-multiple-pictures-on-one-page/"
+            href="/guides/"
             className="hidden sm:inline-flex min-h-[36px] items-center rounded-xl bg-[#f5f5f7] px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-[#ebeced] hover:text-zinc-950 transition"
           >
             Print Guides

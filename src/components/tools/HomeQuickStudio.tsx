@@ -159,13 +159,13 @@ export function HomeQuickStudio() {
   }
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-3">
       {/* Clean Borderless Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-[#f5f5f7] p-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 rounded-2xl bg-[#f5f5f7] p-1.5 sm:p-2">
         <div
           role="tablist"
           aria-label="Select print sheet tool category"
-          className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0"
+          className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0"
         >
           {tabs.map((t, idx) => {
             const active = t.id === tab;
@@ -180,7 +180,7 @@ export function HomeQuickStudio() {
                 aria-controls={`studio-panel-${t.id}`}
                 onClick={() => setTab(t.id)}
                 onKeyDown={(e) => handleTabKeyDown(e, idx)}
-                className={`shrink-0 min-h-[38px] inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition cursor-pointer ${
+                className={`shrink-0 min-h-[36px] inline-flex items-center gap-2 rounded-xl px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-bold transition cursor-pointer ${
                   active
                     ? "bg-white text-zinc-950"
                     : "text-zinc-700 hover:bg-white/70 hover:text-zinc-950"
@@ -195,13 +195,13 @@ export function HomeQuickStudio() {
           })}
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-3 px-2 sm:px-1">
-          <span className="text-[11px] text-zinc-600 hidden xl:inline truncate max-w-xs">
+        <div className="flex items-center justify-between sm:justify-end gap-3 px-1.5 sm:px-1">
+          <span className="text-[11px] text-zinc-600 hidden xl:inline truncate max-w-md">
             {activeMeta.shortDesc}
           </span>
           <Link
             href={activeMeta.hubHref}
-            className="shrink-0 min-h-[34px] inline-flex items-center gap-1 rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-[#3f6212] hover:text-[#365314] transition"
+            className="shrink-0 min-h-[32px] inline-flex items-center gap-1 rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-[#3f6212] hover:text-[#365314] transition"
           >
             <span>{activeMeta.hubLabel}</span>
             <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />

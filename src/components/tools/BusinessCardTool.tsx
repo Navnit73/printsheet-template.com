@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { Download, ImagePlus, QrCode, Scissors } from "lucide-react";
-import QRCode from "qrcode";
 import type { PageId } from "@/types/spec";
 import {
   drawCropMarksPdf,
@@ -134,11 +133,14 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
         ? website
         : `https://${website}`
       : email;
-    QRCode.toDataURL(target || "https://printsheet-template.com", {
-      width: 240,
-      margin: 1,
-      color: { dark: "#09090b", light: "#ffffff" },
-    })
+    import("qrcode")
+      .then((QRCode) =>
+        QRCode.toDataURL(target || "https://printsheet-template.com", {
+          width: 240,
+          margin: 1,
+          color: { dark: "#09090b", light: "#ffffff" },
+        })
+      )
       .then((url) => {
         if (!cancelled) setQrDataUrl(url);
       })

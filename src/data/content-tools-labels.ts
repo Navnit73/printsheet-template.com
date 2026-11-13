@@ -57,14 +57,122 @@ interface LabelToolInput {
   relatedExtraLinks?: InlineLinkRef[];
 }
 
+const LABEL_TOOL_TAILOR: Record<
+  string,
+  {
+    gridFocus: string;
+    finishTip: string;
+    trayNote: string;
+    scaleSummary: string;
+    scaleDialog: string;
+    safePadding: string;
+    vectorLead: string;
+    vectorDetail: string;
+    preFlightTip: string;
+    faqIntro: string;
+    moreToolsIntro: string;
+  }
+> = {
+  T17: {
+    gridFocus: "Rectangular and square grid coordinates keep multi-purpose pantry, product, and shipping labels aligned across any blank or pre-cut sheet.",
+    finishTip: "Balance headline weight and legible body text alongside optional hairline borders for cleaner scissor or trimmer cuts.",
+    trayNote: "Verify whether your custom label sheet pack is ISO A4 or US Letter before setting row and column margins.",
+    scaleSummary: "Prevent gradual row-to-row drift across full 14-up to 65-up sheets by disabling automatic PDF shrink-to-fit scaling.",
+    scaleDialog: "Choose Actual Size (100% scale) in your browser or PDF viewer so label pitch increments align cleanly with pre-die-cut rows.",
+    safePadding: "Maintain a 2.5 to 3 mm inner safe zone around product text and SKU corners to absorb normal home printer feed skew.",
+    vectorLead: "Vector PDF generation renders fine borders, small warning type, and divider lines cleanly on 600 DPI laser or inkjet engines.",
+    vectorDetail: "Avoid low-resolution screenshots of tables; native vector PDF paths preserve sharp lettering down to 6 pt nutritional or care copy.",
+    preFlightTip: "Test one sheet on plain 80 gsm office paper held behind your adhesive sheet before feeding expensive coated label stock.",
+    faqIntro: "Answers covering custom row/column geometry, paper compatibility, and true-scale PDF generation for printable labels.",
+    moreToolsIntro: "Switch to specialized Avery A4 grids, circular lid seals, address sheets, or return to the main label studio.",
+  },
+  T18: {
+    gridFocus: "Standard A4 template coordinates lock tightly to Avery L7160 (21-up), L7163 (14-up), and 8-up / 24-up Euro die-cut sheets.",
+    finishTip: "Keep clean borders toggled off on pre-perforated Avery packs so slight 1 mm tray skew never shows an unwanted box line.",
+    trayNote: "ISO A4 (210 × 297 mm) trays require A4-specific pitches; never print US Letter Avery templates onto European A4 label sheets.",
+    scaleSummary: "Multi-row A4 matrices accumulate noticeable downward drift by row 7 or 8 whenever drivers scale pages down to 96%.",
+    scaleDialog: "Lock scale at 100% / Actual Size inside Chrome, Safari Preview, or Acrobat Reader so L7160 and J8160 rows hit every perforation.",
+    safePadding: "Inset titles and recipient names at least 3 mm from every die-cut edge to avoid touching peeled label seams.",
+    vectorLead: "Crisp A4 vector PDFs eliminate raster fuzz around delicate 8–10 pt body copy on densely packed 24-up or 65-up sheets.",
+    vectorDetail: "Native PDF rectangles and font outlines maintain exact 0.1 mm placement tolerance across every row of an A4 template pack.",
+    preFlightTip: "HOLD-LIGHT CHECK: Print one plain-paper draft and hold it over an A4 adhesive sheet against a window before committing the batch.",
+    faqIntro: "Answers covering ISO A4 label code compatibility, top-start offsets, and pre-die-cut registration troubleshooting.",
+    moreToolsIntro: "Explore address mailers, circular jar seals, barcode sheets, or browse the full label sticker hub.",
+  },
+  T19: {
+    gridFocus: "Circular label geometry centers diameter rings evenly across A4 or Letter stock from tiny 25 mm seals up to 63.5 mm toppers.",
+    finishTip: "Use subtle concentric outer borders only as visual punch targets on uncut vinyl, and hide them when using pre-punched circles.",
+    trayNote: "Confirm circle sheet paper size (A4 210×297 mm vs US Letter 8.5×11 in) so top-left circle centers never clip diagonally.",
+    scaleSummary: "Even a 3% print-driver shrink turns 50 mm jar seals into 48.5 mm circles that miss recessed metal lid rings.",
+    scaleDialog: "Ensure Actual Size (100%) is active in the print dialog so circular diameters match craft hole punches and lid recesses accurately.",
+    safePadding: "Keep curved text arcs and brand logos 3 mm inside the circle circumference because circular cuts reveal off-center shifts fast.",
+    vectorLead: "True circular vector curves print velvety smooth on round sticker packs without jagged stepped PNG edges.",
+    vectorDetail: "Direct PDF vector circles stay razor clean when shrunk down to 25 mm soap seals or scaled up to 75 mm bakery box closures.",
+    preFlightTip: "Check radial centering on a 1-page test print before punching or feeding gloss vinyl circular packs.",
+    faqIntro: "Helpful guidance on diameter measurements, radial safe zones, and matching circular label sheets at home.",
+    moreToolsIntro: "Pair circular top seals with rectangular wrap jars, custom A4 grids, or die-cut sticker sheets.",
+  },
+  T20: {
+    gridFocus: "A4 address and parcel grids pair 21-up return-address cells (63.5 × 38.1 mm) with generous 8-up and 14-up shipping blocks.",
+    finishTip: "Left-align multi-line postal codes in a bold sans font for instant postal sorter optical readability through rain or glare.",
+    trayNote: "Confirm UK/EU/AU A4 tray selection so tall 8-up parcel labels keep proper bottom clearance in manual feed slots.",
+    scaleSummary: "Address sheets suffer clipped ZIP/postcodes on row 7 if the PDF viewer shrinks an A4 sheet inside unprintable printer margins.",
+    scaleDialog: "Pick Actual Size (100% scale) and disable Borderless Expansion so return-mail sheets hit every sticky rectangle cleanly.",
+    safePadding: "Leave 3 mm clear around postal numbers and return logos so standard courier scanner windows capture the whole block.",
+    vectorLead: "Razor-sharp black vector address type prevents ink spread on matte permanent mailers and laser-safe shipping labels.",
+    vectorDetail: "High-density vector PDFs keep 9 pt apartment numbers and country names distinct even on draft-mode office laser printers.",
+    preFlightTip: "Use smear-resistant matte inkjet or permanent laser stock if envelopes face rain, parcel chutes, or rough sorting belts.",
+    faqIntro: "Solutions for CSV/list pasting mistakes, A4 14-up/21-up parcel sizing, and smudged ink on address mailers.",
+    moreToolsIntro: "Generate accompanying SKU barcode strips, A4 custom matrices, or full sticker sheets in one browser session.",
+  },
+  T21: {
+    gridFocus: "High-density barcode sheets space 24 to 40 compact Code 128 or EAN-13 SKU labels per A4 sheet without crowding scanners.",
+    finishTip: "Always keep pure black barcode bars on pure white label stock; tinted pastel backgrounds drop barcode contrast and slow checkouts.",
+    trayNote: "Verify A4 sheet grid pitch before printing FBA, warehouse, or retail price tags so partial rows stay completely usable.",
+    scaleSummary: "Auto-scaling can squeeze narrow barcode module bars below scanner optical resolution or misalign the 40-up label row.",
+    scaleDialog: "Print strictly at 100% Actual Size and disable economy ink-saver patterns that introduce faint white streaks across solid black bars.",
+    safePadding: "Preserve mandatory white quiet zones (>= 3 mm left and right of Code 128/EAN bars) inside every cut cell so lasers lock instantly.",
+    vectorLead: "Crisp high-DPI barcode rendering guarantees parallel bar edges that scan effortlessly with CCD, laser, or smartphone cameras.",
+    vectorDetail: "Exported barcode PDF sheets hold uniform bar geometry across 40 identical SKU tiles without blurring sub-millimetre thin spaces.",
+    preFlightTip: "Scan a plain-paper test print with your warehouse handheld or phone camera app before peeling onto retail packaging.",
+    faqIntro: "Technical answers on Code 128 quiet zones, matte paper contrast, and small A4 inventory barcode yields.",
+    moreToolsIntro: "Switch to A4 address shipping labels, generic multi-purpose templates, or the main Labels & Stickers hub.",
+  },
+  T22: {
+    gridFocus: "Full-sheet sticker layout matrices maximize usable A4 printable area for planner icons, laptop decals, and product logo packs.",
+    finishTip: "Keep clean cut outlines separated by at least 4–6 mm if hand-trimming with scissors or running straight-line paper trimmers.",
+    trayNote: "Select heavy glossy photo or specialty sticker setting on ISO A4 so rollers grip coated waterproof vinyl backing without slipping.",
+    scaleSummary: "Scaling distortion alters custom craft sizes and shifts registration marks expected by hobby cutting mats.",
+    scaleDialog: "Print at 100% Actual Size with photo-quality media settings selected so saturated inks cure cleanly onto coated A4 sticker vinyl.",
+    safePadding: "Keep bright artwork logos 3 mm away from kiss-cut guide paths so blade bevels never expose unintended white paper slivers.",
+    vectorLead: "Mixed vector outlines and 300 DPI artwork ensure vibrant sticker sheet colors alongside silky smooth trim paths.",
+    vectorDetail: "Browser PDF export bundles multiple stickers per A4 sheet losslessly so small badge lettering and sharp borders survive printing.",
+    preFlightTip: "Allow freshly printed glossy inkjet sticker sheets 15 minutes to air-cure before rubbing, laminating, or cutting apart.",
+    faqIntro: "Common questions on A4 printable vinyl, cold lamination overlays, scissors vs cutter blades, and bleed margins.",
+    moreToolsIntro: "Try circular badge grids, event name tags, or compare A4 glossy vs matte sticker papers.",
+  },
+  T23: {
+    gridFocus: "Generous 8-up and 10-up conference badge frames (99 × 68 mm / 90 × 55 mm) balance oversized attendee names with clean lanyard slots.",
+    finishTip: "Print bold first names at large optical contrast and limit secondary org subtitles to one crisp line for 2-meter readability.",
+    trayNote: "Choose A4 cardstock (200–250 gsm) for rigid plastic badge holders or A4 fabric-safe adhesive sheets for peel-and-stick mixer tags.",
+    scaleSummary: "Shrunk 8-up sheets fail to snap properly inside clear horizontal plastic event sleeves or perforated badge inserts.",
+    scaleDialog: "Disable shrink-to-fit in Acrobat or Chrome and print at 100% scale so 90 × 60 mm badge inserts drop straight into vinyl holders.",
+    safePadding: "Maintain a generous 4 mm top margin when hole-punching badges directly without sleeves so lanyard alligator clips never obscure text.",
+    vectorLead: "Vector attendee typography delivers bold charcoal contrast across dozens of unique names with zero fuzziness.",
+    vectorDetail: "Batch-generated badge PDFs hold uniform name baseline alignment across every card in a multi-page seminar run.",
+    preFlightTip: "Avoid silk-safe fabrics getting stained by peeling stick-on badges off cashmere, leather, or delicate wool—offer cardstock clips too.",
+    faqIntro: "Tips for multi-attendee batch lists, 8-up lanyard sleeve sizing, and choosing peelable vs insert cardstock.",
+    moreToolsIntro: "Need matching table place cards, custom rectangular labels, or A4 sticker packs? Browse related sheets below.",
+  },
+};
+
 function buildLabelToolContent(spec: LabelToolInput): PageContent {
+  const t = LABEL_TOOL_TAILOR[spec.id] ?? LABEL_TOOL_TAILOR.T17;
   const settingsChildren: HeadingNode[] = [
     {
       level: 3,
       text: "Page size and orientation",
-      paragraphs: [
-        "Set your document dimensions to match the exact sheet pack in your printer feed tray before placing text or artwork.",
-      ],
+      paragraphs: [t.trayNote],
       children: [
         {
           level: 4,
@@ -76,23 +184,17 @@ function buildLabelToolContent(spec: LabelToolInput): PageContent {
     {
       level: 3,
       text: "Scale, margins and bleed",
-      paragraphs: [
-        "Label alignment fails most often when PDF viewers shrink a sheet to fit hardware margins. Lock scale at 100% and maintain clear inner padding.",
-      ],
+      paragraphs: [t.scaleSummary],
       children: [
         {
           level: 4,
           text: "Print at 100% or Actual Size",
-          paragraphs: [
-            "Always choose Actual Size (100% scale) in Chrome, Edge, Preview, or Adobe Acrobat so every row and column lands on its physical die-cut label.",
-          ],
+          paragraphs: [t.scaleDialog],
         },
         {
           level: 4,
           text: "Keep a safe margin",
-          paragraphs: [
-            "Keep logos, postal lines, and barcodes at least 2.5 to 3 mm inside the outer cut edge so 1 mm paper feed tolerance never clips content.",
-          ],
+          paragraphs: [t.safePadding],
         },
       ],
     },
@@ -109,16 +211,12 @@ function buildLabelToolContent(spec: LabelToolInput): PageContent {
   settingsChildren.push({
     level: 3,
     text: "Print quality and file format",
-    paragraphs: [
-      "Choosing a vector PDF layout keeps fonts, cut lines, and barcode bars crisp regardless of printer DPI.",
-    ],
+    paragraphs: [t.vectorLead],
     children: [
       {
         level: 4,
         text: "PDF versus JPG output",
-        paragraphs: [
-          "Export print sheets as vector PDF rather than JPG screenshots. Vector PDF preserves exact millimetre grid coordinates and prevents JPEG compression blur around small type and barcode edges.",
-        ],
+        paragraphs: [t.vectorDetail],
       },
     ],
   });
@@ -175,16 +273,12 @@ function buildLabelToolContent(spec: LabelToolInput): PageContent {
           {
             level: 4 as const,
             text: p.s1,
-            paragraphs: [
-              "Pre-measured row, column, and gutter spacing is built directly into the preset coordinates so labels remain balanced edge to edge.",
-            ],
+            paragraphs: [t.gridFocus],
           },
           {
             level: 4 as const,
             text: p.s2,
-            paragraphs: [
-              "Combine crisp sans-serif text with optional border or crop guides depending on whether you peel pre-cut labels or trim full-sheet sticker stock.",
-            ],
+            paragraphs: [t.finishTip],
           },
         ],
       })),
@@ -208,23 +302,18 @@ function buildLabelToolContent(spec: LabelToolInput): PageContent {
     {
       level: 2,
       text: "Tips for cleaner, sharper prints",
-      paragraphs: [
-        spec.guideLinkText,
-        "Run these quick physical checks whenever switching to a new pack of adhesive sheets or adhesive vinyl.",
-      ],
+      paragraphs: [spec.guideLinkText, t.preFlightTip],
       inlineLinks: [{ targetId: "G07", anchor: spec.guideLinkAnchor }],
-      children: spec.tips.map((t) => ({
+      children: spec.tips.map((tItem) => ({
         level: 3 as const,
-        text: t.h3,
-        paragraphs: [t.body],
+        text: tItem.h3,
+        paragraphs: [tItem.body],
       })),
     },
     {
       level: 2,
       text: "Frequently asked questions",
-      paragraphs: [
-        "Key technical answers on paper sizing, printer alignment, and browser-based PDF export before you print a full pack.",
-      ],
+      paragraphs: [t.faqIntro],
       children: spec.faqs.map((f) => ({
         level: 3 as const,
         text: f.q,
@@ -234,9 +323,7 @@ function buildLabelToolContent(spec: LabelToolInput): PageContent {
     {
       level: 2,
       text: "More print sheet tools and guides",
-      paragraphs: [
-        "Continue browsing related sheet generators or return to the parent hub for all label and sticker formats.",
-      ],
+      paragraphs: [t.moreToolsIntro],
       inlineLinks: [
         { targetId: "HB-LS", anchor: "label sticker sheet maker" },
         ...(spec.relatedExtraLinks ?? []),
@@ -409,6 +496,24 @@ export const LABEL_TOOL_CONTENT: Partial<Record<PageId, PageContent>> = {
         desc: "Lay out custom die-cut or kiss-cut stickers on full A4 sticker sheets.",
       },
       {
+        heading: "Barcode sticker A4 sheet",
+        targetId: "T21",
+        anchor: "barcode sticker a4 sheet",
+        desc: "Generate crisp scannable Code 128 and EAN-13 SKU sheets on A4 label paper.",
+      },
+      {
+        heading: "Free name tag maker",
+        targetId: "T23",
+        anchor: "free name tag maker",
+        desc: "Create high-contrast 8-up event badges and printable sticker name tags.",
+      },
+      {
+        heading: "How to print multiple labels on one page",
+        targetId: "H09",
+        anchor: "how to print multiple labels on one page",
+        desc: "Follow step-by-step instructions for repeating one design across an entire sheet.",
+      },
+      {
         heading: "Label paper for printer",
         targetId: "G07",
         anchor: "a4 size label",
@@ -546,6 +651,24 @@ export const LABEL_TOOL_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "T20",
         anchor: "a4 address labels",
         desc: "Format 14-up mailing and 8-up parcel shipping sheets ready for postal runs.",
+      },
+      {
+        heading: "Free name tag maker",
+        targetId: "T23",
+        anchor: "free name tag maker",
+        desc: "Format 8-up conference badges and adhesive mixer tags on ISO A4 sheets.",
+      },
+      {
+        heading: "Avery template 28878 decoded",
+        targetId: "G09",
+        anchor: "avery template 28878",
+        desc: "Cross-check US Letter Avery numbers with ISO A4 sheet codes before printing.",
+      },
+      {
+        heading: "Where to buy A4 label sheets",
+        targetId: "B12",
+        anchor: "a4 sticker paper officeworks",
+        desc: "Compare Officeworks, Avery, and Amazon bulk A4 label sheet packs by price.",
       },
       {
         heading: "Label paper for printer",
@@ -688,6 +811,12 @@ export const LABEL_TOOL_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "T25",
         anchor: "mason jar labels printable",
         desc: "Design matching body and lid labels sized specifically for wide-mouth and regular mason jars.",
+      },
+      {
+        heading: "Print multiple stickers on A4",
+        targetId: "H11",
+        anchor: "multiple stickers on one page",
+        desc: "Walk through round and custom kiss-cut vinyl print settings step by step.",
       },
     ],
   }),
@@ -1099,6 +1228,24 @@ export const LABEL_TOOL_CONTENT: Partial<Record<PageId, PageContent>> = {
         targetId: "H11",
         anchor: "how to print multiple stickers on one page",
         desc: "Step-by-step tutorial covering paper feed direction, drying time, and clean cutting.",
+      },
+      {
+        heading: "Cricut printable sticker paper",
+        targetId: "B05",
+        anchor: "cricut printable sticker paper",
+        desc: "Tips for choosing A4 vinyl stocks and laminating sheets before Plotter Print Then Cut.",
+      },
+      {
+        heading: "DIY vs print service sticker sheets",
+        targetId: "B11",
+        anchor: "custom sticker sheet printing",
+        desc: "Calculate break-even costs comparing home inkjet sheets vs ordered sticker packs.",
+      },
+      {
+        heading: "Where to buy A4 sticker paper",
+        targetId: "B12",
+        anchor: "a4 sticker paper officeworks",
+        desc: "Browse recommended retail packs across Officeworks, Avery, and online suppliers.",
       },
       {
         heading: "Round labels for printer",

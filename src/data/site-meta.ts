@@ -14,7 +14,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     seoTitle: "Print Sheet Maker: Free Photo, Label & Card Layouts",
     metaDescription:
       "Print sheet maker for photos, labels, business cards and stickers. Pick a sheet, add your content and download a print-ready PDF. Free, no sign-up.",
-    h1: "Print Sheet Maker: Free Online Print Layouts for Photos, Labels and Cards",
+    h1: "Print Sheet Maker: Free Photo, Card, Sticker & Jar Print Sheets",
     primaryKeyword: "print sheet maker",
     secondaryKeywords: [
       "image to printable pdf",
@@ -128,7 +128,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 18,
     seoTitle: "Print 2 photos on one page – Free Online Tool",
     metaDescription:
-      "Print 2 photos on one page: Fit two photos on a single sheet in seconds. Free, no sign-up, print-ready PDF.",
+      "Print 2 photos on one page: Fit two crisp 5x7-sized portrait or landscape shots on a single A4 or US Letter PDF sheet with balanced trim margins.",
     h1: "Print 2 Photos on One Page: Free Two-Photo Sheet Maker",
     primaryKeyword: "print 2 photos on one page",
     secondaryKeywords: [
@@ -150,7 +150,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 10,
     seoTitle: "Print 4 photos on one page – Free Online Tool",
     metaDescription:
-      "Print 4 photos on one page: Four photos, one sheet, zero fuss. Free, no sign-up, print-ready PDF.",
+      "Print 4 photos on one page: Arrange four 9x13 cm photos in a clean 2x2 grid on A4 or Letter paper with equal trim gutters and 300 DPI PDF export.",
     h1: "Print 4 Photos on One Page: Free Four-Photo Sheet Maker",
     primaryKeyword: "print 4 photos on one page",
     secondaryKeywords: [
@@ -173,7 +173,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     seoTitle: "Print picture multiple times on one page – Free Online Tool",
     metaDescription:
       "Print picture multiple times on one page: Repeat one photo across a whole sheet in a click. Free, no sign-up, print-ready PDF.",
-    h1: "Print Picture Multiple Times on One Page: Duplicate Photo Sheet Maker",
+    h1: "Print Picture Multiple Times on One Page: Duplicate Photo Sheet",
     primaryKeyword: "print picture multiple times on one page",
     secondaryKeywords: [
       "how to print same image multiple times",
@@ -216,8 +216,8 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 54,
     seoTitle: "Passport photo sheet maker – Free Online Tool",
     metaDescription:
-      "Passport photo sheet maker: Turn one passport photo into a ready-to-cut A4 sheet. Free, no sign-up, print-ready PDF.",
-    h1: "Passport Photo Sheet Maker: Fit Multiple Passport Photos on One A4 Page",
+      "Passport photo sheet maker: Tile 35x45 mm (EU/UK/IN) or 2x2 inch (US) passport photos onto one compliant A4 print sheet at 100% actual scale.",
+    h1: "Passport Photo Sheet Maker: Print Biometric ID Photos on A4",
     primaryKeyword: "passport photo sheet maker",
     secondaryKeywords: [
       "passport size photo maker a4 sheet",
@@ -239,7 +239,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 41,
     seoTitle: "Passport photo template 4x6 – Free Online Tool",
     metaDescription:
-      "Passport photo template 4x6: Fit passport photos onto 4x6 sheets for photo labs. Free, no sign-up, print-ready PDF.",
+      "Passport photo template 4x6: Place 4 or 6 passport photos onto standard 4x6 photo paper for low-cost kiosk or home prints with crisp cut guides.",
     h1: "Passport Photo Template 4x6: Print Passport Photos on a 4x6 Sheet",
     primaryKeyword: "passport photo template 4x6",
     secondaryKeywords: [
@@ -263,7 +263,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 9,
     seoTitle: "Printable 4x6 photo template – Free Online Tool",
     metaDescription:
-      "Printable 4x6 photo template: Free 4x6 templates you can fill and print. Free, no sign-up, print-ready PDF.",
+      "Printable 4x6 photo template: Design single-photo borderless prints, 2-up 3x4 grids, or 4-up wallet cards on 4x6 inch paper as instant 300 DPI PDFs.",
     h1: "Printable 4x6 Photo Template: Free Blank Sheets and Photo Grids",
     primaryKeyword: "printable 4x6 photo template",
     secondaryKeywords: [
@@ -286,7 +286,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 34,
     seoTitle: "4x6 collage maker – Free Online Tool",
     metaDescription:
-      "4x6 collage maker: Make collages sized to print as 4x6 photos. Free, no sign-up, print-ready PDF.",
+      "4x6 collage maker: Build 2 to 9 photo collages sized accurately at 1200x1800 px for 4x6 inch postcard prints with balanced white borders.",
     h1: "4x6 Collage Maker: Create Photo Collages Sized for 4x6 Prints",
     primaryKeyword: "4x6 collage maker",
     secondaryKeywords: [
@@ -308,7 +308,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 17,
     seoTitle: "A4 collage maker – Free Online Tool",
     metaDescription:
-      "A4 collage maker: Make an A4 collage online and print it in minutes. Free, no sign-up, print-ready PDF.",
+      "A4 collage maker: Arrange 4 to 12 photos in clean grid collages sized accurately for 210x297 mm A4 glossy or matte paper without watermarks.",
     h1: "A4 Collage Maker: Free Online Photo Collages for A4 Paper",
     primaryKeyword: "a4 collage maker",
     secondaryKeywords: [
@@ -355,7 +355,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 2,
     seoTitle: "Printable business cards – Free Online Tool",
     metaDescription:
-      "Printable business cards: Free printable business card sheets, blank or branded. Free, no sign-up, print-ready PDF.",
+      "Printable business cards: Generate customizable 10-up cardstock sheets on A4 or Letter paper with crisp crop marks and 300 DPI vector typography.",
     h1: "Printable Business Cards: Free Blank Sheets and Print-Ready PDFs",
     primaryKeyword: "printable business cards",
     secondaryKeywords: [
@@ -377,7 +377,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 1,
     seoTitle: "Business card template – Free Online Tool",
     metaDescription:
-      "Business card template: Pick a free business card template and make it yours. Free, no sign-up, print-ready PDF.",
+      "Business card template: Pick a clean, editable 10-up card layout, add contact info or QR codes, and download a print-ready A4 or Letter PDF.",
     h1: "Business Card Template: Free Blank, Editable and Print-Ready Designs",
     primaryKeyword: "business card template",
     secondaryKeywords: [
@@ -400,8 +400,8 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 4,
     seoTitle: "Make business cards online – Free Online Tool",
     metaDescription:
-      "Make business cards online: Design a business card online and download it free. Free, no sign-up, print-ready PDF.",
-    h1: "Make Business Cards Online: Free Business Card Maker with Print-Ready PDF",
+      "Make business cards online: Customize single or double-sided 10-up card sheets with built-in QR codes and export instant print-ready PDFs.",
+    h1: "Make Business Cards Online: Free Custom Card Sheet & PDF Maker",
     primaryKeyword: "make business cards online",
     secondaryKeywords: [
       "create business cards free online",
@@ -445,7 +445,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 5,
     seoTitle: "Visiting card design template – Free Online Tool",
     metaDescription:
-      "Visiting card design template: Free visiting card and name card maker. Free, no sign-up, print-ready PDF.",
+      "Visiting card design template: Create crisp 90x50 mm (India) or 85x55 mm (UK/EU) visiting and name card 10-up print sheets online, free.",
     h1: "Visiting Card Design Template: Free Visiting and Name Card Maker",
     primaryKeyword: "visiting card design template",
     secondaryKeywords: [
@@ -469,7 +469,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 14,
     seoTitle: "Printable label maker – Free Online Tool",
     metaDescription:
-      "Printable label maker: Design labels and print them on any sheet. Free, no sign-up, print-ready PDF.",
+      "Printable label maker: Set rows, columns, pitch, and borders to design custom rectangular or round sticker sheets for home inkjet or laser.",
     h1: "Printable Label Maker: Free Online Label Sheet Designer",
     primaryKeyword: "printable label maker",
     secondaryKeywords: [
@@ -491,7 +491,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 46,
     seoTitle: "A4 labels template – Free Online Tool",
     metaDescription:
-      "A4 labels template: Build a custom A4 label grid in a minute. Free, no sign-up, print-ready PDF.",
+      "A4 labels template: Choose calibrated 8-up, 14-up, 21-up (L7160), or 24-up A4 label grids and export exact 100% scale PDFs in one click.",
     h1: "A4 Labels Template: Free Label Sheet Layouts for Any Grid",
     primaryKeyword: "a4 labels template",
     secondaryKeywords: [
@@ -513,7 +513,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 19,
     seoTitle: "Round labels for printer – Free Online Tool",
     metaDescription:
-      "Round labels for printer: Fill a sheet with round labels in any diameter. Free, no sign-up, print-ready PDF.",
+      "Round labels for printer: Generate 25 mm, 38 mm, 50 mm, or 63.5 mm circular sticker sheets on A4 or Letter with crisp cut guide rings.",
     h1: "Round Labels for Printer: Free Circle Label Sheet Maker",
     primaryKeyword: "round labels for printer",
     secondaryKeywords: [
@@ -533,7 +533,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 29,
     seoTitle: "A4 address labels – Free Online Tool",
     metaDescription:
-      "A4 address labels: Print address and shipping labels on any A4 sheet. Free, no sign-up, print-ready PDF.",
+      "A4 address labels: Format crisp return-mail (21-up) and shipping parcel (8-up / 14-up) address sheets compatible with standard A4 sticker packs.",
     h1: "A4 Address Labels: Free Address and Shipping Label Sheet Maker",
     primaryKeyword: "a4 address labels",
     secondaryKeywords: [
@@ -555,7 +555,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 30,
     seoTitle: "Barcode sticker A4 sheet – Free Online Tool",
     metaDescription:
-      "Barcode sticker A4 sheet: Create and print barcode labels on A4 sticker sheets. Free, no sign-up, print-ready PDF.",
+      "Barcode sticker A4 sheet: Generate scannable Code 128 and EAN-13 SKU barcode sheets with crisp quiet zones across 24 to 40 labels per A4 page.",
     h1: "Barcode Sticker A4 Sheet: Free Barcode Label Sheet Maker",
     primaryKeyword: "barcode sticker a4 sheet",
     secondaryKeywords: [
@@ -577,7 +577,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 33,
     seoTitle: "Sticker sheet maker online – Free Online Tool",
     metaDescription:
-      "Sticker sheet maker online: Lay out your stickers on an A4 sheet and print. Free, no sign-up, print-ready PDF.",
+      "Sticker sheet maker online: Arrange custom graphics or product labels across A4 vinyl or matte sticker paper with clear trim outlines for home cuts.",
     h1: "Sticker Sheet Maker Online: Free A4 Sticker Sheet Templates",
     primaryKeyword: "sticker sheet maker online",
     secondaryKeywords: [
@@ -599,7 +599,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 45,
     seoTitle: "Free name tag maker – Free Online Tool",
     metaDescription:
-      "Free name tag maker: Print a full sheet of name tags in a minute. Free, no sign-up, print-ready PDF.",
+      "Free name tag maker: Design 8-up and 10-up conference name badge sheets with high-contrast bold attendee names ready for cardstock or sticker paper.",
     h1: "Free Name Tag Maker: Printable Name Tag Sheets",
     primaryKeyword: "free name tag maker",
     targetWordCount: 1100,
@@ -617,7 +617,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 25,
     seoTitle: "Jar label template – Free Online Tool",
     metaDescription:
-      "Jar label template: Make printable jar labels in any size. Free, no sign-up, print-ready PDF.",
+      "Jar label template: Calculate jar wraparound widths from container diameter and print custom front and round lid labels together on one A4 PDF.",
     h1: "Jar Label Template: Free Printable Jar Label Maker",
     primaryKeyword: "jar label template",
     secondaryKeywords: [
@@ -641,7 +641,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 21,
     seoTitle: "Mason jar labels printable – Free Online Tool",
     metaDescription:
-      "Mason jar labels printable: Printable mason jar and canning labels with date lines. Free, no sign-up, print-ready PDF.",
+      "Mason jar labels printable: Format regular (70 mm) and wide-mouth (86 mm) canning jar front ovals and lid seals with vintage frames and date lines.",
     h1: "Mason Jar Labels Printable: Free Mason Jar and Canning Label Maker",
     primaryKeyword: "mason jar labels printable",
     secondaryKeywords: [
@@ -665,7 +665,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 31,
     seoTitle: "Jam label template – Free Online Tool",
     metaDescription:
-      "Jam label template: Printable jam and jelly labels with flavour and date. Free, no sign-up, print-ready PDF.",
+      "Jam label template: Create customizable jam, jelly, and honey jar labels with flavor titles, batch dates, allergen blocks, and lid seals on A4 PDF.",
     h1: "Jam Label Template: Free Printable Jam and Jelly Label Maker",
     primaryKeyword: "jam label template",
     secondaryKeywords: [
@@ -688,7 +688,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 24,
     seoTitle: "Spice labels printable – Free Online Tool",
     metaDescription:
-      "Spice labels printable: Printable spice jar labels with editable names. Free, no sign-up, print-ready PDF.",
+      "Spice labels printable: Design uniform 38 mm round spice drawer lid circles and compact rectangular jar labels ready to print cleanly at home.",
     h1: "Spice Labels Printable: Free Spice Jar Label Maker",
     primaryKeyword: "spice labels printable",
     secondaryKeywords: [
@@ -712,7 +712,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 42,
     seoTitle: "Candle label maker – Free Online Tool",
     metaDescription:
-      "Candle label maker: Make candle labels in any jar size. Free, no sign-up, print-ready PDF.",
+      "Candle label maker: Size clean scent labels for 4 oz tins, 8 oz tumblers, and matching bottom flame-safety warning decals on A4 or Letter PDFs.",
     h1: "Candle Label Maker: Free Printable Candle Jar Labels",
     primaryKeyword: "candle label maker",
     secondaryKeywords: [
@@ -735,8 +735,8 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 47,
     seoTitle: "Bottle label maker – Free Online Tool",
     metaDescription:
-      "Bottle label maker: Printable bottle labels for glass and plastic bottles. Free, no sign-up, print-ready PDF.",
-    h1: "Bottle Label Maker: Free Printable Labels for Glass and Plastic Bottles",
+      "Bottle label maker: Create straight-wall wrap and front labels for 750 ml wine, 330 ml beer, juice, and hot-sauce bottles on waterproof A4 PDF.",
+    h1: "Bottle Label Maker: Free Printable Wine, Beer & Sauce Labels",
     primaryKeyword: "bottle label maker",
     secondaryKeywords: [
       "glass bottle label maker",
@@ -758,8 +758,8 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 48,
     seoTitle: "Vial label printer – Free Online Tool",
     metaDescription:
-      "Vial label printer: Print-ready labels for vials, droppers and small bottles. Free, no sign-up, print-ready PDF.",
-    h1: "Vial Label Printer: Make Print-Ready Vial and Essential Oil Label Sheets",
+      "Vial label printer: Tile 36 to 48 compact 45x20 mm or 50x25 mm labels for 5 ml, 10 ml, and 15 ml essential oil vials and droppers per A4 PDF.",
+    h1: "Vial Label Printer: Printable Essential Oil & Dropper Sheets",
     primaryKeyword: "vial label printer",
     secondaryKeywords: [
       "apothecary bottle label template",
@@ -827,8 +827,8 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 12,
     seoTitle: "Photos A4 Size: Dimensions, Pixels & Print Sizes",
     metaDescription:
-      "Photos A4 size: A4 photo dimensions, pixels and print sizes in one place. Sizes, options and tips explained simply.",
-    h1: "Photos A4 Size: Photo Dimensions, Pixels and Print Sizes for A4 Paper",
+      "Photos A4 size: Full A4 photo print chart covering exact 210x297 mm dimensions, 300 DPI pixel targets (2480x3508 px), and standard multi-up splits.",
+    h1: "Photos A4 Size: Exact Dimensions, Pixels & Print Resolution",
     primaryKeyword: "photos a4 size",
     secondaryKeywords: [
       "prints a4 size",
@@ -912,7 +912,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 11,
     seoTitle: "Label Paper for Printer: A4 Types & Compatibility",
     metaDescription:
-      "Label paper for printer: How to pick label paper for your printer. Sizes, options and tips explained simply.",
+      "Label paper for printer: Compare matte paper, glossy vinyl, and heat-resistant laser adhesive A4 sheets to avoid paper jams and ink smearing.",
     h1: "Label Paper for Printer: A4 Sheet Types, Sizes and Compatibility",
     primaryKeyword: "label paper for printer",
     secondaryKeywords: [
@@ -933,7 +933,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 6,
     seoTitle: "Bottle Label Printer Guide: Machines vs Sheets",
     metaDescription:
-      "Bottle label printer: Machine or sheet? How to label bottles on any budget. Sizes, options and tips explained simply.",
+      "Bottle label printer buying guide: Compare dedicated thermal roll printers vs home inkjet and laser sticker sheets by startup budget and finish.",
     h1: "Bottle Label Printer Buying Guide: Machines vs Printable Sheets",
     primaryKeyword: "bottle label printer",
     secondaryKeywords: [
@@ -955,7 +955,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 32,
     seoTitle: "Avery Template 28878 & Other Avery Numbers Explained",
     metaDescription:
-      "Avery template 28878: Decode Avery template numbers and match your sheet. Sizes, options and tips explained simply.",
+      "Avery template 28878 decoded: Cross-reference US Letter 51xx/28xxx codes with European A4 L7xxx/J8xxx sheet matrices so every print aligns.",
     h1: "Avery Template 28878 and Other Avery Template Numbers Explained",
     primaryKeyword: "avery template 28878",
     secondaryKeywords: [
@@ -977,7 +977,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 67,
     seoTitle: "4 oz Jar Label Template & Size Chart (2 oz to 8 oz)",
     metaDescription:
-      "4 oz jar label template: Jar label sizes for 2 oz, 4 oz, 8 oz and beyond. Sizes, options and tips explained simply.",
+      "4 oz jar label template: Exact wraparound circumference and lid sticker size chart for 2 oz, 4 oz, 8 oz, and 16 oz straight-wall glass jars.",
     h1: "4 oz Jar Label Template and Size Chart for 2 oz, 8 oz and More",
     primaryKeyword: "4 oz jar label template",
     secondaryKeywords: [
@@ -1021,7 +1021,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     seoTitle: "How to Print Multiple Pictures on One Page from Phone",
     metaDescription:
       "How to print multiple pictures on one page from phone: Print several photos per sheet from iPhone or Android. Step-by-step, with fixes for common problems.",
-    h1: "How to Print Multiple Pictures on One Page from Phone (iPhone and Android)",
+    h1: "How to Print Multiple Pictures on One Page from Phone: Easy Steps",
     primaryKeyword: "how to print multiple pictures on one page from phone",
     secondaryKeywords: ["how to print multiple photos on one page from mobile"],
     targetWordCount: 1500,
@@ -1037,7 +1037,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     seoTitle: "How to Print Multiple Images on One Page in Photoshop",
     metaDescription:
       "How to print multiple images on one page in Photoshop: Photoshop and Lightroom methods for multi-photo pages. Step-by-step, with fixes for common problems.",
-    h1: "How to Print Multiple Images on One Page in Photoshop (Plus Lightroom)",
+    h1: "How to Print Multiple Images on One Page in Photoshop & Lightroom",
     primaryKeyword: "how to print multiple images on one page in photoshop",
     secondaryKeywords: [
       "lightroom print multiple photos on one page",
@@ -1059,7 +1059,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     seoTitle: "How to Print Multiple Pictures on One Page Epson iPrint",
     metaDescription:
       "How to print multiple pictures on one page Epson iPrint: Print several photos on one page with Epson iPrint. Step-by-step, with fixes for common problems.",
-    h1: "How to Print Multiple Pictures on One Page Epson iPrint (Step-by-Step)",
+    h1: "How to Print Multiple Pictures on One Page Epson iPrint App",
     primaryKeyword: "how to print multiple pictures on one page epson iprint",
     secondaryKeywords: [
       "epson iprint multiple photos on one page",
@@ -1081,7 +1081,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     seoTitle: "How to Print Multiple Business Cards on One Sheet Canva",
     metaDescription:
       "How to print multiple business cards on one sheet Canva: Put 10 Canva business cards on one printable sheet. Step-by-step, with fixes for common problems.",
-    h1: "How to Print Multiple Business Cards on One Sheet Canva: A 6-Step Tutorial",
+    h1: "How to Print Multiple Business Cards on One Sheet Canva (6 Steps)",
     primaryKeyword: "how to print multiple business cards on one sheet canva",
     secondaryKeywords: [
       "print canva business cards at home",
@@ -1100,8 +1100,8 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 71,
     seoTitle: "How to Print Multiple Business Cards on One Sheet InDesign",
     metaDescription:
-      "How to print multiple business cards on one sheet InDesign: Create business card sheets in InDesign or from a PDF.",
-    h1: "How to Print Multiple Business Cards on One Sheet InDesign and PDF Method",
+      "How to print multiple business cards on one sheet InDesign: Step-by-step N-up imposition and fast multi-card PDF sheet export without scripts.",
+    h1: "How to Print Multiple Business Cards on One Sheet InDesign & PDF",
     primaryKeyword: "how to print multiple business cards on one sheet indesign",
     secondaryKeywords: [
       "how to print multiple business cards on one sheet pdf",
@@ -1119,8 +1119,8 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 23,
     seoTitle: "Print Business Cards at Home: Paper, Settings, Layout",
     metaDescription:
-      "Print business cards at home: Print professional business cards at home. Step-by-step, with fixes for common problems.",
-    h1: "Print Business Cards at Home: Paper, Printer Settings and Layout Guide",
+      "Print business cards at home: Complete setup guide covering 250–350 gsm cardstock selection, printer feed trays, actual-size scaling, and cuts.",
+    h1: "Print Business Cards at Home: Paper, Alignment & Printer Guide",
     primaryKeyword: "print business cards at home",
     secondaryKeywords: [
       "free business card templates print at home",
@@ -1260,7 +1260,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 63,
     seoTitle: "Jar Label Template Word: Make Jar & Spice Labels",
     metaDescription:
-      "Jar label template Word: Make jar and spice labels in Word quickly. Step-by-step, with fixes for common problems.",
+      "Jar label template Word: Set up custom jar and spice label tables in Microsoft Word or switch to instant browser PDF sheets without cell drift.",
     h1: "Jar Label Template Word: How to Make Jar and Spice Labels in Word",
     primaryKeyword: "jar label template word",
     secondaryKeywords: [
@@ -1329,8 +1329,8 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     rank: 22,
     seoTitle: "Wine Label Printer Options: Wine & Beer Labels",
     metaDescription:
-      "Wine label printer: Home options for printing wine and beer labels. Compare options, costs and tips before you decide.",
-    h1: "Wine Label Printer Options: Print Wine and Beer Bottle Labels at Home",
+      "Wine label printer options: Compare waterproof laser and pigment inkjet sticker sheets against thermal roll printers for wine and beer bottles.",
+    h1: "Wine Label Printer Guide: Print Wine & Beer Labels at Home",
     primaryKeyword: "wine label printer",
     secondaryKeywords: [
       "beer bottle label printer",
@@ -1372,7 +1372,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     seoTitle: "Cricut Printable Sticker Paper: A4 Vinyl & Tips",
     metaDescription:
       "Cricut printable sticker paper: A4 vinyl and printable sticker paper for print-then-cut. Compare options, costs and tips before you decide.",
-    h1: "Cricut Printable Sticker Paper: A4 Vinyl Options and Print Then Cut Tips",
+    h1: "Cricut Printable Sticker Paper: A4 Vinyl & Print Then Cut Guide",
     primaryKeyword: "cricut printable sticker paper",
     secondaryKeywords: [
       "printable vinyl waterproof glossy sticker paper a4",
@@ -1416,7 +1416,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     seoTitle: "Student Business Card Template + 14 More by Job",
     metaDescription:
       "Student business card template: Business card templates organised by profession. Compare options, costs and tips before you decide.",
-    h1: "Student Business Card Template and 14 More Business Card Templates by Profession",
+    h1: "Student Business Card Template + 14 Job Card Ideas That Print",
     primaryKeyword: "student business card template",
     secondaryKeywords: [
       "appointment business card template",
@@ -1481,7 +1481,7 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     seoTitle: "Candy Jar Labels Template Free + Jar Label Ideas",
     metaDescription:
       "Candy jar labels template free: Label ideas for sweets, spreads and gift jars. Compare options, costs and tips before you decide.",
-    h1: "Candy Jar Labels Template Free and More Food and Gift Jar Label Ideas",
+    h1: "Candy Jar Labels Template Free + Pantry & Gift Jar Ideas",
     primaryKeyword: "candy jar labels template free",
     secondaryKeywords: [
       "nutella jar label template",

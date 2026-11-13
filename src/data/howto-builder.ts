@@ -115,7 +115,7 @@ export function buildHowToContent(spec: HowToInput): PageContent {
       level: 2,
       text: "Frequently asked questions",
       paragraphs: [
-        "Direct troubleshooting answers covering exact printer scaling, grid presets, and alternative PDF layouts.",
+        `Common scaling, paper tray, and export troubleshooting questions for ${spec.stepsH2.toLowerCase()} before printing a final sheet.`,
       ],
       children: spec.faqs.map((f) => ({
         level: 3 as const,
@@ -127,7 +127,7 @@ export function buildHowToContent(spec: HowToInput): PageContent {
       level: 2,
       text: "Related tutorials and tools",
       paragraphs: [
-        "Continue with related step-by-step print guides or open the parent hub for all interactive sheet templates.",
+        `Explore ${spec.relatedH3s.map((r) => r.anchor).slice(0, 2).join(" or ")}, or jump to ${spec.fasterToolAnchor} inside our ${spec.hubAnchor} studio.`,
       ],
       inlineLinks: spec.extraHubLink
         ? [{ targetId: spec.hubId, anchor: spec.hubAnchor }, spec.extraHubLink]

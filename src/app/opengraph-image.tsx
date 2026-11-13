@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og";
 
+export const alt =
+  "Print Sheet Maker — Free Online Studio for Photo, Business Card, Label & Jar Print Sheets";
 export const size = {
   width: 1200,
   height: 630,
