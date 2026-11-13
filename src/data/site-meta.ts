@@ -11,9 +11,9 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     cluster: "home",
     priority: "P1",
     rank: 36,
-    seoTitle: "Print Sheet Maker: Free Photo, Label & Card Layouts",
+    seoTitle: "Passport Photo Template for Printing – Free 4x6 & A4 Sheets",
     metaDescription:
-      "Print sheet maker for photos, labels, business cards and stickers. Pick a sheet, add your content and download a print-ready PDF. Free, no sign-up.",
+      "Create a passport photo template for printing with multiple photos on 4x6 or A4 paper. Arrange, customize, and print passport-size photos easily using free printable layouts.",
     h1: "Print Sheet Maker: Free Photo, Card, Sticker & Jar Print Sheets",
     primaryKeyword: "print sheet maker",
     secondaryKeywords: [
