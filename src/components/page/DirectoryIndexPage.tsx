@@ -89,7 +89,7 @@ export function DirectoryIndexPage({
         }}
       />
 
-      <div className="mx-auto max-w-6xl px-4 pt-8 pb-20 sm:px-6">
+      <div className="page-container pt-10 pb-8 sm:pt-14">
         <nav
           aria-label="Breadcrumb"
           className="mb-6 flex flex-wrap items-center gap-1.5 text-xs text-zinc-600"
@@ -101,7 +101,7 @@ export function DirectoryIndexPage({
           <span className="font-semibold text-zinc-900">{title}</span>
         </nav>
 
-        <header className="max-w-3xl space-y-3 mb-12">
+        <header className="max-w-3xl space-y-4 mb-14">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#4d7c0f]">
             — {eyebrow} —
           </p>
@@ -113,10 +113,10 @@ export function DirectoryIndexPage({
           </p>
         </header>
 
-        <div className="space-y-12">
+        <div className="space-y-16">
           {grouped.map((group) => (
             <section key={group.cluster} aria-labelledby={`group-${group.cluster}`}>
-              <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 mb-5">
                 <h2
                   id={`group-${group.cluster}`}
                   className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-950"
@@ -132,7 +132,7 @@ export function DirectoryIndexPage({
                 </Link>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {group.pages.map((page) => {
                   const pageContent = ALL_PAGE_CONTENT[page.id];
                   const hub = page.parentHub ? PAGES_META[page.parentHub] : undefined;
@@ -140,7 +140,7 @@ export function DirectoryIndexPage({
                     <Link
                       key={page.id}
                       href={page.url}
-                      className="group rounded-2xl bg-[#f5f5f7] hover:bg-[#eef6e4] p-5 transition flex flex-col justify-between gap-3"
+                      className="group rounded-2xl bg-[#f5f5f7] hover:bg-[#eef6e4] p-6 transition flex flex-col justify-between gap-3"
                     >
                       <div className="space-y-1.5">
                         <span className="inline-block rounded-lg bg-white px-2.5 py-0.5 text-[11px] font-bold text-[#365314]">

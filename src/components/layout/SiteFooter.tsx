@@ -4,9 +4,9 @@ import { BrandLogo } from "@/components/layout/BrandLogo";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-20 bg-[#f5f5f7] text-zinc-700 no-print">
-      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5">
+    <footer className="mt-24 bg-[#f5f5f7] text-zinc-700 no-print">
+      <div className="page-container py-16">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1 space-y-3">
             <Link
               href="/"

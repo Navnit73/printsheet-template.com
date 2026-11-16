@@ -38,7 +38,7 @@ function EditorialFigure({
   return (
     <figure
       className={`${
-        compact ? "my-0" : "my-6"
+        compact ? "my-0" : "my-8"
       } rounded-3xl bg-[#f5f5f7] p-2.5 sm:p-3.5 overflow-hidden flex flex-col justify-between`}
     >
       <div>
@@ -109,7 +109,7 @@ function MidContentCtaBanner({
   midBanner: PageCtaConfig["midBanner"];
 }) {
   return (
-    <div className="my-10 rounded-3xl bg-[#eef6e4] p-6 sm:p-8">
+    <div className="mt-14 rounded-3xl bg-[#eef6e4] p-7 sm:p-10">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-2.5 max-w-2xl">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#3f6212]">
@@ -183,9 +183,9 @@ function renderHeadingBlock(
       <section
         key={`${id}-${idx}`}
         id={id}
-        className="scroll-mt-24 pt-12 first:pt-4"
+        className="scroll-mt-24"
       >
-        <div className="mb-5">
+        <div className="mb-6">
           {useCardGrid && (
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#4d7c0f] mb-2">
               — {isHubToolsSection ? "PRINT SHEET STUDIO" : "EXPLORE MORE"} —
@@ -199,7 +199,7 @@ function renderHeadingBlock(
         {node.paragraphs?.map((p, pIdx) => (
           <p
             key={pIdx}
-            className="text-zinc-600 leading-relaxed mb-4 max-w-3xl"
+            className="text-base text-zinc-600 leading-relaxed mb-4 max-w-3xl"
           >
             {p}
           </p>
@@ -216,7 +216,7 @@ function renderHeadingBlock(
         {node.callout && <CalloutBox callout={node.callout} />}
 
         {node.bullets && node.bullets.length > 0 && (
-          <ul className="my-5 space-y-2.5 text-zinc-700">
+          <ul className="my-6 space-y-3 text-zinc-700">
             {node.bullets.map((b, bIdx) => (
               <li
                 key={bIdx}
@@ -256,8 +256,8 @@ function renderHeadingBlock(
           <div
             className={
               useCardGrid
-                ? "mt-6 grid grid-cols-1 md:grid-cols-2 gap-5"
-                : "mt-6 space-y-8"
+                ? "mt-8 grid grid-cols-1 md:grid-cols-2 gap-5"
+                : "mt-8 space-y-10"
             }
           >
             {node.children.map((child, cIdx) =>
@@ -603,12 +603,21 @@ export function PageShell({
 }) {
   const parentHub = meta.parentHub ? PAGES_META[meta.parentHub] : null;
   const isHome = meta.id === "HOME";
-  const topIntroParagraphs = isHome
+  // On pages with an interactive tool, keep the hero short so the tool sits near the fold;
+  // the remaining intro copy renders above the article content instead.
+  const hasTool = isHome || Boolean(meta.toolEngine);
+  const topIntroParagraphs = hasTool
     ? content.introParagraphs.slice(0, 1)
     : content.introParagraphs;
-  const deferredHomeIntroParagraphs = isHome
+  const deferredHomeIntroParagraphs = hasTool
     ? content.introParagraphs.slice(1)
     : [];
+
+  const hasNotices = Boolean(
+    meta.requiresLocalRulesNote ||
+      meta.requiresBrandNonAffiliationNote ||
+      meta.isCaseStudyScaffold
+  );
 
   const pageImages = getPageImages(meta);
   const ctas = getPageCtas(meta, content);
@@ -621,16 +630,12 @@ export function PageShell({
 
       {/* Top Studio Hero */}
       <div className="bg-white">
-        <div
-          className={`mx-auto max-w-6xl px-4 sm:px-6 ${
-            isHome ? "pt-4 pb-3 sm:pt-6 sm:pb-4" : "pt-6 pb-4 sm:pt-8 sm:pb-6"
-          }`}
-        >
+        <div className="page-container pt-8 pb-10 sm:pt-12 sm:pb-12">
           {/* Breadcrumbs */}
           {!isHome && (
             <nav
               aria-label="Breadcrumb"
-              className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-zinc-600"
+              className="mb-6 flex flex-wrap items-center gap-1.5 text-xs text-zinc-600"
             >
               <Link
                 href="/"
@@ -656,41 +661,35 @@ export function PageShell({
             </nav>
           )}
 
-          <div className="flex flex-wrap items-center gap-2.5 mb-2">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-12 gap-y-8 lg:items-end">
+          <div className={hasNotices ? "lg:col-span-8" : "lg:col-span-12"}>
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#4d7c0f]">
               — {isHome ? "ONLINE STUDIO" : meta.type} —
             </span>
-            <span className="inline-flex items-center rounded-full bg-[#f5f5f7] px-3 py-0.5 text-[11px] font-medium text-zinc-600">
+            <span className="inline-flex items-center rounded-full bg-[#f5f5f7] px-3 py-1 text-[11px] font-medium text-zinc-600">
               Free · No Sign-Up · Print-Ready PDF
             </span>
           </div>
 
-          <h1
-            className={`${
-              isHome ? "text-2xl sm:text-4xl" : "text-2xl sm:text-4xl"
-            } font-extrabold tracking-tight text-zinc-950 max-w-4xl leading-tight`}
-          >
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-zinc-950 max-w-4xl leading-[1.1] text-balance">
             {meta.h1}
           </h1>
 
           {!isHome && (
-            <p className="mt-2 text-sm sm:text-base font-medium text-zinc-600 max-w-3xl">
+            <p className="mt-4 text-base sm:text-lg font-medium text-zinc-700 max-w-3xl leading-relaxed">
               {content.subtitle}
             </p>
           )}
 
-          <div
-            className={`${
-              isHome ? "mt-2" : "mt-3.5"
-            } space-y-3 max-w-3xl text-sm sm:text-base text-zinc-600 leading-relaxed`}
-          >
+          <div className="mt-4 space-y-3 max-w-3xl text-sm sm:text-base text-zinc-600 leading-relaxed">
             {topIntroParagraphs.map((para, idx) => (
               <p key={idx}>{para}</p>
             ))}
           </div>
 
           {/* Hero Action CTA Bar */}
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               href={ctas.heroPrimary.href}
               className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition"
@@ -713,12 +712,11 @@ export function PageShell({
               <ArrowUpRight className="h-4 w-4 text-[#4d7c0f] shrink-0" />
             </Link>
           </div>
+          </div>
 
           {/* Mandatory safety / compliance / scaffold notices */}
-          {(meta.requiresLocalRulesNote ||
-            meta.requiresBrandNonAffiliationNote ||
-            meta.isCaseStudyScaffold) && (
-            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3.5 max-w-4xl">
+          {hasNotices && (
+            <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
               {meta.requiresLocalRulesNote && (
                 <div className="rounded-2xl bg-[#f5f5f7] p-4 text-xs text-zinc-600 flex items-start gap-3">
                   <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center shrink-0">
@@ -765,7 +763,7 @@ export function PageShell({
               )}
 
               {meta.isCaseStudyScaffold && (
-                <div className="rounded-2xl bg-[#f5f5f7] p-4 text-xs text-zinc-600 flex items-start gap-3 md:col-span-2">
+                <div className="rounded-2xl bg-[#f5f5f7] p-4 text-xs text-zinc-600 flex items-start gap-3 md:col-span-2 lg:col-span-1">
                   <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center shrink-0">
                     <Info
                       className="h-4 w-4 text-[#4d7c0f]"
@@ -786,6 +784,7 @@ export function PageShell({
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -794,7 +793,7 @@ export function PageShell({
         <section
           id="interactive-studio-workspace"
           aria-label="Interactive Print Sheet Tool"
-          className="scroll-mt-20 mx-auto max-w-[1440px] px-4 pt-2 sm:pt-3 sm:px-6 lg:px-8"
+          className="page-container scroll-mt-24"
         >
           {isHome ? (
             <HomeQuickStudio />
@@ -807,11 +806,15 @@ export function PageShell({
       )}
 
       {/* Main Editorial / Outline Content */}
-      <article className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-9">
+      <article
+        className={`page-container ${
+          hasTool ? "pt-16 sm:pt-20" : "pt-4"
+        } pb-4`}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16">
+          <div className="lg:col-span-8 xl:col-span-9 min-w-0">
             {deferredHomeIntroParagraphs.length > 0 && (
-              <div className="mb-6 space-y-3 text-sm sm:text-base text-zinc-600 leading-relaxed max-w-3xl">
+              <div className="mb-10 space-y-4 text-sm sm:text-base text-zinc-600 leading-relaxed max-w-3xl">
                 {deferredHomeIntroParagraphs.map((para, idx) => (
                   <p key={idx}>{para}</p>
                 ))}
@@ -837,7 +840,10 @@ export function PageShell({
               }
 
               return (
-                <div key={`section-wrap-${idx}`}>
+                <div
+                  key={`section-wrap-${idx}`}
+                  className="mt-16 first:mt-0 sm:mt-20 sm:first:mt-0"
+                >
                   {renderHeadingBlock(
                     section,
                     idx,
@@ -881,7 +887,7 @@ export function PageShell({
             {pageImages[7] && pageImages[8] && pageImages[9] && (
               <section
                 id="visual-print-calibration-gallery"
-                className="scroll-mt-24 pt-12"
+                className="scroll-mt-24 mt-20"
               >
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
                   <div>
@@ -918,7 +924,7 @@ export function PageShell({
             {/* Bottom Conversion CTA Card */}
             <section
               aria-label="Start Your Print Sheet"
-              className="mt-12 rounded-3xl bg-zinc-950 text-white p-6 sm:p-9"
+              className="mt-20 rounded-3xl bg-zinc-950 text-white p-7 sm:p-10"
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-2.5 max-w-2xl">
@@ -955,8 +961,8 @@ export function PageShell({
           </div>
 
           {/* Sticky Table of Contents, Quick-Launch CTA & Hub Navigation */}
-          <aside className="lg:col-span-3 hidden lg:block">
-            <div className="sticky top-24 space-y-4">
+          <aside className="lg:col-span-4 xl:col-span-3 hidden lg:block">
+            <div className="sticky top-24 space-y-5">
               {/* Sidebar Quick-Launch CTA Card */}
               <div className="rounded-3xl bg-[#eef6e4] p-5 space-y-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#3f6212]">

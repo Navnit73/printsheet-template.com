@@ -12,7 +12,7 @@ const NAV_LINKS = [
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md no-print">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
+      <div className="page-container flex items-center justify-between gap-4 py-3">
         <Link
           href="/"
           className="inline-flex items-center hover:opacity-85 transition"
@@ -55,7 +55,7 @@ export function SiteHeader() {
       {/* Mobile category rail */}
       <nav
         aria-label="Mobile categories"
-        className="flex md:hidden items-center gap-1.5 overflow-x-auto px-4 pb-3 bg-white"
+        className="page-container flex md:hidden items-center gap-1.5 overflow-x-auto pb-3 bg-white"
       >
         <Link
           href="/photo-sheets/passport-photo-sheet-maker/"
