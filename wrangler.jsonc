@@ -1,0 +1,15 @@
+// Cloudflare Workers static-assets deployment.
+// `npm run build` (Next.js `output: "export"`) writes the whole site to ./out,
+// and `npx wrangler deploy` uploads it — no server code, no OpenNext adapter.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "printsheet-template-com",
+  "compatibility_date": "2026-11-16",
+  "assets": {
+    "directory": "./out",
+    // /business-cards -> /business-cards/ (matches trailingSlash: true)
+    "html_handling": "auto-trailing-slash",
+    // unknown URLs serve out/404.html with a real 404 status
+    "not_found_handling": "404-page"
+  }
+}

@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "preview": "npx wrangler pages dev out",
-    "deploy": "next build && npx wrangler pages deploy out --project-name=printsheet-template"
+    "preview": "next build && npx wrangler dev",
+    "deploy": "next build && npx wrangler deploy"
   },
   "dependencies": {
     "jsbarcode": "^3.12.3",
