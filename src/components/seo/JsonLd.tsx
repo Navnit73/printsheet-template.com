@@ -26,7 +26,11 @@ export function JsonLd({
   const resolvedHeadingIds = headingIds || assignHeadingIds(content.sections);
   const canonicalUrl = `${SITE_URL}${meta.url}`;
   const ogImageUrl = getOgImageUrl(meta);
-  const pageImages = getPageImages(meta).map((img) => `${SITE_URL}${img.src}`);
+  const pageImages = getPageImages(meta).map((img) =>
+    img.src.startsWith("http://") || img.src.startsWith("https://")
+      ? img.src
+      : `${SITE_URL}${img.src}`
+  );
   const primaryImages = pageImages.length > 0 ? [...pageImages, ogImageUrl] : [ogImageUrl];
 
   const schemas: Record<string, unknown>[] = [];

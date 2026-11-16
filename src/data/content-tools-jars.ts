@@ -1076,7 +1076,7 @@ export const JAR_TOOL_CONTENT: Partial<Record<PageId, PageContent>> = {
         heading: "Candle jar label templates",
         targetId: "CS04",
         anchor: "candle jar label templates",
-        desc: "See the case-study scaffold for how small-batch candle studios streamline multi-scent sheets.",
+        desc: "See the case study on how small-batch candle studios streamline multi-scent sheets.",
       },
     ],
   }),

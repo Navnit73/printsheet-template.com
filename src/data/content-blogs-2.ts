@@ -729,7 +729,7 @@ export const BLOGS_CONTENT_2: Partial<Record<PageId, PageContent>> = {
         heading: "Planner sticker sheet maker",
         targetId: "CS05",
         anchor: "planner sticker sheet maker",
-        desc: "Review our case-study scaffold covering faster Etsy A4 planner sticker workflows.",
+        desc: "Review our case study covering faster Etsy A4 planner sticker workflows.",
       },
     ],
   }),

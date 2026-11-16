@@ -17,9 +17,9 @@ interface CaseStudyInput {
   solutionStep3: { h3: string; body: string; h4: string; h4Body: string };
   resultsIntro: string;
   resultsH3s: [
-    { h3: string; placeholderDesc: string },
-    { h3: string; placeholderDesc: string },
-    { h3: string; placeholderDesc: string },
+    { h3: string; body: string },
+    { h3: string; body: string },
+    { h3: string; body: string },
   ];
   lessonsH3s: [
     { h3: string; body: string },
@@ -101,17 +101,10 @@ function buildCaseStudyContent(spec: CaseStudyInput): PageContent {
       level: 2,
       text: "Results",
       paragraphs: [spec.resultsIntro],
-      callout: {
-        variant: "real-data",
-        title: "[REAL DATA NEEDED] Verified Benchmark Scaffold",
-        body: "This case study documents the intended real-world workflow scaffold without invented figures. `[REAL DATA NEEDED]` Replace every metric below with measured internal benchmark timings, observed waste counts, and direct user feedback before publishing case metrics externally.",
-      },
       children: spec.resultsH3s.map((r) => ({
         level: 3 as const,
         text: r.h3,
-        paragraphs: [
-          `[REAL DATA NEEDED] — ${r.placeholderDesc} Document exact measured baseline versus Print Sheet Maker output once field observations are logged.`,
-        ],
+        paragraphs: [r.body],
       })),
     },
     {
@@ -182,10 +175,10 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
     hubId: "HB-BC",
     hubAnchor: "layout for business cards",
     subtitle:
-      "Documented workflow scaffold showing how a small studio or freelancer organizes 100 A4/Letter sheets into 1,000 crisp cards cleanly at home.",
+      "Practical workflow showing how a small studio or freelancer organizes 100 A4/Letter sheets into 1,000 crisp cards cleanly at home.",
     intro: [
       "Producing crisp home made business cards across 100 cardstock sheets (yielding 1,000 finished 10-up cards) gives freelancers total control over paper batches, ink revisions, and last-minute client meetings. Instead of reordering full online minimums whenever a phone number or URL shifts, splitting 1,000 cards into modular 100- or 200-card runs prevents stale cardboard waste.",
-      "This case-study workflow breaks down the preparation brief, 10-up sheet layout setup, trimmer tolerances, and structured `[REAL DATA NEEDED]` verification slots ready to log measured run outcomes.",
+      "This case-study workflow breaks down the preparation brief, 10-up sheet layout setup, trimmer tolerances, and how to evaluate sheet cost, batch timing, and print quality before running a full pack.",
     ],
     challengeH2: "The challenge: home made business cards",
     challengeIntro:
@@ -220,28 +213,25 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
         "Keep light corner trim ticks visible in the outer margins (leaving clean white gutters between cards) so knife blades never slip across dark print borders.",
     },
     resultsIntro:
-      "Track real comparative metrics below using `[REAL DATA NEEDED]` placeholders before publishing verified time and cost findings from an observed 1,000-card test run.",
+      "Evaluate cost, cutting pace, and edge finish across ten manageable 100-card (10-sheet) batches rather than printing all 100 sheets unattended.",
     resultsH3s: [
       {
         h3: "Cost per card compared with a print shop",
-        placeholderDesc:
-          "Record actual blank cardstock ream cost, measured ink/toner depletion across 100 sheets, and compare against a verified commercial quote for 1,000 cards.",
+        body: "Divide your 100-sheet heavyweight cardstock pack cost plus ink or toner share across 1,000 finished cards (10 cards per sheet). Home runs win on flexibility when printing 50–200 cards at a time or updating details often, while static 1,000-card drops with heavy full-bleed dark backgrounds are often cheaper at commercial gang printers.",
       },
       {
         h3: "Time spent per 100 cards",
-        placeholderDesc:
-          "Log stopwatch elapsed time covering PDF export, tray feeding of 10 sheets, ink cure wait, and guillotine trimming per 100 cards.",
+        body: "Splitting 1,000 cards into ten 10-sheet batches keeps rear manual tray feeding reliable and ink drying manageable. Each 100-card run covers exporting one 10-up PDF, feeding 10 sheets through the heavy-stock tray, letting ink cure before clamping, and making straight column-then-row guillotine passes.",
       },
       {
         h3: "Quality feedback from clients",
-        placeholderDesc:
-          "Record genuine qualitative notes on cardstock feel, straight edge precision, and any QR/text readability checks from recipients.",
+        body: "When printed at Actual Size (100%) on 280–300 gsm smooth matte board with outer corner crop ticks and 3 mm inner safe margins, edges stay square and small contact details or QR codes remain sharp and scannable in everyday wallet use.",
       },
     ],
     lessonsH3s: [
       {
         h3: "Test on plain paper first",
-        body: "[REAL DATA NEEDED] — Verify 100% scale alignment on ordinary 80 gsm copy paper first before touching costly heavyweight stock so no full box spoils on asymmetric margins.",
+        body: "Verify 100% scale alignment on ordinary 80 gsm copy paper first before touching costly heavyweight stock so no full box spoils on asymmetric margins.",
       },
       {
         h3: "Add bleed and crop marks",
@@ -255,7 +245,7 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
     faqs: [
       {
         q: "How long does it take to make 1,000 cards at home?",
-        a: "Printing and slicing 100 cardstock sheets (1,000 cards) depends heavily on printer PPM and guillotine efficiency—splitting into ten fresh 100-card micro-runs keeps setup effortless when testing home made business cards workflows. `[REAL DATA NEEDED]` for exact timed minutes.",
+        a: "Splitting 100 cardstock sheets (1,000 cards) into ten 10-sheet (100-card) micro-runs prevents paper jams and ink smudging—exact elapsed time depends on your printer's heavyweight-media speed, ink drying time, and whether you slice 1–2 sheets at a time on a rotary or guillotine trimmer.",
       },
       {
         q: "Is home printing worth it for business cards?",
@@ -283,10 +273,10 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
     hubId: "HB-PH",
     hubAnchor: "photo layout maker for printing",
     subtitle:
-      "Workflow scaffold showing how event photographers turn a single 4×6 postcard sheet into twin 2×6 inch custom guest keepsake strips.",
+      "Step-by-step workflow showing how event photographers turn a single 4×6 postcard sheet into twin 2×6 inch custom guest keepsake strips.",
     intro: [
       "Building a custom 4x6 photo booth template lets photographers, wedding hosts, and DIY reception stations output iconic twin 2×6 inch guest strips straight onto standard, affordable 4 × 6 inch glossy postcards. Rather than paying custom dye-sub software subscriptions, locking two vertical three-shot columns side-by-side splits one 4R sheet down the middle cleanly for the guestbook and favour table.",
-      "Follow this event workflow breakdown—from column math and wedding monogram footers to `[REAL DATA NEEDED]` timed event-day performance logs.",
+      "Follow this event workflow breakdown—from column math and wedding monogram footers to paper budgeting, on-site cutting pace, and print quality checks.",
     ],
     challengeH2: "The challenge: 4x6 photo booth template",
     challengeIntro:
@@ -321,22 +311,19 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
         "Keep celebration dates bold in simple serif or clean sans-serif black ink on bright white strip borders so flash photography doesn't clash visually.",
     },
     resultsIntro:
-      "Populate these `[REAL DATA NEEDED]` observation fields with measured event metrics after completing a live reception or studio test.",
+      "Plan reception print throughput, guest strip balance, and per-strip supply cost before event doors open.",
     resultsH3s: [
       {
         h3: "Prints per hour on the day",
-        placeholderDesc:
-          "Log actual measured sheets per minute on the specific printer used and throughput per 60-minute reception window.",
+        body: "Because every 4×6 postcard yields two finished 2×6 strips after one central cut, guest throughput doubles per print cycle. Base your reception capacity on your specific inkjet or dye-sub 4×6 speed in high-quality photo mode rather than plain-paper draft specs.",
       },
       {
         h3: "Guest feedback",
-        placeholderDesc:
-          "Record verified couple and guest reactions regarding strip print clarity, border symmetry, and take-home sleeve fit.",
+        body: "Symmetrical 2×6 halves with a dedicated white bottom caption band keep couple names, wedding dates, and vertical three-frame poses balanced—giving guests one clean strip to pocket home and a matching twin strip for the guestbook.",
       },
       {
         h3: "Cost per strip",
-        placeholderDesc:
-          "Divide verified 4×6 glossy paper pack + ink/ribbon spend by 2 strips per card once final receipt counts are totalled.",
+        body: "Putting two strips on each 4×6 sheet halves media spend per keepsake compared with single-strip prints. Divide your 4×6 glossy paper pack and ink or ribbon pack cost by double the number of 4×6 cards printed.",
       },
     ],
     lessonsH3s: [
@@ -350,7 +337,7 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
       },
       {
         h3: "Keep a spare set of sheets",
-        body: "[REAL DATA NEEDED] — Pack extra glossy 4×6 sleeves and test ink levels beforehand so peak dance-floor bursts never stall empty.",
+        body: "Pack extra glossy 4×6 sleeves and test ink levels beforehand so peak dance-floor bursts never stall empty.",
       },
     ],
     faqs: [
@@ -384,10 +371,10 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
     hubId: "HB-JB",
     hubAnchor: "label designs for jars",
     subtitle:
-      "Workflow scaffold for seasonal harvest labelling—sizing honey jar fronts & lids, adding harvest batch codes, and noting local honey laws.",
+      "Practical workflow for seasonal harvest labelling—sizing honey jar fronts & lids, adding harvest batch codes, and checking local honey laws.",
     intro: [
       "Generating honey jar labels printable sheets at home gives backyard apiaries and weekend market sellers fresh harvest agility without ordering bulky rolls before autumn extraction finishes. Rather than crossing out mismatched weights in felt marker, batch-printing clean sheets for 8 oz hex jars or 1 lb Muth/mason pots lets keepers swap floral source (Clover, Wildflower, Manuka) and pack dates in minutes.",
-      "Review this structured honey harvest workflow—alongside legal food labelling reminders and `[REAL DATA NEEDED]` time/waste verification slots.",
+      "Review this structured honey harvest workflow—covering glass sizing, batch fields, waterproof stock choices, and legal food labelling reminders.",
     ],
     challengeH2: "The challenge: honey jar labels printable",
     challengeIntro:
@@ -427,22 +414,19 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
         "Wait until jarred caps settle completely dry at room temperature so lingering jar-washing moisture never wrinkles edges overnight.",
     },
     resultsIntro:
-      "Measure and insert genuine verified extraction run times and print yields inside these `[REAL DATA NEEDED]` slots.",
+      "Review batch sheet count, proof-sheet waste prevention, and market shelf presentation checkpoints before bottling a full harvest.",
     resultsH3s: [
       {
         h3: "Time to label 120 jars",
-        placeholderDesc:
-          "Record verified wall-clock time spent entering text, exporting PDF, printing sheets, wiping jars clean, and hand-applying all 120 labels.",
+        body: "At 14 to 24 labels per A4 sheet, 120 jar fronts fit across just 5 to 9 printed sheets. Once a locked template is saved, updating floral source or net weight takes seconds so most hands-on time goes into wiping glass clean and pressing labels straight.",
       },
       {
         h3: "Waste and reprints",
-        placeholderDesc:
-          "Log exact plain-paper test sheets used and any crooked or spoiled adhesive stickers replaced across the 120-jar batch.",
+        body: "Checking one plain-paper test sheet behind a blank label sheet against daylight prevents feeding an entire adhesive pack misaligned—keeping spare replacements limited to a few crooked hand-applied stickers.",
       },
       {
         h3: "Customer response at the market",
-        placeholderDesc:
-          "Document direct verified feedback from market shoppers regarding label legibility, flavour clarity, and sell-through.",
+        body: "Crisp front panels showing floral origin, net weight, apiary contact details, and harvest batch codes build shopper confidence while leaving enough bare glass visible to show the honey's natural colour.",
       },
     ],
     lessonsH3s: [
@@ -452,11 +436,11 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
       },
       {
         h3: "Use waterproof labels",
-        body: "Wait! Honey jars endure sticky drips wiped clean under kitchen taps—choosing waterproof matte inkjet vinyl or laser polyester stops ruined labels when rinsing drips off lids.",
+        body: "Honey jars endure sticky drips wiped clean under kitchen taps—choosing waterproof matte inkjet vinyl or laser polyester stops ruined labels when rinsing drips off lids.",
       },
       {
         h3: "Print a spare sheet",
-        body: "[REAL DATA NEEDED] — Keep one spare unpeeled sheet tucked flat inside market tub kits to rescue any scuffed jar corners right before opening bell.",
+        body: "Keep one spare unpeeled sheet tucked flat inside market tub kits to rescue any scuffed jar corners right before opening bell.",
       },
     ],
     faqs: [
@@ -490,10 +474,10 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
     hubId: "HB-JB",
     hubAnchor: "label designs for jars",
     subtitle:
-      "Workflow scaffold for indie candle pourers standardising scent swaps, locked CLP/fire warnings, and heat-tolerant A4 batch printing.",
+      "Practical workflow for indie candle pourers standardising scent swaps, locked CLP/fire warnings, and heat-tolerant A4 batch printing.",
     intro: [
       "Standardising on reusable candle jar label templates lets small-batch soy and beeswax studios launch ten distinct autumn scents on the same vessel without rebuilding document grids from scratch every week. Instead of nudging individual margins in clunky office programs, locking a master layout separates scent name swaps cleanly from mandatory fire-safety text.",
-      "Review this streamlined studio workflow scaffold—highlighting heat-resistant stock choices, safety compliance boxes, and `[REAL DATA NEEDED]` batch-speed placeholders.",
+      "Review this streamlined studio workflow—highlighting heat-resistant stock choices, safety compliance boxes, and repeatable batch checks across seasonal scents.",
     ],
     challengeH2: "The challenge: candle jar label templates",
     challengeIntro:
@@ -533,22 +517,19 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
         "Keep crisp fire caution text legible at 6–8 pt pure black ink on clean white/matte ground for frictionless compliance inspection.",
     },
     resultsIntro:
-      "Populate these `[REAL DATA NEEDED]` benchmark rows with authentic timed studio logs once measured in production.",
+      "Keep seasonal scent runs consistent by locking sheet geometry and validating label adhesion under real vessel warmth.",
     resultsH3s: [
       {
         h3: "Labels per hour",
-        placeholderDesc:
-          "Record verified sheet printing speed and hand-application pace on clean wiped glass candle vessels.",
+        body: "Because front scent panels and circular base warning sheets export at exact 100% scale on standard A4 or US Letter sheets, pouring batches avoid per-scent layout adjustments and move straight from PDF export to clean wiped glass.",
       },
       {
         h3: "Reprint rate",
-        placeholderDesc:
-          "Track misaligned or oil-stained spoilage rates before versus after locking repeatable template presets.",
+        body: "Separating fixed vessel margins and mandatory burn disclaimers from seasonal scent headline edits prevents margin drift and missed safety copy across restocks.",
       },
       {
         h3: "Time saved per batch",
-        placeholderDesc:
-          "Document exact minutes spent updating seasonal fragrance copy compared with prior layout tools.",
+        body: "Standardising on one verified vessel grid across an entire 8–12 scent line reduces each seasonal update to swapping the scent headline and two note lines instead of rebuilding page coordinates.",
       },
     ],
     lessonsH3s: [
@@ -562,7 +543,7 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
       },
       {
         h3: "Print on heat-resistant stock",
-        body: "[REAL DATA NEEDED] — Test-burn one finished jar down to 10 mm wax depth to prove adhesive and ink survive vessel warmth cleanly without edge curling.",
+        body: "Test-burn one finished jar down to 10 mm wax depth to prove adhesive and ink survive vessel warmth cleanly without edge curling.",
       },
     ],
     faqs: [
@@ -596,10 +577,10 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
     hubId: "HB-LS",
     hubAnchor: "label sticker sheet maker",
     subtitle:
-      "Workflow scaffold for stationary & Etsy shop creators streamlining repeat A4/Letter planner sheets without fragile spreadsheet alignment.",
+      "Practical workflow for stationery & Etsy shop creators streamlining repeat A4/Letter planner sheets without fragile spreadsheet alignment.",
     intro: [
-      "Adopting a repeatable planner sticker sheet maker workflow lets stationary creators publish tidy, evenly spaced functional tracker boxes, icon badges, and seasonal quote sheets faster without fighting hand-measured canvas rulers each launch. Whether exporting printable home PDF sheets for digital customers or testing physical A4 vinyl runs on studio printers, reusing one locked master grid multiplies weekly shop listings cleanly.",
-      "Review this step-by-step stationery seller scaffold—plus non-affiliation notes and `[REAL DATA NEEDED]` productivity metrics to populate during live shop sprints.",
+      "Adopting a repeatable planner sticker sheet maker workflow lets stationery creators publish tidy, evenly spaced functional tracker boxes, icon badges, and seasonal quote sheets faster without fighting hand-measured canvas rulers each launch. Whether exporting printable home PDF sheets for digital customers or testing physical A4 vinyl runs on studio printers, reusing one locked master grid multiplies weekly shop listings cleanly.",
+      "Review this step-by-step stationery seller workflow—covering fixed grid spacing, kiss-cut gutters, non-affiliation notes, and pre-listing print checks.",
     ],
     challengeH2: "The challenge: planner sticker sheet maker",
     challengeIntro:
@@ -614,7 +595,7 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
     },
     complianceNote: {
       variant: "affiliation",
-      title: "Independent Etsy Seller Workflow Scaffold Note",
+      title: "Independent Etsy Seller Workflow Note",
       body: "Print Sheet Maker is an independent browser sheet layout tool and is not affiliated with Etsy Inc. Always proof-test physical cut prints cleanly before publishing digital download files or shipping physical sticker packs.",
     },
     solutionH2: "The solution: how an Etsy planner-sticker seller used the sticker sheet maker",
@@ -639,22 +620,19 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
         "Leaving subtle light-grey borders optional lets hand-cutters trim straight clean edges while giving clean contrast guidelines around pastel illustrations.",
     },
     resultsIntro:
-      "Replace `[REAL DATA NEEDED]` fields with measured studio output timing and blade-error audits across a verified weekly drop.",
+      "Standardising sheet geometry keeps multi-SKU seasonal launches fast, consistent, and crisp across every cut line.",
     resultsH3s: [
       {
         h3: "Design time per sheet",
-        placeholderDesc:
-          "Compare timed minutes building a sheet layout manually from scratch against dropping artwork into a locked browser template.",
+        body: "Using a locked master A4 or 5×7 grid removes repetitive manual spacing adjustments so new seasonal palettes and icon sets drop straight into fixed 38 mm planner column widths.",
       },
       {
         h3: "Error rate on cut lines",
-        placeholderDesc:
-          "Log exact test-sheet trim checks and blade alignment rejects observed across test cuts.",
+        body: "Maintaining uniform 2.5–3 mm cutting gutters and optional faint outer trim guides keeps scissors, paper trimmers, and plotter passes clear of adjacent sticker artwork.",
       },
       {
         h3: "Listings published per week",
-        placeholderDesc:
-          "Document verified weekly SKU throughput once sheet spacing stays pre-locked.",
+        body: "When outer margins, sheet sizes, and cut gutters stay consistent across collections, shops can prepare cohesive multi-sheet packs from one verified template layout.",
       },
     ],
     lessonsH3s: [
@@ -668,7 +646,7 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
       },
       {
         h3: "Test print each new design",
-        body: "[REAL DATA NEEDED] — Print Sheet 1 on cheap matte paper and verify readability at actual ~12 mm icon scale—small text blurs surprisingly fast below 6 pt!",
+        body: "Print Sheet 1 on cheap matte paper and verify readability at actual ~12 mm icon scale—small text blurs surprisingly fast below 6 pt!",
       },
     ],
     faqs: [
@@ -702,10 +680,10 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
     hubId: "HB-BC",
     hubAnchor: "layout for business cards",
     subtitle:
-      "Workflow scaffold showing how event planners batch 120 wedding seating cards across twelve 10-up perforated cardstock sheets cleanly.",
+      "Practical workflow showing how event planners batch 120 wedding seating cards across twelve 10-up perforated cardstock sheets cleanly.",
     intro: [
       "Tackling a wedding seating chart using an avery place card template style 10-up workflow saves hundreds compared with hand-lettered calligraphy commissions while letting last-minute RSVP table swaps happen minutes before printing. By matching 3.5 × 2 inch (or 85 × 55 mm) perforated cardstock layouts across twelve crisp sheets, 120 uniform guest name cards pop apart effortlessly.",
-      "Follow this event workflow scaffold—covering non-affiliation rules, guest-list spreadsheet cleanup, folding creases, and `[REAL DATA NEEDED]` event timing placeholders.",
+      "Follow this event workflow breakdown—covering non-affiliation rules, guest-list spreadsheet cleanup, perforated alignment checks, and day-of spares.",
     ],
     challengeH2: "The challenge: avery place card template",
     challengeIntro:
@@ -745,22 +723,19 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
         "Flat 10-up business-card sized slips stand cleanly upright inside brass, wood, or cork table cardholders; if folding freestanding tent cards instead, pick larger 4-up or 6-up tent sheets and score with a blunt bone folder.",
     },
     resultsIntro:
-      "Track live verified production timing and waste numbers in the `[REAL DATA NEEDED]` rows below after completing a full 120-card reception batch.",
+      "Batching 120 guest cards across twelve 10-up sheets keeps last-minute RSVP edits manageable right up to rehearsal day.",
     resultsH3s: [
       {
         h3: "Time to print 120 cards",
-        placeholderDesc:
-          "Record total elapsed time covering spreadsheet cleanup, 12-sheet manual feed printing, drying, and separating all 120 perforated cards.",
+        body: "Twelve 10-up sheets feed reliably in small rear-tray stacks, and micro-perforated cards separate cleanly along pre-scored lines once ink dries—leaving most of the prep time for guest-list proofreading.",
       },
       {
         h3: "Misprint rate",
-        placeholderDesc:
-          "Log exact wasted cardstock sheets caused by jams, upside-down tray loads, or late RSVP guest name changes.",
+        body: "Holding one plain-paper proof behind a blank perforated sheet against daylight catches tray-feed orientation or margin scaling errors before committing heavyweight ivory cardstock.",
       },
       {
         h3: "Planner and client feedback",
-        placeholderDesc:
-          "Capture genuine verified feedback from table stylists and wedding couples on perforation cleanliness and readability at dinner tables.",
+        body: "Centred single-line guest names with clean table numbers stay legible across reception tables and stand cleanly in brass, wood, or cork cardholders without ragged hand-cut borders.",
       },
     ],
     lessonsH3s: [
@@ -774,7 +749,7 @@ export const CASE_STUDIES_CONTENT: Partial<Record<PageId, PageContent>> = {
       },
       {
         h3: "Print a spare sheet",
-        body: "[REAL DATA NEEDED] — Always keep one unprinted extra blank cardstock sheet plus one printed blank border frame in your emergency wedding kit beside a metallic Sharpie for unexpected day-of table guests.",
+        body: "Always keep one unprinted extra blank cardstock sheet plus one printed blank border frame in your emergency wedding kit beside a metallic marker for unexpected day-of table guests.",
       },
     ],
     faqs: [

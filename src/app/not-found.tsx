@@ -30,7 +30,7 @@ export default function NotFound() {
       <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] px-5 py-3 text-sm font-bold text-white transition"
+          className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-3 text-sm font-bold text-zinc-950 transition"
         >
           <IdCard className="h-4 w-4" aria-hidden="true" />
           <span>Open Passport &amp; Print Sheet Studio</span>

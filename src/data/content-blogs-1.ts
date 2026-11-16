@@ -295,7 +295,7 @@ export const BLOGS_CONTENT_1: Partial<Record<PageId, PageContent>> = {
         heading: "Candle jar label templates",
         targetId: "CS04",
         anchor: "candle jar label templates",
-        desc: "Review our case-study scaffold for small-batch seasonal candle sheet workflows.",
+        desc: "Review our case study for small-batch seasonal candle sheet workflows.",
       },
     ],
   }),

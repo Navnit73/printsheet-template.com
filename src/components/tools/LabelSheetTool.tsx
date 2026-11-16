@@ -685,8 +685,8 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
             <div className="space-y-3">
               {(pageId === "T22" || pageId === "T19") && (
                 <div className="flex flex-wrap gap-2">
-                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#4d7c0f] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#3f6212]">
-                    <ImagePlus className="h-4 w-4 text-white" aria-hidden="true" />
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-zinc-950 hover:bg-amber-600 transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-amber-800">
+                    <ImagePlus className="h-4 w-4 text-zinc-950" aria-hidden="true" />
                     <span>Upload Sticker Art</span>
                     <input
                       type="file"
@@ -890,7 +890,7 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
               type="button"
               onClick={handleDownloadPdf}
               disabled={isExporting}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#4d7c0f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#3f6212] disabled:bg-zinc-200 disabled:text-zinc-600 disabled:cursor-not-allowed transition cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-zinc-950 hover:bg-amber-600 disabled:bg-zinc-200 disabled:text-zinc-600 disabled:cursor-not-allowed transition cursor-pointer"
             >
               <Download className="h-4 w-4" aria-hidden="true" />
               {isExporting

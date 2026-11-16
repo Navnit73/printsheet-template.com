@@ -44,7 +44,7 @@ export function SiteHeader() {
           </Link>
           <Link
             href="/photo-sheets/passport-photo-sheet-maker/"
-            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-[#4d7c0f] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#3f6212] transition"
+            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-zinc-950 hover:bg-amber-600 transition"
           >
             <IdCard aria-hidden="true" className="h-3.5 w-3.5" />
             <span>Passport Sheet</span>

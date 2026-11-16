@@ -877,7 +877,7 @@ export function PassportSheetTool({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="min-h-[36px] px-3.5 py-1.5 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition cursor-pointer"
+              className="min-h-[36px] px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
               <Upload aria-hidden="true" className="w-3.5 h-3.5" />
               <span>{imageSrc ? "Change Photo" : "Choose Photo"}</span>
@@ -1283,7 +1283,7 @@ export function PassportSheetTool({
                 type="button"
                 onClick={handleExport}
                 disabled={isExporting}
-                className="flex-1 min-h-[42px] py-2.5 px-4 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] disabled:bg-zinc-200 disabled:text-zinc-600 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                className="flex-1 min-h-[42px] py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-zinc-200 disabled:text-zinc-600 disabled:cursor-not-allowed text-zinc-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <Download aria-hidden="true" className="w-4 h-4 shrink-0" />
                 <span>

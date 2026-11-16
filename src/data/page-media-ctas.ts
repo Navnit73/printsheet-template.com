@@ -53,7 +53,7 @@ export interface PageCtaConfig {
  * No synthetic SVG/card overlays—only genuine Nano Banana generated photography converted to WebP.
  */
 function makeImageSpec(
-  src: `/images/${string}.webp`,
+  src: `/images/${string}.webp` | `https://${string}`,
   slotSlug: string,
   badge: string,
   title: string,
@@ -61,7 +61,8 @@ function makeImageSpec(
   caption: string,
   sectionHeading: string,
   specHighlights: [string, string, string],
-  index = 1
+  index = 1,
+  dimensions: { width: number; height: number } = { width: 1200, height: 675 }
 ): PageImageSpec {
   return {
     index,
@@ -73,8 +74,8 @@ function makeImageSpec(
     badge,
     sectionHeading,
     specHighlights,
-    width: 1200,
-    height: 675,
+    width: dimensions.width,
+    height: dimensions.height,
   };
 }
 
@@ -331,15 +332,64 @@ export const PHASE_GENERATED_IMAGES: Partial<Record<PageId, PageImageSpec[]>> = 
   ],
   T11: [
     makeImageSpec(
-      "/images/business-card-10up-sheet-crop-marks.webp",
+      "https://res.cloudinary.com/dipzpwbbk/image/upload/v1794798274/Print-Multiple-Business-Cards-Easily_ss2imq.webp",
       "card-10up-imposition",
       "10-UP SHEET IMPOSITION",
-      "Print 10 Business Cards on One A4 or Letter Sheet",
-      "Diagram of a 2-column by 5-row 10-up business card sheet showing exact 88.9 by 50.8 mm and 85 by 55 mm cell boundaries",
-      "Pack 10 professional business cards per page with crisp corner crop lines and zero image compression for straight-edge guillotine cuts.",
-      "10-Up Sheet Dimensions",
-      ["US: 3.5 x 2 in (10-up)", "EU/UK: 85 x 55 mm", "Crop Marks Included"],
-      1
+      "Print Multiple Business Cards on One A4 or Letter Page",
+      "Illustrated overview showing an inkjet printer outputting a 10-up business card sheet with crop marks, double-sided front and back card designs, and a finished trimmed card stack",
+      "Tile 8 or 10 business cards onto a single A4 or US Letter PDF with crisp hairline crop marks and optional double-sided export.",
+      "8-Up & 10-Up Sheet Overview",
+      ["8-Up or 10-Up Layout", "Crop Marks Included", "Double-Sided PDF Export"],
+      1,
+      { width: 1536, height: 1024 }
+    ),
+    makeImageSpec(
+      "https://res.cloudinary.com/dipzpwbbk/image/upload/v1794798274/Print-Multiple-Business-Cards-on-One-Page_feckdo.webp",
+      "card-single-to-sheet",
+      "SINGLE CARD TO 8-UP / 10-UP",
+      "Tile One Business Card Design Across an Entire Print Sheet",
+      "Diagram showing front and back business card designs arranged onto an 8-up A4 or Letter print sheet with corner and gutter crop marks",
+      "Start from a single exported PNG or JPG design (or live editor text) and generate a symmetrical 8-up or 10-up cut sheet in seconds.",
+      "From Single Design to Full Sheet",
+      ["A4 or US Letter Size", "Crop Marks (Print Ready)", "Zero Manual Table Setup"],
+      2,
+      { width: 1536, height: 1024 }
+    ),
+    makeImageSpec(
+      "https://res.cloudinary.com/dipzpwbbk/image/upload/v1794797899/Modern_Blue_Wave_Business_Cards_mjwrn2.webp",
+      "card-sheet-blue-wave-example",
+      "FRONT + DARK BACK SPEC",
+      "High-Contrast Front & Navy Reverse Card Print Example",
+      "Stack of double-sided business cards showing a crisp white logo front with blue wave accents beside a dark navy contact back",
+      "Matching 280–300 gsm opaque matte cardstock with clean 3 mm safe margins keeps bold reverse ink sharp without show-through.",
+      "Cardstock & Margin Finish",
+      ["280–300 gsm Cardstock", "3 mm Inner Safe Zone", "Zero Show-Through"],
+      3,
+      { width: 1536, height: 1024 }
+    ),
+    makeImageSpec(
+      "https://res.cloudinary.com/dipzpwbbk/image/upload/v1794797899/Print-Double-Sided-Business-Cards_at_Home_hxm8z8.webp",
+      "card-sheet-duplex-steps",
+      "DOUBLE-SIDED ALIGNMENT",
+      "How to Align Front & Back Business Card Sheets at Home",
+      "Four-step illustrated guide showing how to print double-sided business cards at home with front and back alignment, paper flip direction, and finished stacked cards",
+      "Export a 2-page front-and-back PDF, test orientation on one sheet of plain paper first, and match your printer flip edge before feeding heavy stock.",
+      "Duplex & Manual Flip Check",
+      ["Test on Plain Paper", "Match Flip Edge Setting", "100% Actual Size"],
+      4,
+      { width: 1536, height: 1024 }
+    ),
+    makeImageSpec(
+      "https://res.cloudinary.com/dipzpwbbk/image/upload/v1794797899/Business_Cards_c1nudz.webp",
+      "card-sheet-finished-stack",
+      "FINISHED CARD STACK",
+      "Trimmed Business Card Stacks Ready for Events & Client Meetings",
+      "Finished double-sided business card stacks on a desk showing centered logo typography on the white front and aligned contact details on the dark navy back",
+      "Trimming 1–2 sheets at a time along Page 1 crop marks gives square, repeatable edges for trade shows, freelance pitches, and small runs.",
+      "Clean Trimmed Batch Output",
+      ["10 Cards Per Sheet", "Clean Guillotine Edges", "Small-Batch Friendly"],
+      5,
+      { width: 1536, height: 1024 }
     ),
   ],
   T12: [
@@ -721,15 +771,40 @@ export const PHASE_GENERATED_IMAGES: Partial<Record<PageId, PageImageSpec[]>> = 
   ],
   H08: [
     makeImageSpec(
-      "/images/double-sided-business-card-duplex-alignment.webp",
-      "howto-duplex-cards",
-      "DUPLEX TEST STEP",
-      "Pencil-Mark Duplex Orientation & Shift Correction Guide",
-      "Hands-on calibration diagram showing a quick one-sheet corner X test to verify flip axis (long edge vs short edge) on home printers",
-      "Run a quick plain-paper corner check before feeding expensive cardstock so front and back card prints land within 1 mm.",
-      "1-Minute Duplex Orientation Test",
-      ["Print Draft on Plain", "Long-Edge Flip Check", "Mirror Back Active"],
-      1
+      "https://res.cloudinary.com/dipzpwbbk/image/upload/v1794797899/Print-Double-Sided-Business-Cards_at_Home_hxm8z8.webp",
+      "howto-duplex-cards-workflow",
+      "DOUBLE-SIDED WORKFLOW",
+      "How to Print Double-Sided Business Cards at Home: Front & Back Alignment",
+      "Four-step illustrated guide showing how to print double-sided business cards at home with front and back alignment, paper flip direction, and finished stacked cards",
+      "Follow the four-stage cycle: lay out matching front and back sides, print Page 1 on a plain test sheet first, verify flip orientation, and run Page 2 cleanly onto heavy cardstock.",
+      "4-Step Front & Back Printing Overview",
+      ["Test Print on Plain Paper", "Check Flip Orientation", "Quality Cardstock"],
+      1,
+      { width: 1536, height: 1024 }
+    ),
+    makeImageSpec(
+      "https://res.cloudinary.com/dipzpwbbk/image/upload/v1794797899/Modern_Blue_Wave_Business_Cards_mjwrn2.webp",
+      "double-sided-blue-wave-cards",
+      "FRONT + DARK BACK SPEC",
+      "High-Contrast Front & Navy Reverse Double-Sided Card Example",
+      "Stack of modern double-sided business cards showing a white brand front with blue wave accents beside a dark navy reverse contact side",
+      "Pairing a clean white logo front with a dark navy contact back requires 280–300 gsm opaque matte cardstock so heavy reverse ink does not show through.",
+      "Cardstock Opacity & Safe-Zone Example",
+      ["280–300 gsm Cardstock", "3 mm Inner Safe Zone", "Zero Ink Show-Through"],
+      2,
+      { width: 1536, height: 1024 }
+    ),
+    makeImageSpec(
+      "https://res.cloudinary.com/dipzpwbbk/image/upload/v1794797899/Business_Cards_c1nudz.webp",
+      "double-sided-cards-finished-stack",
+      "FINISHED DOUBLE-SIDED SET",
+      "Trimmed Double-Sided Business Cards with Centered Front & Back Registration",
+      "Finished double-sided business card stacks on a wood desk showing centered brand typography on the white front and aligned contact details on the dark navy back",
+      "Symmetrical 10-up grid margins with corner crop ticks placed exclusively on Page 1 keep both front and reverse borders evenly centered after trimming.",
+      "Aligned Front & Back Trim Result",
+      ["Symmetrical 10-Up Grid", "Page 1 Crop Ticks Only", "Clean Guillotine Trim"],
+      3,
+      { width: 1536, height: 1024 }
     ),
   ],
   H12: [

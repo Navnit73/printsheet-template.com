@@ -670,7 +670,7 @@ export function JarBottleLabelTool({ pageId }: { pageId: PageId }) {
               type="button"
               onClick={handleDownloadPdf}
               disabled={isExporting}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#4d7c0f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#3f6212] disabled:bg-zinc-200 disabled:text-zinc-600 disabled:cursor-not-allowed transition cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-zinc-950 hover:bg-amber-600 disabled:bg-zinc-200 disabled:text-zinc-600 disabled:cursor-not-allowed transition cursor-pointer"
             >
               <Download className="h-4 w-4" aria-hidden="true" />
               {isExporting

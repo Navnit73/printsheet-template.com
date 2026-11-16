@@ -42,7 +42,10 @@ function EditorialFigure({
       } rounded-3xl bg-[#f5f5f7] p-2.5 sm:p-3.5 overflow-hidden flex flex-col justify-between`}
     >
       <div>
-        <div className="relative overflow-hidden rounded-2xl bg-white aspect-[16/9]">
+        <div
+          className="relative overflow-hidden rounded-2xl bg-white"
+          style={{ aspectRatio: `${image.width} / ${image.height}` }}
+        >
           <Image
             src={image.src}
             alt={image.alt}
@@ -134,7 +137,7 @@ function MidContentCtaBanner({
         <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
           <Link
             href={midBanner.primary.href}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] px-5 py-3 text-xs sm:text-sm font-bold text-white transition"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition"
           >
             <Printer className="h-4 w-4 shrink-0" />
             <span>{midBanner.primary.label}</span>
@@ -690,12 +693,12 @@ export function PageShell({
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Link
               href={ctas.heroPrimary.href}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] px-5 py-3 text-xs sm:text-sm font-bold text-white transition"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition"
             >
               <Printer className="h-4 w-4 shrink-0" />
               <span>{ctas.heroPrimary.label}</span>
               {ctas.heroPrimary.sublabel && (
-                <span className="hidden sm:inline-flex rounded-md bg-white/20 px-2 py-0.5 text-[10px] font-semibold text-white">
+                <span className="hidden sm:inline-flex rounded-md bg-zinc-950/10 px-2 py-0.5 text-[10px] font-semibold text-zinc-950">
                   {ctas.heroPrimary.sublabel}
                 </span>
               )}
@@ -891,10 +894,10 @@ export function PageShell({
                   </div>
                   <Link
                     href={ctas.heroPrimary.href}
-                    className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[#eef6e4] hover:bg-[#e2efd3] px-3.5 py-2 text-xs font-bold text-[#365314] transition"
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-3.5 py-2 text-xs font-bold text-zinc-950 transition"
                   >
                     <span>{ctas.heroPrimary.label}</span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-[#4d7c0f]" />
+                    <ArrowUpRight className="h-3.5 w-3.5 text-zinc-950" />
                   </Link>
                 </div>
 
@@ -933,7 +936,7 @@ export function PageShell({
                 <div className="flex flex-wrap items-center gap-3 shrink-0">
                   <Link
                     href={ctas.bottomCard.primary.href}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#65a30d] hover:bg-[#4d7c0f] px-5 py-3 text-xs sm:text-sm font-bold text-white transition"
+                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition"
                   >
                     <Printer className="h-4 w-4 shrink-0" />
                     <span>{ctas.bottomCard.primary.label}</span>
@@ -967,7 +970,7 @@ export function PageShell({
                 </p>
                 <Link
                   href={ctas.sidebarCard.button.href}
-                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#4d7c0f] hover:bg-[#3f6212] px-3.5 py-2.5 text-xs font-bold text-white transition"
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-3.5 py-2.5 text-xs font-bold text-zinc-950 transition"
                 >
                   <span>{ctas.sidebarCard.button.label}</span>
                   <ArrowRight className="h-3.5 w-3.5 shrink-0" />

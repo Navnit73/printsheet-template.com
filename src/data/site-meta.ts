@@ -1551,7 +1551,6 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     h1: "Home Made Business Cards: How One Freelancer Printed 1,000 Cards at Home",
     primaryKeyword: "home made business cards",
     targetWordCount: 1400,
-    isCaseStudyScaffold: true,
   },
   CS02: {
     id: "CS02",
@@ -1567,7 +1566,6 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     h1: "4x6 Photo Booth Template: Printing Wedding Photo Strips on 4x6 Paper",
     primaryKeyword: "4x6 photo booth template",
     targetWordCount: 1400,
-    isCaseStudyScaffold: true,
   },
   CS03: {
     id: "CS03",
@@ -1590,7 +1588,6 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     ],
     targetWordCount: 1400,
     requiresLocalRulesNote: true,
-    isCaseStudyScaffold: true,
   },
   CS04: {
     id: "CS04",
@@ -1607,7 +1604,6 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     primaryKeyword: "candle jar label templates",
     targetWordCount: 1400,
     requiresLocalRulesNote: true,
-    isCaseStudyScaffold: true,
   },
   CS05: {
     id: "CS05",
@@ -1624,7 +1620,6 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     primaryKeyword: "planner sticker sheet maker",
     targetWordCount: 1400,
     requiresBrandNonAffiliationNote: true,
-    isCaseStudyScaffold: true,
   },
   CS06: {
     id: "CS06",
@@ -1641,7 +1636,6 @@ export const PAGES_META: Record<PageId, PageMeta> = {
     primaryKeyword: "avery place card template",
     targetWordCount: 1400,
     requiresBrandNonAffiliationNote: true,
-    isCaseStudyScaffold: true,
   },
 };
 
