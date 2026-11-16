@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { BrandLogo } from "@/components/layout/BrandLogo";
 
 export function SiteFooter() {
@@ -16,6 +17,21 @@ export function SiteFooter() {
             <p className="text-xs leading-relaxed text-zinc-600">
               Free browser-based print layout tools for A4, A3, Letter, and 4×6 sheets. No sign-up required; all PDF rendering runs locally on your device.
             </p>
+            <a
+              href="https://fazier.com/launches/printsheet-template.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex rounded-[10px] hover:opacity-90 transition"
+            >
+              <Image
+                src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=neutral"
+                alt="Fazier badge"
+                width={140}
+                height={33}
+                unoptimized
+                className="h-auto w-[140px]"
+              />
+            </a>
           </div>
 
           <nav aria-label="Photo sheets footer links" className="space-y-2.5">
