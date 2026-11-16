@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 import { SITE_NAME } from "@/data/site-meta";
 
+// Required for `output: "export"` (Cloudflare Pages static hosting).
+export const dynamic = "force-static";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: SITE_NAME,

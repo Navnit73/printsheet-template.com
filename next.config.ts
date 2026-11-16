@@ -1,11 +1,18 @@
 import type { NextConfig } from "next";
 
+/**
+ * Static export for Cloudflare Pages: `npm run build` writes a plain HTML/CSS/JS
+ * site to ./out. There is no Node server, so:
+ * - security & cache headers live in public/_headers (Cloudflare reads it)
+ * - trailing-slash redirects are handled by Cloudflare Pages automatically
+ * - images are served as-is (no on-demand optimisation server)
+ */
 const nextConfig: NextConfig = {
+  output: "export",
   trailingSlash: true,
-  skipTrailingSlashRedirect: true,
   poweredByHeader: false,
   images: {
-    formats: ["image/avif", "image/webp"],
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -15,40 +22,6 @@ const nextConfig: NextConfig = {
         search: "",
       },
     ],
-  },
-  async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
-          },
-        ],
-      },
-      {
-        source: "/images/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      {
-        source: "/og/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-    ];
   },
   turbopack: {
     rules: {
