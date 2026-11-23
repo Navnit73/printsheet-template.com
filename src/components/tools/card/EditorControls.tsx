@@ -64,6 +64,7 @@ import {
   type NamedDesignSnapshot,
   type PersistedCardDesign,
 } from "./export";
+import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 
 /* ------------------------------------------------------------------------- */
 /* 1. Advanced Color Picker (Swatches + Saved Brand Colours + Eyedropper)    */
@@ -971,6 +972,7 @@ export function PrintExportModal({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const { requirePayment } = useDownloadGate();
 
   const paper = PAPER_SIZES[sheet.paper];
   const paperShort = PAPER_SHORT[sheet.paper];
@@ -995,17 +997,64 @@ export function PrintExportModal({
   const hasDarkEdge = frontEdge.isDark || frontEdge.touchesEdge || backEdge.isDark || backEdge.touchesEdge;
   const maxSheetBleed = Math.min(3, sheet.cols > 1 ? sheet.gapX / 2 : 3, sheet.rows > 1 ? sheet.gapY / 2 : 3);
 
-  async function runExport(key: string, fn: () => Promise<string>) {
-    setBusy(key);
-    setNotice(null);
-    try {
-      const msg = await fn();
-      setNotice({ tone: "success", text: msg });
-    } catch (err) {
-      setNotice({ tone: "error", text: err instanceof Error ? err.message : "Export failed. Please try again." });
-    } finally {
-      setBusy(null);
+  function exportMeta(key: string): { itemTitle: string; itemSummary: string } {
+    switch (key) {
+      case "pdf-sheet":
+        return {
+          itemTitle: "Business Cards Print Sheet PDF",
+          itemSummary: `${cardCount} cards · ${paperShort} · ${sheet.cardW} × ${sheet.cardH} mm${includeBack ? " · Front & back" : ""}`,
+        };
+      case "pdf-single":
+        return {
+          itemTitle: "Single Business Card PDF",
+          itemSummary: `${sheet.cardW} × ${sheet.cardH} mm${includeBleed ? " · 3 mm bleed" : ""}${includeBack ? " · Front & back" : ""}`,
+        };
+      case "png-front":
+        return {
+          itemTitle: "Business Card Front PNG (300 DPI)",
+          itemSummary: `${sheet.cardW} × ${sheet.cardH} mm high-resolution image`,
+        };
+      case "png-back":
+        return {
+          itemTitle: "Business Card Back PNG (300 DPI)",
+          itemSummary: `${sheet.cardW} × ${sheet.cardH} mm high-resolution image`,
+        };
+      case "svg-front":
+        return {
+          itemTitle: "Business Card Front Vector SVG",
+          itemSummary: `${sheet.cardW} × ${sheet.cardH} mm editable vector`,
+        };
+      case "svg-back":
+        return {
+          itemTitle: "Business Card Back Vector SVG",
+          itemSummary: `${sheet.cardW} × ${sheet.cardH} mm editable vector`,
+        };
+      default:
+        return {
+          itemTitle: "Business Card Export",
+          itemSummary: `${sheet.cardW} × ${sheet.cardH} mm`,
+        };
     }
+  }
+
+  function runExport(key: string, fn: () => Promise<string>) {
+    const meta = exportMeta(key);
+    requirePayment({
+      itemTitle: meta.itemTitle,
+      itemSummary: meta.itemSummary,
+      onApproved: async () => {
+        setBusy(key);
+        setNotice(null);
+        try {
+          const msg = await fn();
+          setNotice({ tone: "success", text: msg });
+        } catch (err) {
+          setNotice({ tone: "error", text: err instanceof Error ? err.message : "Export failed. Please try again." });
+        } finally {
+          setBusy(null);
+        }
+      },
+    });
   }
 
   return (
@@ -1199,6 +1248,7 @@ export function PrintExportModal({
           {/* Download formats */}
           <section className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">3. Choose download format</h4>
+            <DownloadPassBadge />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button

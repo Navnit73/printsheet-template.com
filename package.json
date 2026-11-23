@@ -11,6 +11,7 @@
     "deploy": "next build && npx wrangler deploy"
   },
   "dependencies": {
+    "@paypal/react-paypal-js": "^10.6.1",
     "jsbarcode": "^3.12.3",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.72.0",

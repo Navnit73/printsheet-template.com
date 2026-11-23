@@ -90,6 +90,7 @@ import {
   saveAutoDesign,
   type PersistedCardDesign,
 } from "./card/export";
+import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 
 const noopSubscribe = () => () => {};
 
@@ -411,6 +412,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
 
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const uid = useId();
+  const { requirePayment } = useDownloadGate();
 
   const baseSheet: SheetPreset =
     sheetId === "custom"
@@ -888,7 +890,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
     }
   }
 
-  async function handleDownloadPdf() {
+  async function executeDownloadPdf() {
     if (needsUpload || gridBad) return;
     setIsExporting(true);
     setStatus(null);
@@ -979,6 +981,15 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
     } finally {
       setIsExporting(false);
     }
+  }
+
+  function handleDownloadPdf() {
+    if (needsUpload || gridBad) return;
+    requirePayment({
+      itemTitle: "Business Cards Print Sheet PDF",
+      itemSummary: `${cardCount} cards · ${paperShort} · ${sheet.cardW} × ${sheet.cardH} mm${backOn ? " · Front & back" : ""}`,
+      onApproved: executeDownloadPdf,
+    });
   }
 
   const recW = Math.round((sheet.cardW / 25.4) * 300);
@@ -1822,6 +1833,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
               }
             />
             {downloadButton("w-full")}
+            <DownloadPassBadge />
             {needsUpload && (
               <FieldHint id={downloadHintId}>Upload your card design in step 1 to turn on the download.</FieldHint>
             )}

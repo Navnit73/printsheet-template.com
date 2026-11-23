@@ -38,6 +38,7 @@ import {
   type ToolStatusValue,
 } from "./ui/ToolUi";
 import { CropEditor, HeadGuideOverlay } from "./ui/CropEditor";
+import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 import {
   DEFAULT_CROP,
   getSourceRect,
@@ -406,6 +407,7 @@ export function PassportSheetTool({
   initialPhotoStandard,
   initialPhotoCount,
 }: PassportSheetToolProps) {
+  const { requirePayment } = useDownloadGate();
   const defaults = getDefaultsForPage(pageId);
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -421,8 +423,8 @@ export function PassportSheetTool({
   const [guideStyle, setGuideStyle] = useState<
     "corner" | "dashed" | "solid" | "none"
   >("corner");
-  const [gapMm, setGapMm] = useState<number>(2.5);
-  const [marginMm, setMarginMm] = useState<number>(4);
+  const [gapMm, setGapMm] = useState<number>(0);
+  const [marginMm, setMarginMm] = useState<number>(1);
   const [showAdvancedSpacing, setShowAdvancedSpacing] = useState<boolean>(false);
   const [orientation, setOrientation] = useState<"landscape" | "portrait">(
     (initialPaperSize ?? defaults.paperId) === "a4" ||
@@ -928,7 +930,7 @@ export function PassportSheetTool({
 
   const fileBaseName = `passport-photo-sheet-${photoWidthMm}x${photoHeightMm}mm-${currentPaper.id}-${activePhotoCount}pcs`;
 
-  const handleDownloadPdf = async () => {
+  const executeDownloadPdf = async () => {
     const img = imageElementRef.current;
     if (!img || !canExport) return;
     setIsExporting(true);
@@ -1036,7 +1038,16 @@ export function PassportSheetTool({
     }
   };
 
-  const handleDownloadRaster = (format: "jpeg" | "png") => {
+  const handleDownloadPdf = () => {
+    if (!imageElementRef.current || !canExport) return;
+    requirePayment({
+      itemTitle: "Passport Photo Sheet PDF",
+      itemSummary: `${activePhotoCount} photos (${photoSizeLabel}) · ${currentPaper.shortName}`,
+      onApproved: executeDownloadPdf,
+    });
+  };
+
+  const executeDownloadRaster = (format: "jpeg" | "png") => {
     const canvas = canvasRef.current;
     if (!canvas || !canExport) return;
     setIsExporting(true);
@@ -1082,7 +1093,16 @@ export function PassportSheetTool({
     );
   };
 
-  const handlePrint = () => {
+  const handleDownloadRaster = (format: "jpeg" | "png") => {
+    if (!canvasRef.current || !canExport) return;
+    requirePayment({
+      itemTitle: `Passport Photo Sheet ${format.toUpperCase()}`,
+      itemSummary: `${activePhotoCount} photos (${photoSizeLabel}) · ${currentPaper.shortName} · 300 DPI`,
+      onApproved: () => executeDownloadRaster(format),
+    });
+  };
+
+  const executePrint = () => {
     const canvas = canvasRef.current;
     if (!canvas || !canExport) return;
     const printWindow = window.open("", "_blank");
@@ -1150,7 +1170,16 @@ export function PassportSheetTool({
     );
   };
 
-  const handleCopy = () => {
+  const handlePrint = () => {
+    if (!canvasRef.current || !canExport) return;
+    requirePayment({
+      itemTitle: "Passport Photo Print Sheet",
+      itemSummary: `${activePhotoCount} photos (${photoSizeLabel}) · ${currentPaper.shortName}`,
+      onApproved: executePrint,
+    });
+  };
+
+  const executeCopy = () => {
     const canvas = canvasRef.current;
     if (!canvas || !canExport) return;
 
@@ -1169,6 +1198,15 @@ export function PassportSheetTool({
         );
       }
     }, "image/png");
+  };
+
+  const handleCopy = () => {
+    if (!canvasRef.current || !canExport) return;
+    requirePayment({
+      itemTitle: "Passport Photo Sheet Image",
+      itemSummary: `${activePhotoCount} photos (${photoSizeLabel}) · ${currentPaper.shortName}`,
+      onApproved: executeCopy,
+    });
   };
 
   const handleReset = () => {
@@ -1750,6 +1788,8 @@ export function PassportSheetTool({
               <Download aria-hidden="true" className="h-4 w-4 shrink-0" />
               {downloadPdfLabel}
             </button>
+
+            <DownloadPassBadge />
 
             {disabledReason && (
               <FieldHint id={exportHintId} tone={photoFits ? "muted" : "error"}>

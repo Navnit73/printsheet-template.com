@@ -75,6 +75,7 @@ import {
   type PersistedLabelDesign,
 } from "./label/label-export";
 import { AdvancedLabelEditor } from "./label/AdvancedLabelEditor";
+import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 
 const noopSubscribe = () => () => {};
 const EMPTY_LABEL_SIDE: SideDesign = { bg: "#ffffff", background: { type: "solid", color: "#ffffff" }, layers: [] };
@@ -528,6 +529,7 @@ function NumberInput({
 }
 
 export function LabelSheetTool({ pageId }: { pageId: PageId }) {
+  const { requirePayment } = useDownloadGate();
   const mode = getMode(pageId);
   const presets = useMemo(() => getPresets(pageId), [pageId]);
   const [grid, setGrid] = useState<GridConfig>(() => {
@@ -1076,7 +1078,7 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
     return prims;
   }
 
-  async function handleDownloadPdf() {
+  async function executeDownloadPdf() {
     if (exportBlocker) return;
     const key = inputsKey;
     setIsExporting(true);
@@ -1296,6 +1298,15 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
     } finally {
       setIsExporting(false);
     }
+  }
+
+  function handleDownloadPdf() {
+    if (exportBlocker) return;
+    requirePayment({
+      itemTitle: grid.round ? "Round Sticker Sheet PDF" : "Label & Sticker Sheet PDF",
+      itemSummary: `${summary} · ${paperShort}`,
+      onApproved: executeDownloadPdf,
+    });
   }
 
   /* ---- preview helpers (cqw units keep text proportional to the paper) ---- */
@@ -2013,6 +2024,7 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                 )}
                 {isExporting ? "Making your PDF…" : downloadLabel}
               </button>
+              <DownloadPassBadge />
               {exportBlocker && (
                 <FieldHint id="label-export-blocker" tone="error">
                   {exportBlocker}

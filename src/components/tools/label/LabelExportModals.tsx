@@ -48,6 +48,7 @@ import {
   type LabelNamedSnapshot,
   type PersistedLabelDesign,
 } from "./label-export";
+import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 
 /* ------------------------------------------------------------------------- */
 /* 1. Label & Sticker Template Gallery (live round or rectangular previews)   */
@@ -285,6 +286,7 @@ export function LabelPrintExportModal({
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [showCustom, setShowCustom] = useState(false);
+  const { requirePayment } = useDownloadGate();
 
   const round = Boolean(grid.round);
   const diameter = Math.min(grid.labelW, grid.labelH);
@@ -314,17 +316,55 @@ export function LabelPrintExportModal({
   const hasDarkEdge = edgeInfo.isDark || edgeInfo.touchesEdge;
   const maxSheetBleed = Math.min(3, grid.cols > 1 ? grid.gapX / 2 : 3, grid.rows > 1 ? grid.gapY / 2 : 3);
 
-  async function runExport(key: string, fn: () => Promise<string>) {
-    setBusy(key);
-    setNotice(null);
-    try {
-      const msg = await fn();
-      setNotice({ tone: "success", text: msg });
-    } catch (err) {
-      setNotice({ tone: "error", text: err instanceof Error ? err.message : "Export failed. Please try again." });
-    } finally {
-      setBusy(null);
+  function exportMeta(key: string): { itemTitle: string; itemSummary: string } {
+    const dimText = round ? `Ø ${W} mm circles` : `${W} × ${H} mm`;
+    switch (key) {
+      case "pdf-sheet":
+        return {
+          itemTitle: round ? "Round Sticker Sheet PDF" : "Label & Sticker Sheet PDF",
+          itemSummary: `${effectiveLabelCount} labels · ${paperShort} · ${dimText}`,
+        };
+      case "pdf-single":
+        return {
+          itemTitle: round ? "Single Round Sticker PDF" : "Single Label PDF",
+          itemSummary: `${dimText}${includeBleed ? " · 3 mm bleed" : ""}`,
+        };
+      case "png":
+        return {
+          itemTitle: round ? "Round Sticker PNG (300 DPI)" : "Label PNG (300 DPI)",
+          itemSummary: `${dimText}${round ? " · transparent circle" : ""}`,
+        };
+      case "svg":
+        return {
+          itemTitle: round ? "Round Sticker Vector SVG" : "Label Vector SVG",
+          itemSummary: `${dimText} · editable vector`,
+        };
+      default:
+        return {
+          itemTitle: "Label & Sticker Export",
+          itemSummary: dimText,
+        };
     }
+  }
+
+  function runExport(key: string, fn: () => Promise<string>) {
+    const meta = exportMeta(key);
+    requirePayment({
+      itemTitle: meta.itemTitle,
+      itemSummary: meta.itemSummary,
+      onApproved: async () => {
+        setBusy(key);
+        setNotice(null);
+        try {
+          const msg = await fn();
+          setNotice({ tone: "success", text: msg });
+        } catch (err) {
+          setNotice({ tone: "error", text: err instanceof Error ? err.message : "Export failed. Please try again." });
+        } finally {
+          setBusy(null);
+        }
+      },
+    });
   }
 
   return (
@@ -520,6 +560,7 @@ export function LabelPrintExportModal({
           {/* Download formats */}
           <section className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">3. Download format</h4>
+            <DownloadPassBadge />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button

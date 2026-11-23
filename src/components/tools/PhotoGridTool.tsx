@@ -39,6 +39,7 @@ import {
   type ToolStatusValue,
 } from "@/components/tools/ui/ToolUi";
 import { CropEditor } from "@/components/tools/ui/CropEditor";
+import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 import {
   DEFAULT_CROP,
   getSourceRect,
@@ -586,6 +587,7 @@ const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp";
 type StatusArea = "upload" | "download";
 
 export function PhotoGridTool({ pageId }: { pageId: PageId }) {
+  const { requirePayment } = useDownloadGate();
   const presets = useMemo(() => getPresetsForTool(pageId), [pageId]);
   const [selectedPresetId, setSelectedPresetId] = useState(presets[0].id);
   const preset =
@@ -870,7 +872,7 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
     panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selectedSlot]);
 
-  async function handleDownloadPdf() {
+  async function executeDownloadPdf() {
     if (!hasPhotos) return;
     setIsExporting(true);
     setStatus(null);
@@ -971,6 +973,15 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
     } finally {
       setIsExporting(false);
     }
+  }
+
+  function handleDownloadPdf() {
+    if (!hasPhotos) return;
+    requirePayment({
+      itemTitle: "Photo Print Sheet PDF",
+      itemSummary: `${perPageText} · ${paperShort}`,
+      onApproved: executeDownloadPdf,
+    });
   }
 
   const fitOptions: { id: "cover" | "contain"; title: string; hint: string }[] = [
@@ -1446,6 +1457,7 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
               <Download aria-hidden="true" className="h-4 w-4" />
               {downloadLabel}
             </button>
+            <DownloadPassBadge />
             {disabledReason && (
               <FieldHint id="photo-download-hint">{disabledReason}</FieldHint>
             )}

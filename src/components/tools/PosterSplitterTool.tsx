@@ -27,6 +27,7 @@ import {
 import { CropEditor } from "@/components/tools/ui/CropEditor";
 import { DEFAULT_CROP, getSourceRect, type CropState } from "@/lib/crop";
 import { useNumberField } from "@/lib/use-number-field";
+import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 
 type Status = { area: "upload" | "download"; value: ToolStatusValue } | null;
 
@@ -111,6 +112,7 @@ function imagePlacement(
 const fmt1 = (n: number) => (Math.round(n * 10) / 10).toString();
 
 export function PosterSplitterTool() {
+  const { requirePayment } = useDownloadGate();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [paper, setPaper] = useState<PaperSizeId>("a4");
@@ -292,7 +294,7 @@ export function PosterSplitterTool() {
   }
 
 
-  async function handleDownloadPosterPdf() {
+  async function executeDownloadPosterPdf() {
     if (!imageSrc) return;
     setIsExporting(true);
     setStatus(null);
@@ -460,6 +462,15 @@ export function PosterSplitterTool() {
     } finally {
       setIsExporting(false);
     }
+  }
+
+  function handleDownloadPosterPdf() {
+    if (!imageSrc) return;
+    requirePayment({
+      itemTitle: "Multi-Page Poster PDF",
+      itemSummary: `${pagesText} (${cols} × ${rows} tiles) · ${paperShort}`,
+      onApproved: executeDownloadPosterPdf,
+    });
   }
 
 
@@ -1019,6 +1030,7 @@ export function PosterSplitterTool() {
               <Download className="h-4 w-4" aria-hidden="true" />
               {isExporting ? "Making your PDF…" : `Download PDF · ${pagesText}`}
             </button>
+            <DownloadPassBadge />
             {!imageSrc && (
               <FieldHint id="poster-download-hint">
                 Upload an image first (or try the sample) to download.

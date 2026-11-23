@@ -38,6 +38,7 @@ import {
   type LabelPrim,
   type LabelDesign,
 } from "@/components/tools/ui/LabelDesign";
+import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 
 const WRAP_OVERLAP_MM = 10;
 type SheetPaper = "a4" | "letter";
@@ -458,6 +459,7 @@ function ShapeIcon({ w, h, round, active }: { w: number; h: number; round: boole
 /* ------------------------------------------------------------------------- */
 
 export function JarBottleLabelTool({ pageId }: { pageId: PageId }) {
+  const { requirePayment } = useDownloadGate();
   const presets = useMemo(() => getPresets(pageId), [pageId]);
   const [selectedId, setSelectedId] = useState(presets[0].id);
   const preset = presets.find((p) => p.id === selectedId) ?? presets[0];
@@ -584,7 +586,7 @@ export function JarBottleLabelTool({ pageId }: { pageId: PageId }) {
     setSpiceListText([...spiceNames].sort((a, b) => a.localeCompare(b)).join("\n"));
   }
 
-  async function handleDownloadPdf() {
+  async function executeDownloadPdf() {
     if (exportBlocker) return;
     const key = inputsKey;
     setIsExporting(true);
@@ -652,6 +654,15 @@ export function JarBottleLabelTool({ pageId }: { pageId: PageId }) {
     } finally {
       setIsExporting(false);
     }
+  }
+
+  function handleDownloadPdf() {
+    if (exportBlocker) return;
+    requirePayment({
+      itemTitle: "Jar & Bottle Labels PDF",
+      itemSummary: `${summary} · ${paperName}`,
+      onApproved: executeDownloadPdf,
+    });
   }
 
   async function handleLogo(files: File[]) {
@@ -1062,6 +1073,7 @@ export function JarBottleLabelTool({ pageId }: { pageId: PageId }) {
                 )}
                 {isExporting ? "Making your PDF…" : downloadLabel}
               </button>
+              <DownloadPassBadge />
               {exportBlocker && (
                 <FieldHint id="jar-export-blocker" tone="error">
                   {exportBlocker}

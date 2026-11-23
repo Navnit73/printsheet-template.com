@@ -11,5 +11,8 @@
     "html_handling": "auto-trailing-slash",
     // unknown URLs serve out/404.html with a real 404 status
     "not_found_handling": "404-page"
+  },
+  "observability": {
+    "enabled": false
   }
 }
