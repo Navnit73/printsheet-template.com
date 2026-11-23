@@ -27,10 +27,22 @@ export type SideBackground =
   | { type: "pattern"; bg: string; fg: string; pattern: PatternKind; opacity: number; scale: number }
   | { type: "image"; src: string; fit: "cover" | "contain"; opacity: number; tint?: string; tintOpacity?: number };
 
+export type LabelSlotKey =
+  | "title"
+  | "subtitle"
+  | "eyebrow"
+  | "address"
+  | "returnAddress"
+  | "barcodeHeader"
+  | "barcode"
+  | "stickerArt";
+
 interface LayerBase {
   id: string;
   name: string;
   fieldKey?: SemanticFieldKey;
+  /** Optional dynamic slot key for Labels & Stickers (sync + list mail-merge). */
+  labelSlotKey?: LabelSlotKey;
   x: number;
   y: number;
   w: number;
@@ -100,6 +112,10 @@ export interface ImageLayer extends LayerBase {
   qrFor?: string;
   qrFg?: string;
   qrBg?: string;
+  /** For Barcode layers (Labels & Stickers). */
+  barcodeText?: string;
+  barcodeFormat?: "CODE128" | "EAN13" | "UPC";
+  barcodeFor?: string;
 }
 
 export interface IconLayer extends LayerBase {

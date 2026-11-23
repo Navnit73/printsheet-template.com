@@ -70,6 +70,7 @@ import {
   previewFit,
   type BackStyleId,
   type CardContent,
+  type CutGuideStyle,
   type Fonts,
   type SheetPreset,
   type SheetPresetId,
@@ -188,7 +189,8 @@ export interface AdvancedCardEditorProps {
   sheetId: SheetPresetId | "custom";
   customSheet: { paper: "a4" | "letter" | "a3"; cols: number; rows: number; cardW: number; cardH: number; gapX: number; gapY: number };
   sheet: SheetPreset;
-  showCropMarks: boolean;
+  cutGuideStyle: CutGuideStyle;
+  singleCut: boolean;
   includeBleed: boolean;
   offsetX: number;
   offsetY: number;
@@ -219,7 +221,8 @@ export interface AdvancedCardEditorProps {
   onRedo: () => void;
   onChangeSheetId: (id: SheetPresetId | "custom") => void;
   onChangeCustomSheet: (patch: Partial<AdvancedCardEditorProps["customSheet"]>) => void;
-  onToggleCropMarks: (on: boolean) => void;
+  onChangeCutGuideStyle: (style: CutGuideStyle) => void;
+  onToggleSingleCut: (on: boolean) => void;
   onToggleBleed: (on: boolean) => void;
   onLoadPayload: (payload: PersistedCardDesign) => void;
   onClose: () => void;
@@ -234,7 +237,8 @@ export function AdvancedCardEditor(props: AdvancedCardEditorProps) {
     sheetId,
     customSheet,
     sheet,
-    showCropMarks,
+    cutGuideStyle,
+    singleCut,
     includeBleed,
     offsetX,
     offsetY,
@@ -265,7 +269,8 @@ export function AdvancedCardEditor(props: AdvancedCardEditorProps) {
     onRedo,
     onChangeSheetId,
     onChangeCustomSheet,
-    onToggleCropMarks,
+    onChangeCutGuideStyle,
+    onToggleSingleCut,
     onToggleBleed,
     onLoadPayload,
     onClose,
@@ -2306,14 +2311,16 @@ export function AdvancedCardEditor(props: AdvancedCardEditorProps) {
           customSheet={customSheet}
           sheet={sheet}
           includeBack={includeBack}
-          showCropMarks={showCropMarks}
+          cutGuideStyle={cutGuideStyle}
+          singleCut={singleCut}
           includeBleed={includeBleed}
           offsetX={offsetX}
           offsetY={offsetY}
           onChangeSheetId={onChangeSheetId}
           onChangeCustomSheet={onChangeCustomSheet}
           onToggleBack={onToggleBack}
-          onToggleCropMarks={onToggleCropMarks}
+          onChangeCutGuideStyle={onChangeCutGuideStyle}
+          onToggleSingleCut={onToggleSingleCut}
           onToggleBleed={onToggleBleed}
           onClose={() => setExportOpen(false)}
         />

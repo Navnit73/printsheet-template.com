@@ -13,6 +13,7 @@ import {
 import { getCardFont } from "./fonts";
 
 export type SheetPresetId = "a4-10up" | "letter-10up" | "letter-8up" | "a4-8up";
+export type CutGuideStyle = "dashed-grid" | "card-outline" | "crop-marks" | "none";
 export type CardStyleId = "minimal" | "classic" | "bold-logo" | "clean" | "split" | "monogram" | "dark" | "blank";
 export type FontPairId = "modern" | "classic" | "editorial" | "typewriter";
 export type BackStyleId = "logo" | "tagline" | "solid";
@@ -921,9 +922,94 @@ export function drawCardElsPdf(
 }
 
 /**
+ * Draws cutting guides onto a multi-card sheet PDF.
+ * - "dashed-grid": Full-sheet dashed cut lines along every trim edge extending into margins (easiest for scissors & ruler)
+ * - "card-outline": Dashed hairline border around each individual card + margin alignment ticks
+ * - "crop-marks": Outer trim marks + interior corner marks in gaps (for paper trimmers / guillotines)
+ * - "none": No cutting guides (for pre-cut / perforated card sheets)
+ */
+export function drawSheetCutGuides(
+  doc: import("jspdf").jsPDF,
+  g: {
+    startX: number;
+    startY: number;
+    sheet: SheetPreset;
+    paperW: number;
+    paperH: number;
+    bleedMm?: number;
+    style?: CutGuideStyle;
+  }
+) {
+  const style = g.style ?? "crop-marks";
+  if (style === "none") return;
+
+  const bleed = g.bleedMm ?? 0;
+  const { startX, startY, sheet, paperW, paperH } = g;
+  const { cols, rows, cardW, cardH, gapX, gapY } = sheet;
+  const gridR = startX + cols * cardW + (cols - 1) * gapX;
+  const gridB = startY + rows * cardH + (rows - 1) * gapY;
+  const uniq = (v: number[]) => Array.from(new Set(v.map((n) => Math.round(n * 100) / 100)));
+  const xs = uniq(Array.from({ length: cols }, (_, c) => startX + c * (cardW + gapX)).flatMap((x) => [x, x + cardW]));
+  const ys = uniq(Array.from({ length: rows }, (_, r) => startY + r * (cardH + gapY)).flatMap((y) => [y, y + cardH]));
+
+  if (style === "dashed-grid") {
+    const ext = 5;
+    const topY = Math.max(2, startY - ext);
+    const botY = Math.min(paperH - 2, gridB + ext);
+    const leftX = Math.max(2, startX - ext);
+    const rightX = Math.min(paperW - 2, gridR + ext);
+
+    doc.setDrawColor(135, 135, 145);
+    doc.setLineWidth(0.2);
+    doc.setLineDashPattern([2, 1.6], 0);
+
+    for (const x of xs) {
+      doc.line(x, topY, x, botY);
+    }
+    for (const y of ys) {
+      doc.line(leftX, y, rightX, y);
+    }
+
+    // Solid short alignment ticks in the outer page margin so ruler/trimmer alignment is instant
+    doc.setLineDashPattern([], 0);
+    doc.setDrawColor(90, 90, 100);
+    doc.setLineWidth(0.22);
+    const tickOff = Math.max(1.2, bleed + 0.6);
+    const tickLen = 3.2;
+    for (const x of xs) {
+      if (startY - tickOff > 1.5) doc.line(x, Math.max(1, startY - tickOff - tickLen), x, startY - tickOff);
+      if (gridB + tickOff < paperH - 1.5) doc.line(x, gridB + tickOff, x, Math.min(paperH - 1, gridB + tickOff + tickLen));
+    }
+    for (const y of ys) {
+      if (startX - tickOff > 1.5) doc.line(Math.max(1, startX - tickOff - tickLen), y, startX - tickOff, y);
+      if (gridR + tickOff < paperW - 1.5) doc.line(gridR + tickOff, y, Math.min(paperW - 1, gridR + tickOff + tickLen), y);
+    }
+    return;
+  }
+
+  if (style === "card-outline") {
+    doc.setDrawColor(140, 140, 150);
+    doc.setLineWidth(0.2);
+    doc.setLineDashPattern([1.8, 1.4], 0);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = startX + c * (cardW + gapX);
+        const y = startY + r * (cardH + gapY);
+        doc.rect(x, y, cardW, cardH);
+      }
+    }
+    doc.setLineDashPattern([], 0);
+    // Subtle outer ticks in page margins
+    drawGridCropMarks(doc, { startX, startY, sheet, paperW, paperH, bleedMm: bleed });
+    return;
+  }
+
+  drawGridCropMarks(doc, { startX, startY, sheet, paperW, paperH, bleedMm: bleed });
+}
+
+/**
  * Crop marks drawn on the cut lines. Marks always sit outside the outer edge of the
- * grid; marks between cards are only added when the gap is wide enough that they
- * cannot collide with each other or with the neighbouring card.
+ * grid; interior corner ticks are drawn in gaps so alignment is never lost mid-sheet.
  */
 export function drawGridCropMarks(
   doc: import("jspdf").jsPDF,
@@ -953,6 +1039,7 @@ export function drawGridCropMarks(
     return Math.abs(end - start) >= 0.8 ? [start, end] : null;
   };
 
+  doc.setLineDashPattern([], 0);
   doc.setDrawColor(113, 113, 122);
   doc.setLineWidth(0.2);
   for (const x of xs) {
@@ -968,21 +1055,34 @@ export function drawGridCropMarks(
     if (r) doc.line(r[0], y, r[1], y);
   }
 
-  const innerFits = (gap: number) => gap >= 2 * (OFF + LEN);
+  // Draw interior corner marks inside gaps between cards (scaled to fit narrow gaps too)
+  const gapTick = (gap: number) => {
+    if (gap >= 2 * (OFF + LEN)) return { off: OFF, len: LEN };
+    if (gap >= 1.6) {
+      const half = gap / 2;
+      const off = Math.min(0.4, half * 0.25);
+      const len = Math.max(0.5, half - off);
+      return { off, len };
+    }
+    return null;
+  };
+  const gxTick = gapTick(gapX);
+  const gyTick = gapTick(gapY);
+
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const x = startX + c * (cardW + gapX);
       const y = startY + r * (cardH + gapY);
-      if (innerFits(gapX)) {
+      if (gxTick) {
         for (const yy of [y, y + cardH]) {
-          if (c > 0) doc.line(x - OFF - LEN, yy, x - OFF, yy);
-          if (c < cols - 1) doc.line(x + cardW + OFF, yy, x + cardW + OFF + LEN, yy);
+          if (c > 0) doc.line(x - gxTick.off - gxTick.len, yy, x - gxTick.off, yy);
+          if (c < cols - 1) doc.line(x + cardW + gxTick.off, yy, x + cardW + gxTick.off + gxTick.len, yy);
         }
       }
-      if (innerFits(gapY)) {
+      if (gyTick) {
         for (const xx of [x, x + cardW]) {
-          if (r > 0) doc.line(xx, y - OFF - LEN, xx, y - OFF);
-          if (r < rows - 1) doc.line(xx, y + cardH + OFF, xx, y + cardH + OFF + LEN);
+          if (r > 0) doc.line(xx, y - gyTick.off - gyTick.len, xx, y - gyTick.off);
+          if (r < rows - 1) doc.line(xx, y + cardH + gyTick.off, xx, y + cardH + gyTick.off + gyTick.len);
         }
       }
     }

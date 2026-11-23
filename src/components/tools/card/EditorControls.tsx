@@ -33,6 +33,7 @@ import {
   SHEET_PRESETS,
   type BackStyleId,
   type CardContent,
+  type CutGuideStyle,
   type Fonts,
   type PatternKind,
   type SheetPreset,
@@ -924,20 +925,29 @@ function ModalNum({
   );
 }
 
+const CUT_GUIDE_OPTIONS: Array<{ id: CutGuideStyle; label: string; hint: string; badge?: string }> = [
+  { id: "dashed-grid", label: "Easy cut lines", hint: "Full dashed lines across the page — easiest for scissors & ruler", badge: "Easiest" },
+  { id: "card-outline", label: "Card outlines", hint: "Thin dashed box around every card + margin ticks" },
+  { id: "crop-marks", label: "Pro corner marks", hint: "Outer & gap corner marks — for paper trimmers" },
+  { id: "none", label: "No guides", hint: "Clean sheet — for pre-cut card paper" },
+];
+
 export function PrintExportModal({
   design,
   sheetId,
   customSheet,
   sheet,
   includeBack,
-  showCropMarks,
+  cutGuideStyle,
+  singleCut,
   includeBleed,
   offsetX,
   offsetY,
   onChangeSheetId,
   onChangeCustomSheet,
   onToggleBack,
-  onToggleCropMarks,
+  onChangeCutGuideStyle,
+  onToggleSingleCut,
   onToggleBleed,
   onClose,
 }: {
@@ -946,14 +956,16 @@ export function PrintExportModal({
   customSheet: { paper: "a4" | "letter" | "a3"; cols: number; rows: number; cardW: number; cardH: number; gapX: number; gapY: number };
   sheet: SheetPreset;
   includeBack: boolean;
-  showCropMarks: boolean;
+  cutGuideStyle: CutGuideStyle;
+  singleCut: boolean;
   includeBleed: boolean;
   offsetX: number;
   offsetY: number;
   onChangeSheetId: (id: SheetPresetId | "custom") => void;
   onChangeCustomSheet: (patch: Partial<typeof customSheet>) => void;
   onToggleBack: (on: boolean) => void;
-  onToggleCropMarks: (on: boolean) => void;
+  onChangeCutGuideStyle: (style: CutGuideStyle) => void;
+  onToggleSingleCut: (on: boolean) => void;
   onToggleBleed: (on: boolean) => void;
   onClose: () => void;
 }) {
@@ -1090,20 +1102,49 @@ export function PrintExportModal({
             )}
           </section>
 
-          {/* Print options */}
-          <section className="space-y-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">2. Cut guides, bleed &amp; sides</h4>
+          {/* Print & cutting options */}
+          <section className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">2. Cutting guides, bleed &amp; sides</h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {CUT_GUIDE_OPTIONS.map((opt) => {
+                const active = cutGuideStyle === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => onChangeCutGuideStyle(opt.id)}
+                    className={`rounded-xl px-3 py-2.5 text-left transition cursor-pointer ${
+                      active ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]" : "bg-[#f5f5f7] hover:bg-[#ebeced]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-zinc-950">
+                      <Scissors className={`h-3.5 w-3.5 shrink-0 ${active ? "text-[#4d7c0f]" : "text-zinc-500"}`} />
+                      {opt.label}
+                      {opt.badge && (
+                        <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-900">
+                          {opt.badge}
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-zinc-600">{opt.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-[#f5f5f7] p-3 text-xs">
                 <input
                   type="checkbox"
-                  checked={showCropMarks}
-                  onChange={(e) => onToggleCropMarks(e.target.checked)}
+                  checked={singleCut}
+                  disabled={sheetId === "custom"}
+                  onChange={(e) => onToggleSingleCut(e.target.checked)}
                   className="mt-0.5 h-4 w-4 accent-[#4d7c0f]"
                 />
                 <span>
-                  <span className="block font-bold text-zinc-900">Cut guides</span>
-                  <span className="text-[11px] text-zinc-600">Crop marks showing where to trim</span>
+                  <span className="block font-bold text-zinc-900">Single-cut edges</span>
+                  <span className="text-[11px] text-zinc-600">Cards touch — half as many cuts, no tiny strips</span>
                 </span>
               </label>
               <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-[#f5f5f7] p-3 text-xs">
@@ -1143,7 +1184,7 @@ export function PrintExportModal({
                   </p>
                   <p className="leading-relaxed text-amber-900">
                     When ink prints right to the edge, tiny trimming shifts can leave thin white slivers. Keep{" "}
-                    <strong>Edge bleed</strong> and <strong>Cut guides</strong> turned on, and cut slightly inside the marks (or choose an 8-per-page sheet for wider gaps).
+                    <strong>Edge bleed</strong> turned on and turn off <strong>Single-cut edges</strong> (or choose an 8-per-page sheet for wider gaps).
                   </p>
                   {includeBleed && maxSheetBleed < 3 && (
                     <p className="text-[11px] font-semibold text-amber-800">
@@ -1170,7 +1211,8 @@ export function PrintExportModal({
                       design,
                       sheet,
                       includeBack,
-                      showCropMarks,
+                      showCropMarks: cutGuideStyle !== "none",
+                      cutGuideStyle,
                       includeBleed,
                       offsetX,
                       offsetY,
@@ -1204,7 +1246,8 @@ export function PrintExportModal({
                       design,
                       sheet,
                       includeBack,
-                      showCropMarks,
+                      showCropMarks: cutGuideStyle !== "none",
+                      cutGuideStyle,
                       includeBleed,
                       offsetX: 0,
                       offsetY: 0,

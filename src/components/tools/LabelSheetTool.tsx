@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Download, Loader2, Scissors, X } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { AlertTriangle, Check, ChevronDown, Download, Loader2, Maximize2, RotateCcw, Scissors, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import type { jsPDF as JsPdfDoc } from "jspdf";
 import type { PageId } from "@/types/spec";
 import {
@@ -43,6 +43,41 @@ import {
   type LabelPrim,
   type LabelStyleId,
 } from "@/components/tools/ui/LabelDesign";
+import { previewFit } from "./card/engine";
+import {
+  compileSide,
+  newLayerId,
+  setSideBackground,
+  type ImageLayer,
+  type Layer,
+  type SideBackground,
+  type SideDesign,
+} from "./card/editor-model";
+import { CardFacePreview } from "./card/CardFacePreview";
+import { useHistory } from "./card/useHistory";
+import type { LayerPatch } from "./card/AdvancedCanvas";
+import { ensureGoogleFontsLoaded } from "./card/fonts";
+import { isEdgeToEdgeOrDarkSide } from "./card/contrast";
+import {
+  applyLabelSlotOverride,
+  applySimpleLabelFieldToSide,
+  buildInitialLabelFromMode,
+  extractSyncedLabelFields,
+  type DynamicSlotOverride,
+  type LabelTemplateId,
+} from "./label/label-templates";
+import {
+  decodeLabelShareHash,
+  exportLabelAdvancedPdf,
+  loadAutoLabelDesign,
+  saveAutoLabelDesign,
+  type LabelCutGuideStyle,
+  type PersistedLabelDesign,
+} from "./label/label-export";
+import { AdvancedLabelEditor } from "./label/AdvancedLabelEditor";
+
+const noopSubscribe = () => () => {};
+const EMPTY_LABEL_SIDE: SideDesign = { bg: "#ffffff", background: { type: "solid", color: "#ffffff" }, layers: [] };
 
 /* ------------------------------------------------------------------------- */
 /* Grid presets                                                               */
@@ -508,7 +543,6 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
   const [labelStyle, setLabelStyle] = useState<LabelStyleId>(pageId === "T23" ? "banner" : "plain");
   const [fontPair, setFontPair] = useState<FontPairId>("modern");
   const measure = useLabelMeasure();
-  const [showBorders, setShowBorders] = useState(true);
 
   // Address bulk list (T20)
   const [addressBulk, setAddressBulk] = useState(
@@ -532,9 +566,22 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
   // Stickers (T22 / T19)
   const [stickerImages, setStickerImages] = useState<string[]>([]);
   const [fillOverride, setFillOverride] = useState<boolean | null>(null);
+  const [cutGuideStyle, setCutGuideStyle] = useState<LabelCutGuideStyle>("dashed-outline");
+  const [includeBleed, setIncludeBleed] = useState(false);
+  const showBorders = cutGuideStyle === "dashed-outline";
+  const showCropMarks = cutGuideStyle === "crop-marks" || cutGuideStyle === "dashed-grid";
   const [isExporting, setIsExporting] = useState(false);
   const [status, setStatus] = useState<(ToolStatusValue & { key: string }) | null>(null);
   const hasArtworkUpload = pageId === "T22" || pageId === "T19";
+
+  // Full-screen Advanced Editor state
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [hasCustomDesign, setHasCustomDesign] = useState(false);
+  const [templateId, setTemplateId] = useState<LabelTemplateId>(pageId === "T23" ? "banner" : "plain");
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
+  const hist = useHistory<SideDesign>(EMPTY_LABEL_SIDE);
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const restoredRef = useRef(false);
 
   const paper = PAPER_SIZES[grid.paper];
   const paperShort = PAPER_SHORT[grid.paper as SheetPaper] ?? paper.label;
@@ -697,7 +744,9 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
     accentHex,
     labelStyle,
     fontPair,
-    showBorders,
+    cutGuideStyle,
+    includeBleed,
+    hasCustomDesign,
     addressBulk,
     returnAddress,
     barcodeFormat,
@@ -708,6 +757,276 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
     fillCopies,
   ]);
   const visibleStatus = status && status.key === inputsKey ? status : null;
+
+  /* ---- dynamic slot overrides (used by Advanced Editor sheet preview + PDF export) ---- */
+  const slotOverrides: DynamicSlotOverride[] | undefined = (() => {
+    if (mode === "nametag" && parsedNames.length > 0) {
+      return parsedNames.map((p) => ({ title: p.person, subtitle: p.role, eyebrow: eventName }));
+    }
+    if (mode === "address" && parsedAddresses.length > 0) {
+      return parsedAddresses.map((addr) => ({ address: addr, returnAddress }));
+    }
+    if (mode === "barcode" && parsedBarcodes.length > 0) {
+      return parsedBarcodes.map((b) => ({
+        barcodeHeader: [b.name, b.price].filter(Boolean).join(" · "),
+        barcodeText: b.code,
+        barcodeSrc: barcodePreviews.get(b.code),
+      }));
+    }
+    if (stickerImages.length > 1) {
+      return stickerImages.map((src) => ({ stickerSrc: src }));
+    }
+    return undefined;
+  })();
+
+  const labelWActive = grid.round ? diameter : grid.labelW;
+  const labelHActive = grid.round ? diameter : grid.labelH;
+  const edgeInfo = hasCustomDesign
+    ? isEdgeToEdgeOrDarkSide(hist.present, labelWActive, labelHActive)
+    : {
+        isDark: labelStyle === "band" || labelStyle === "kraft",
+        touchesEdge: labelStyle === "band" || labelStyle === "kraft" || (labelStyle === "banner" && !grid.round),
+      };
+
+  function applyPersistedLabel(payload: PersistedLabelDesign) {
+    setGrid(payload.grid);
+    setLabelTitle(payload.labelTitle);
+    setLabelSub(payload.labelSub);
+    setAccentHex(payload.accentHex);
+    setLabelStyle(payload.labelStyle);
+    setFontPair(payload.fontPair);
+    setEventName(payload.eventName);
+    setReturnAddress(payload.returnAddress);
+    setCutGuideStyle(payload.cutGuideStyle ?? (payload.showBorders ? "dashed-outline" : payload.showCropMarks ? "crop-marks" : "none"));
+    setIncludeBleed(Boolean(payload.includeBleed));
+    setTemplateId(payload.templateId || payload.labelStyle);
+    if (payload.hasCustomDesign) {
+      ensureGoogleFontsLoaded();
+      hist.reset(payload.side);
+      setHasCustomDesign(true);
+    } else {
+      setHasCustomDesign(false);
+    }
+  }
+
+  // Restore shared #label= link or browser auto-save once after hydration
+  useEffect(() => {
+    if (!hydrated || restoredRef.current) return;
+    restoredRef.current = true;
+    const shared = decodeLabelShareHash(window.location.hash);
+    const saved = shared ?? loadAutoLabelDesign(pageId);
+    if (!saved) return;
+    const id = window.setTimeout(() => {
+      setGrid(saved.grid);
+      setLabelTitle(saved.labelTitle);
+      setLabelSub(saved.labelSub);
+      setAccentHex(saved.accentHex);
+      setLabelStyle(saved.labelStyle);
+      setFontPair(saved.fontPair);
+      setEventName(saved.eventName);
+      setReturnAddress(saved.returnAddress);
+      setCutGuideStyle(saved.cutGuideStyle ?? (saved.showBorders ? "dashed-outline" : saved.showCropMarks ? "crop-marks" : "none"));
+      setIncludeBleed(Boolean(saved.includeBleed));
+      setTemplateId(saved.templateId || saved.labelStyle);
+      if (saved.hasCustomDesign) {
+        ensureGoogleFontsLoaded();
+        hist.reset(saved.side);
+        setHasCustomDesign(true);
+      } else {
+        setHasCustomDesign(false);
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [hydrated, pageId, hist]);
+
+  useEffect(() => {
+    if (hasCustomDesign) ensureGoogleFontsLoaded();
+  }, [hasCustomDesign]);
+
+  const persistedPayload = useMemo<PersistedLabelDesign>(
+    () => ({
+      v: 1,
+      savedAt: 0,
+      grid,
+      labelTitle,
+      labelSub,
+      accentHex,
+      labelStyle,
+      fontPair,
+      eventName,
+      returnAddress,
+      showBorders,
+      showCropMarks,
+      cutGuideStyle,
+      includeBleed,
+      hasCustomDesign,
+      templateId,
+      side: hist.present,
+    }),
+    [
+      grid,
+      labelTitle,
+      labelSub,
+      accentHex,
+      labelStyle,
+      fontPair,
+      eventName,
+      returnAddress,
+      showBorders,
+      showCropMarks,
+      cutGuideStyle,
+      includeBleed,
+      hasCustomDesign,
+      templateId,
+      hist.present,
+    ]
+  );
+
+  useEffect(() => {
+    if (!hydrated || !restoredRef.current) return;
+    const t = window.setTimeout(() => {
+      const ok = saveAutoLabelDesign(pageId, { ...persistedPayload, savedAt: Date.now() });
+      setSaveStatus(ok ? "saved" : "unsaved");
+    }, 650);
+    return () => window.clearTimeout(t);
+  }, [hydrated, pageId, persistedPayload]);
+
+  function openAdvancedEditor() {
+    if (!hasCustomDesign) {
+      const firstBc = parsedBarcodes[0];
+      const initialSide = buildInitialLabelFromMode({
+        mode,
+        w: labelWActive,
+        h: labelHActive,
+        round: Boolean(grid.round),
+        labelStyle,
+        fontPair,
+        accentHex,
+        labelTitle,
+        labelSub,
+        eventName,
+        firstPerson: parsedNames[0],
+        returnAddress,
+        firstAddress: parsedAddresses[0],
+        firstBarcode: firstBc
+          ? {
+              code: firstBc.code,
+              name: firstBc.name,
+              price: firstBc.price,
+              format: barcodeFormat,
+              dataUrl: barcodePreviews.get(firstBc.code),
+            }
+          : undefined,
+        firstSticker: stickerImages[0],
+      });
+      hist.reset(initialSide);
+      setTemplateId(labelStyle);
+      setHasCustomDesign(true);
+    }
+    setStatus(null);
+    setAdvancedOpen(true);
+  }
+
+  function closeAdvancedEditor() {
+    const synced = extractSyncedLabelFields(hist.present);
+    if (synced.title !== undefined && mode === "title") setLabelTitle(synced.title);
+    if (synced.subtitle !== undefined && mode === "title") setLabelSub(synced.subtitle);
+    if (synced.eyebrow !== undefined && mode === "nametag") setEventName(synced.eyebrow);
+    if (synced.returnAddress !== undefined && mode === "address") setReturnAddress(synced.returnAddress);
+    setAdvancedOpen(false);
+  }
+
+  const handleChangeLayer = useCallback(
+    (id: string, patch: LayerPatch, group?: string) => {
+      hist.set(
+        (s) => ({
+          ...s,
+          layers: s.layers.map((l) => (l.id === id ? ({ ...l, ...patch } as Layer) : l)),
+        }),
+        group
+      );
+    },
+    [hist]
+  );
+
+  const handleAddLayer = useCallback(
+    (layer: Layer) => {
+      hist.set((s) => ({ ...s, layers: [...s.layers, layer] }));
+    },
+    [hist]
+  );
+
+  const handleRemoveLayer = useCallback(
+    (id: string) => {
+      hist.set((s) => ({ ...s, layers: s.layers.filter((l) => l.id !== id) }));
+    },
+    [hist]
+  );
+
+  const handleDuplicateLayer = useCallback(
+    (id: string) => {
+      hist.set((s) => {
+        const src = s.layers.find((l) => l.id === id);
+        if (!src) return s;
+        const copy = { ...src, id: newLayerId(), x: src.x + 2, y: src.y + 2, locked: false, labelSlotKey: undefined } as Layer;
+        return { ...s, layers: [...s.layers, copy] };
+      });
+    },
+    [hist]
+  );
+
+  const handleReorderLayer = useCallback(
+    (id: string, dir: "up" | "down" | "front" | "back") => {
+      hist.set((s) => {
+        const i = s.layers.findIndex((l) => l.id === id);
+        if (i < 0) return s;
+        const layers = [...s.layers];
+        const [item] = layers.splice(i, 1);
+        if (dir === "up") layers.splice(Math.min(layers.length, i + 1), 0, item);
+        else if (dir === "down") layers.splice(Math.max(0, i - 1), 0, item);
+        else if (dir === "front") layers.push(item);
+        else layers.unshift(item);
+        return { ...s, layers };
+      });
+    },
+    [hist]
+  );
+
+  const handleSetBackground = useCallback(
+    (bg: SideBackground, group?: string) => {
+      hist.set((s) => setSideBackground(s, bg), group);
+    },
+    [hist]
+  );
+
+  const handleApplyTemplate = useCallback(
+    (nextTplId: LabelTemplateId, nextSide: SideDesign) => {
+      setTemplateId(nextTplId);
+      if (
+        nextTplId === "bordered" ||
+        nextTplId === "banner" ||
+        nextTplId === "plain" ||
+        nextTplId === "classic" ||
+        nextTplId === "kraft" ||
+        nextTplId === "band" ||
+        nextTplId === "minimal"
+      ) {
+        setLabelStyle(nextTplId);
+      }
+      hist.set(() => nextSide);
+    },
+    [hist]
+  );
+
+  const patchSilently = useCallback(
+    (id: string, patch: Partial<ImageLayer>) => {
+      hist.patchSilently((s) => ({
+        ...s,
+        layers: s.layers.map((l) => (l.id === id && l.kind === "image" ? { ...l, ...patch } : l)),
+      }));
+    },
+    [hist]
+  );
 
   let exportBlocker: string | null = null;
   if (fitError) exportBlocker = "The labels don't fit on the page — fix the sheet size in step 1 first.";
@@ -763,131 +1082,198 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
     setIsExporting(true);
     setStatus(null);
     try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: [paper.widthMm, paper.heightMm],
-      });
-      const pdfMeasure = makeMeasure(doc);
-      const imageCache = new Map<string, string>();
-      const pdfScenes = new Map<string, LabelPrim[]>();
-      const W = grid.labelW;
-      const H = grid.labelH;
-      const d = Math.min(W, H);
-
-      const JsBarcode = mode === "barcode" ? (await import("jsbarcode")).default : null;
-      const barcodeCache = new Map<string, { dataUrl: string; w: number; h: number }>();
-      const stickerCache = new Map<number, { dataUrl: string; format: "PNG" | "JPEG" }>();
-
-      for (let page = 0; page < pageCount; page++) {
-        if (page > 0) doc.addPage([paper.widthMm, paper.heightMm], "portrait");
-        for (let s = 0; s < slotsPerPage; s++) {
-          const i = page * slotsPerPage + s;
-          if (i >= labelCount) break;
-          const r = Math.floor(s / grid.cols);
-          const c = s % grid.cols;
-          const x = grid.marginLeft + c * (W + grid.gapX);
-          const y = grid.marginTop + r * (H + grid.gapY);
-          const cx = x + W / 2;
-          const cy = y + H / 2;
-
-          if (mode === "address") {
-            const addr = parsedAddresses[i % entryCount];
-            const pad = Math.min(4, Math.max(1.5, Math.min(W, H) * 0.08));
-            let top = y + pad;
-            const boxW = W - 2 * pad;
-            if (returnAddress.trim()) {
-              const ret = drawFittedText(doc, returnAddress, {
-                x: x + pad,
-                y: top,
-                maxWidth: boxW,
-                maxLines: 1,
-                fontSize: 7,
-                minFontSize: 5,
-                color: MUTED,
-              });
-              top += ret.heightMm + 1;
-            }
-            const [first, ...rest] = addr.split("\n");
-            drawTextStack(
-              doc,
-              [
-                { text: first, fontSize: 10, minFontSize: 6, bold: true, color: INK, maxLines: 1 },
-                { text: rest.join("\n"), fontSize: 9, minFontSize: 5.5, color: INK, maxLines: 6, gapBefore: 0.4 },
-              ],
-              { x: x + pad, y: top, w: boxW, h: y + H - pad - top },
-              "left"
-            );
-          } else if (mode === "barcode" && JsBarcode) {
-            const item = parsedBarcodes[i % entryCount];
-            const pad = Math.min(3, Math.max(1.5, Math.min(W, H) * 0.07));
-            let headerH = 0;
-            const header = [item.name, item.price].filter(Boolean).join(" · ");
-            if (header) {
-              const l = drawFittedText(doc, header, {
-                x: cx,
-                y: y + pad,
-                maxWidth: W - 2 * pad,
-                maxLines: 1,
-                fontSize: 8,
-                minFontSize: 5,
-                fontStyle: "bold",
-                align: "center",
-                color: INK,
-              });
-              headerH = l.heightMm + 0.8;
-            }
-            let bc = barcodeCache.get(item.code);
-            if (!bc) {
-              bc = renderBarcodeCanvas(JsBarcode, item.code, barcodeFormat);
-              barcodeCache.set(item.code, bc);
-            }
-            const place = fitContain(bc.w, bc.h, {
-              x: x + pad,
-              y: y + pad + headerH,
-              w: W - 2 * pad,
-              h: H - 2 * pad - headerH,
+      if (hasCustomDesign || includeBleed || cutGuideStyle === "dashed-grid" || cutGuideStyle === "crop-marks") {
+        const firstBc = parsedBarcodes[0];
+        const baseSide = hasCustomDesign
+          ? hist.present
+          : buildInitialLabelFromMode({
+              mode,
+              w: labelWActive,
+              h: labelHActive,
+              round: Boolean(grid.round),
+              labelStyle,
+              fontPair,
+              accentHex,
+              labelTitle,
+              labelSub,
+              eventName,
+              firstPerson: parsedNames[0],
+              returnAddress,
+              firstAddress: parsedAddresses[0],
+              firstBarcode: firstBc
+                ? {
+                    code: firstBc.code,
+                    name: firstBc.name,
+                    price: firstBc.price,
+                    format: barcodeFormat,
+                    dataUrl: barcodePreviews.get(firstBc.code),
+                  }
+                : undefined,
+              firstSticker: stickerImages[0],
             });
-            doc.addImage(bc.dataUrl, "PNG", place.x, place.y, place.w, place.h, `bc-${item.code}`);
-          } else if (mode === "nametag") {
-            const person = parsedNames[i % entryCount];
-            await drawLabelScene(doc, sceneFor({ title: person.person, subtitle: person.role }, pdfMeasure, pdfScenes), x, y, imageCache);
-          } else if (stickerImages.length > 0) {
-            const imgIdx = i % stickerImages.length;
-            if (grid.round) {
-              let art = stickerCache.get(imgIdx);
-              if (!art) {
-                art = { dataUrl: await renderCircleCoverDataUrl(stickerImages[imgIdx]), format: "PNG" };
-                stickerCache.set(imgIdx, art);
+        // Ensure barcodes are ready for list-mode barcode exports
+        let resolvedOverrides = slotOverrides;
+        if (mode === "barcode" && parsedBarcodes.length > 0) {
+          const JsBarcode = (await import("jsbarcode")).default;
+          resolvedOverrides = parsedBarcodes.map((b) => {
+            let src = barcodePreviews.get(b.code);
+            if (!src && !b.error) {
+              try {
+                src = renderBarcodeCanvas(JsBarcode, b.code, barcodeFormat).dataUrl;
+              } catch {
+                // ignore
               }
-              doc.addImage(art.dataUrl, art.format, cx - d / 2, cy - d / 2, d, d, `st-${imgIdx}`);
-            } else {
-              const bw = Math.max(5, W - 4);
-              const bh = Math.max(5, H - 4);
-              let art = stickerCache.get(imgIdx);
-              if (!art) {
-                art = await renderImageToBoxDataUrl(stickerImages[imgIdx], bw / bh, "contain");
-                stickerCache.set(imgIdx, art);
-              }
-              doc.addImage(art.dataUrl, art.format, cx - bw / 2, cy - bh / 2, bw, bh, `st-${imgIdx}`);
             }
-          } else {
-            const ox = grid.round ? cx - d / 2 : x;
-            const oy = grid.round ? cy - d / 2 : y;
-            await drawLabelScene(doc, sceneFor({ title: labelTitle, subtitle: labelSub }, pdfMeasure, pdfScenes), ox, oy, imageCache);
-          }
+            return {
+              barcodeHeader: [b.name, b.price].filter(Boolean).join(" · "),
+              barcodeText: b.code,
+              barcodeSrc: src,
+            };
+          });
+        }
+        await exportLabelAdvancedPdf({
+          mode: "sheet",
+          side: baseSide,
+          grid,
+          labelCount,
+          pageCount,
+          showBorders,
+          showCropMarks,
+          cutGuideStyle,
+          includeBleed,
+          slotOverrides: resolvedOverrides,
+          filename: `label-sheet-${pageId.toLowerCase()}-${grid.paper}.pdf`,
+        });
+      } else {
+        const { jsPDF } = await import("jspdf");
+        const doc = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: [paper.widthMm, paper.heightMm],
+        });
+        const pdfMeasure = makeMeasure(doc);
+        const imageCache = new Map<string, string>();
+        const pdfScenes = new Map<string, LabelPrim[]>();
+        const W = grid.labelW;
+        const H = grid.labelH;
+        const d = Math.min(W, H);
 
-          if (showBorders) {
-            doc.setDrawColor(161, 161, 170);
-            doc.setLineWidth(0.25);
-            if (grid.round) doc.circle(cx, cy, d / 2);
-            else doc.rect(x, y, W, H);
+        const JsBarcode = mode === "barcode" ? (await import("jsbarcode")).default : null;
+        const barcodeCache = new Map<string, { dataUrl: string; w: number; h: number }>();
+        const stickerCache = new Map<number, { dataUrl: string; format: "PNG" | "JPEG" }>();
+
+        for (let page = 0; page < pageCount; page++) {
+          if (page > 0) doc.addPage([paper.widthMm, paper.heightMm], "portrait");
+          for (let s = 0; s < slotsPerPage; s++) {
+            const i = page * slotsPerPage + s;
+            if (i >= labelCount) break;
+            const r = Math.floor(s / grid.cols);
+            const c = s % grid.cols;
+            const x = grid.marginLeft + c * (W + grid.gapX);
+            const y = grid.marginTop + r * (H + grid.gapY);
+            const cx = x + W / 2;
+            const cy = y + H / 2;
+
+            if (mode === "address") {
+              const addr = parsedAddresses[i % entryCount];
+              const pad = Math.min(4, Math.max(1.5, Math.min(W, H) * 0.08));
+              let top = y + pad;
+              const boxW = W - 2 * pad;
+              if (returnAddress.trim()) {
+                const ret = drawFittedText(doc, returnAddress, {
+                  x: x + pad,
+                  y: top,
+                  maxWidth: boxW,
+                  maxLines: 1,
+                  fontSize: 7,
+                  minFontSize: 5,
+                  color: MUTED,
+                });
+                top += ret.heightMm + 1;
+              }
+              const [first, ...rest] = addr.split("\n");
+              drawTextStack(
+                doc,
+                [
+                  { text: first, fontSize: 10, minFontSize: 6, bold: true, color: INK, maxLines: 1 },
+                  { text: rest.join("\n"), fontSize: 9, minFontSize: 5.5, color: INK, maxLines: 6, gapBefore: 0.4 },
+                ],
+                { x: x + pad, y: top, w: boxW, h: y + H - pad - top },
+                "left"
+              );
+            } else if (mode === "barcode" && JsBarcode) {
+              const item = parsedBarcodes[i % entryCount];
+              const pad = Math.min(3, Math.max(1.5, Math.min(W, H) * 0.07));
+              let headerH = 0;
+              const header = [item.name, item.price].filter(Boolean).join(" · ");
+              if (header) {
+                const l = drawFittedText(doc, header, {
+                  x: cx,
+                  y: y + pad,
+                  maxWidth: W - 2 * pad,
+                  maxLines: 1,
+                  fontSize: 8,
+                  minFontSize: 5,
+                  fontStyle: "bold",
+                  align: "center",
+                  color: INK,
+                });
+                headerH = l.heightMm + 0.8;
+              }
+              let bc = barcodeCache.get(item.code);
+              if (!bc) {
+                bc = renderBarcodeCanvas(JsBarcode, item.code, barcodeFormat);
+                barcodeCache.set(item.code, bc);
+              }
+              const place = fitContain(bc.w, bc.h, {
+                x: x + pad,
+                y: y + pad + headerH,
+                w: W - 2 * pad,
+                h: H - 2 * pad - headerH,
+              });
+              doc.addImage(bc.dataUrl, "PNG", place.x, place.y, place.w, place.h, `bc-${item.code}`);
+            } else if (mode === "nametag") {
+              const person = parsedNames[i % entryCount];
+              await drawLabelScene(doc, sceneFor({ title: person.person, subtitle: person.role }, pdfMeasure, pdfScenes), x, y, imageCache);
+            } else if (stickerImages.length > 0) {
+              const imgIdx = i % stickerImages.length;
+              if (grid.round) {
+                let art = stickerCache.get(imgIdx);
+                if (!art) {
+                  art = { dataUrl: await renderCircleCoverDataUrl(stickerImages[imgIdx]), format: "PNG" };
+                  stickerCache.set(imgIdx, art);
+                }
+                doc.addImage(art.dataUrl, art.format, cx - d / 2, cy - d / 2, d, d, `st-${imgIdx}`);
+              } else {
+                const bw = Math.max(5, W - 4);
+                const bh = Math.max(5, H - 4);
+                let art = stickerCache.get(imgIdx);
+                if (!art) {
+                  art = await renderImageToBoxDataUrl(stickerImages[imgIdx], bw / bh, "contain");
+                  stickerCache.set(imgIdx, art);
+                }
+                doc.addImage(art.dataUrl, art.format, cx - bw / 2, cy - bh / 2, bw, bh, `st-${imgIdx}`);
+              }
+            } else {
+              const ox = grid.round ? cx - d / 2 : x;
+              const oy = grid.round ? cy - d / 2 : y;
+              await drawLabelScene(doc, sceneFor({ title: labelTitle, subtitle: labelSub }, pdfMeasure, pdfScenes), ox, oy, imageCache);
+            }
+
+            if (showBorders) {
+              doc.setDrawColor(135, 135, 145);
+              doc.setLineWidth(0.2);
+              doc.setLineDashPattern([1.8, 1.4], 0);
+              if (grid.round) doc.circle(cx, cy, d / 2);
+              else doc.rect(x, y, W, H);
+              doc.setLineDashPattern([], 0);
+            }
           }
         }
+
+        doc.save(`label-sheet-${pageId.toLowerCase()}-${grid.paper}.pdf`);
       }
 
-      doc.save(`label-sheet-${pageId.toLowerCase()}-${grid.paper}.pdf`);
       setStatus({
         tone: "success",
         text: (
@@ -919,12 +1305,25 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
   const isActive = (p: PresetDef) => specMatches(grid.paper === "letter" ? p.letter : p.a4, grid);
 
   const previewScenes = new Map<string, LabelPrim[]>();
+  const compiledBaseCustom = hasCustomDesign ? compileSide(hist.present, labelWActive, labelHActive, previewFit) : null;
   function renderSlot(s: number) {
     const i = s; // preview shows page 1
     const used = i < labelCount;
     const W = grid.labelW;
     const H = grid.labelH;
     if (!used) return null;
+
+    if (hasCustomDesign) {
+      const override = slotOverrides && slotOverrides.length > 0 ? slotOverrides[i % slotOverrides.length] : null;
+      const els = override
+        ? compileSide(applyLabelSlotOverride(hist.present, override), labelWActive, labelHActive, previewFit).els
+        : compiledBaseCustom?.els ?? [];
+      return (
+        <div className="absolute inset-0" style={{ containerType: "inline-size" }}>
+          <CardFacePreview W={labelWActive} H={labelHActive} els={els} images={{}} label={`Label ${i + 1}`} />
+        </div>
+      );
+    }
 
     if (mode === "address") {
       const addr = parsedAddresses[i % entryCount] ?? "";
@@ -1016,21 +1415,59 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
   }
 
   const outlinesToggle = (
-    <div>
-      <label className="inline-flex items-center gap-2 min-h-[36px] text-sm font-medium text-zinc-800 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={showBorders}
-          onChange={(e) => setShowBorders(e.target.checked)}
-          aria-describedby="label-outline-hint"
-          className="accent-[#4d7c0f] h-4 w-4"
-        />
-        <Scissors className="h-3.5 w-3.5 text-zinc-600" aria-hidden="true" />
-        Print label outlines
-      </label>
-      <div className="pl-6"><FieldHint id="label-outline-hint">
-        A thin grey line around each label — handy for test prints or cutting by hand. Turn it off for pre-cut label sheets.
-      </FieldHint></div>
+    <div className="space-y-3">
+      <fieldset className="space-y-1.5">
+        <legend className={labelCls}>Cutting guides</legend>
+        <div className="grid grid-cols-2 gap-1.5">
+          {(
+            [
+              ["dashed-outline", "Dashed outlines", "Easy scissor line around every label/circle"],
+              ...(!grid.round ? ([["dashed-grid", "Full dashed lines", "Straight dashed lines for ruler & trimmer"]] as const) : []),
+              ["crop-marks", "Corner marks", "Pro trim marks outside labels"],
+              ["none", "No guides", "Best for pre-cut Avery sheets"],
+            ] as const
+          ).map(([id, title, desc]) => {
+            const active = cutGuideStyle === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setCutGuideStyle(id)}
+                className={`rounded-xl px-3 py-2 text-left transition cursor-pointer ${
+                  active ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]" : "bg-[#f5f5f7] hover:bg-[#ebeced]"
+                }`}
+              >
+                <span className={`flex items-center gap-1.5 text-xs font-bold ${active ? "text-[#365314]" : "text-zinc-900"}`}>
+                  <Scissors aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                  {title}
+                </span>
+                <span className="mt-0.5 block text-[11px] leading-snug text-zinc-600">{desc}</span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+      <div>
+        <label className="inline-flex items-center gap-2 min-h-[36px] text-sm font-medium text-zinc-800 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={includeBleed}
+            onChange={(e) => setIncludeBleed(e.target.checked)}
+            className="accent-[#4d7c0f] h-4 w-4"
+          />
+          <SlidersHorizontal className="h-3.5 w-3.5 text-zinc-600" aria-hidden="true" />
+          Add edge bleed (3 mm)
+        </label>
+      </div>
+      {(edgeInfo.isDark || edgeInfo.touchesEdge) && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+          <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <span>
+            <strong>Edge-to-edge colour:</strong> Turn on edge bleed so minor printer shifts won&rsquo;t leave thin white rims on your stickers.
+          </span>
+        </div>
+      )}
     </div>
   );
 
@@ -1074,6 +1511,35 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-5 items-start">
         {/* Controls */}
         <div className="order-2 lg:order-1 lg:col-span-5 rounded-2xl bg-white p-4 sm:p-6 space-y-6">
+          {hasCustomDesign && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#4d7c0f]/30 bg-[#eef6e4] px-3.5 py-3 text-xs text-[#365314]">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0 text-[#4d7c0f]" />
+                <span className="font-semibold">
+                  Your Advanced Editor label design is active across the sheet.
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen(true)}
+                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-[#4d7c0f] px-3 text-xs font-bold text-white hover:bg-[#3f6212] cursor-pointer"
+                >
+                  <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+                  Continue editing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHasCustomDesign(false)}
+                  className="inline-flex min-h-[34px] items-center gap-1 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 cursor-pointer"
+                >
+                  <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
+                  Simple preset
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Step 1 — sheet */}
           <section className={sectionCls} aria-labelledby="label-step-1">
             <StepHeader
@@ -1241,7 +1707,11 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                     id="label-return-address"
                     type="text"
                     value={returnAddress}
-                    onChange={(e) => setReturnAddress(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setReturnAddress(val);
+                      if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "returnAddress", val));
+                    }}
                     aria-describedby="label-return-hint"
                     className={textFieldCls}
                   />
@@ -1335,7 +1805,11 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                     id="label-header-banner"
                     type="text"
                     value={eventName}
-                    onChange={(e) => setEventName(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEventName(val);
+                      if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "eyebrow", val));
+                    }}
                     aria-describedby="label-banner-hint"
                     className={textFieldCls}
                   />
@@ -1418,7 +1892,11 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                           id="label-title"
                           type="text"
                           value={labelTitle}
-                          onChange={(e) => setLabelTitle(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLabelTitle(val);
+                            if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "title", val));
+                          }}
                           placeholder="e.g. Pantry Label"
                           className={textFieldCls}
                         />
@@ -1431,7 +1909,11 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                           id="label-subtitle"
                           type="text"
                           value={labelSub}
-                          onChange={(e) => setLabelSub(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLabelSub(val);
+                            if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "subtitle", val));
+                          }}
                           placeholder="e.g. Batch 01 · Fresh"
                           className={textFieldCls}
                         />
@@ -1459,7 +1941,11 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                     <LabelStylePicker
                       name="label-style"
                       value={labelStyle}
-                      onChange={setLabelStyle}
+                      onChange={(st) => {
+                        setLabelStyle(st);
+                        setTemplateId(st);
+                        setHasCustomDesign(false);
+                      }}
                       measure={measure}
                       sample={
                         mode === "nametag"
@@ -1467,10 +1953,38 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                           : { ...designBase, title: labelTitle || "Label", subtitle: labelSub }
                       }
                     />
-                    <FontPairPicker name="label-fonts" value={fontPair} onChange={setFontPair} />
-                    <ColourSwatchPicker label="Colour" value={accentHex} onChange={setAccentHex} />
+                    <FontPairPicker
+                      name="label-fonts"
+                      value={fontPair}
+                      onChange={(fp) => {
+                        setFontPair(fp);
+                        setHasCustomDesign(false);
+                      }}
+                    />
+                    <ColourSwatchPicker
+                      label="Colour"
+                      value={accentHex}
+                      onChange={(hex) => {
+                        setAccentHex(hex);
+                        setHasCustomDesign(false);
+                      }}
+                    />
                   </>
                 )}
+                <div className="rounded-2xl border border-dashed border-[#4d7c0f]/50 bg-[#f7fbf1] p-3.5">
+                  <p className="text-sm font-bold text-zinc-950">Want to customize every detail?</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-zinc-600">
+                    Open the full-screen editor to drag, resize, rotate, add logos with background removal, sticker icons, barcodes, QR codes, Kraft/gradient backdrops, and export PDF, 300 DPI PNG or SVG.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openAdvancedEditor}
+                    className="mt-2.5 inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-4 py-2 text-xs font-bold text-white hover:bg-[#3f6212] transition cursor-pointer"
+                  >
+                    <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+                    Open Advanced Editor
+                  </button>
+                </div>
                 {outlinesToggle}
               </div>
             </section>
@@ -1520,12 +2034,35 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
 
         {/* Live sheet preview */}
         <div className="order-1 lg:order-2 lg:col-span-7 lg:sticky lg:top-24 rounded-2xl bg-white p-4 sm:p-8 flex flex-col items-center justify-center gap-3 lg:min-h-[420px]">
-          <div className="w-full flex items-center justify-between gap-2 text-xs">
-            <span className="font-bold text-zinc-950">Preview</span>
-            <span className="text-zinc-600">
-              {pageCount > 1 ? `Page 1 of ${pageCount} · ` : ""}
-              {slotsPerPage} per sheet · {paperShort}
-            </span>
+          <div className="w-full flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-zinc-950 text-sm">Preview</span>
+              {hasCustomDesign && (
+                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">
+                  Custom layout
+                </span>
+              )}
+              {hydrated && (
+                <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#eef6e4] px-2 py-0.5 text-[10px] font-semibold text-[#365314]">
+                  <Check aria-hidden="true" className="h-3 w-3" />
+                  {saveStatus === "saving" ? "Saving…" : "Auto-saved"}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-zinc-600">
+                {pageCount > 1 ? `Page 1 of ${pageCount} · ` : ""}
+                {slotsPerPage} per sheet · {paperShort}
+              </span>
+              <button
+                type="button"
+                onClick={openAdvancedEditor}
+                className="inline-flex min-h-[38px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#3f6212] transition cursor-pointer"
+              >
+                <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+                Open Advanced Editor
+              </button>
+            </div>
           </div>
           <div
             role="img"
@@ -1556,7 +2093,11 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                 <div
                   key={s}
                   className={`absolute overflow-hidden bg-white ${grid.round ? "rounded-full" : "rounded-[2px]"} ${
-                    showBorders ? "ring-1 ring-zinc-300" : ""
+                    cutGuideStyle === "dashed-outline"
+                      ? "border border-dashed border-zinc-400"
+                      : cutGuideStyle === "dashed-grid" && grid.round
+                        ? "border border-dashed border-zinc-400"
+                        : "ring-1 ring-zinc-200/70"
                   }`}
                   style={{
                     left: `${(left / paper.widthMm) * 100}%`,
@@ -1569,6 +2110,38 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
                 </div>
               );
             })}
+            {cutGuideStyle === "dashed-grid" && !grid.round && (
+              <div aria-hidden="true" className="pointer-events-none">
+                {Array.from(
+                  new Set(
+                    Array.from({ length: grid.cols }, (_, c) => grid.marginLeft + c * (grid.labelW + grid.gapX)).flatMap((x) => [
+                      round2(x),
+                      round2(x + grid.labelW),
+                    ])
+                  )
+                ).map((x, idx) => (
+                  <span
+                    key={`lv${idx}`}
+                    className="absolute inset-y-1 border-l border-dashed border-zinc-400"
+                    style={{ left: `${(x / paper.widthMm) * 100}%` }}
+                  />
+                ))}
+                {Array.from(
+                  new Set(
+                    Array.from({ length: grid.rows }, (_, r) => grid.marginTop + r * (grid.labelH + grid.gapY)).flatMap((y) => [
+                      round2(y),
+                      round2(y + grid.labelH),
+                    ])
+                  )
+                ).map((y, idx) => (
+                  <span
+                    key={`lh${idx}`}
+                    className="absolute inset-x-1 border-t border-dashed border-zinc-400"
+                    style={{ top: `${(y / paper.heightMm) * 100}%` }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <p className="text-xs text-zinc-600 text-center">
             {activePreset
@@ -1591,6 +2164,45 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
           {isExporting ? "Making PDF…" : "Download PDF"}
         </button>
       </MobileActionBar>
+
+      {/* ==================== FULL-SCREEN ADVANCED LABEL & STICKER EDITOR ==================== */}
+      <AdvancedLabelEditor
+        open={advancedOpen}
+        side={hist.present}
+        grid={grid}
+        labelCount={labelCount}
+        pageCount={pageCount}
+        isListMode={listMode}
+        listCount={entryCount}
+        cutGuideStyle={cutGuideStyle}
+        includeBleed={includeBleed}
+        templateId={templateId}
+        accentHex={accentHex}
+        fontPair={fontPair}
+        title={mode === "nametag" ? parsedNames[0]?.person || "Alex Morgan" : labelTitle}
+        subtitle={mode === "nametag" ? parsedNames[0]?.role || "Speaker" : labelSub}
+        eyebrow={mode === "nametag" ? eventName : ""}
+        slotOverrides={slotOverrides}
+        canUndo={hist.canUndo}
+        canRedo={hist.canRedo}
+        saveStatus={saveStatus}
+        persistedPayload={persistedPayload}
+        onChangeGrid={setGrid}
+        onChangeLayer={handleChangeLayer}
+        onAddLayer={handleAddLayer}
+        onRemoveLayer={handleRemoveLayer}
+        onDuplicateLayer={handleDuplicateLayer}
+        onReorderLayer={handleReorderLayer}
+        onSetBackground={handleSetBackground}
+        onApplyTemplate={handleApplyTemplate}
+        onPatchSilently={patchSilently}
+        onUndo={hist.undo}
+        onRedo={hist.redo}
+        onChangeCutGuideStyle={setCutGuideStyle}
+        onToggleBleed={setIncludeBleed}
+        onLoadPayload={applyPersistedLabel}
+        onClose={closeAdvancedEditor}
+      />
     </div>
   );
 }

@@ -41,7 +41,7 @@ import {
 import {
   approxFit,
   drawCardElsPdf,
-  drawGridCropMarks,
+  drawSheetCutGuides,
   getInitialConfig,
   hexToRgb,
   initialsOf,
@@ -55,6 +55,7 @@ import {
   type BackStyleId,
   type CardContent,
   type CardStyleId,
+  type CutGuideStyle,
   type Fonts,
   type FontPairId,
   type SemanticFieldKey,
@@ -381,7 +382,8 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
   const [uploadedFront, setUploadedFront] = useState<string | null>(null);
   const [uploadedName, setUploadedName] = useState<string>("");
   const [logo, setLogo] = useState<{ src: string; w: number; h: number; name: string } | null>(null);
-  const [showCropMarks, setShowCropMarks] = useState(true);
+  const [cutGuideStyle, setCutGuideStyle] = useState<CutGuideStyle>("dashed-grid");
+  const [singleCut, setSingleCut] = useState(false);
   const [includeBleed, setIncludeBleed] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [status, setStatus] = useState<ToolStatusValue | null>(null);
@@ -410,10 +412,13 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const uid = useId();
 
-  const sheet: SheetPreset =
+  const baseSheet: SheetPreset =
     sheetId === "custom"
       ? { id: "a4-10up", label: "Custom", note: "", ...customSheet }
       : SHEET_PRESETS[sheetId];
+  const sheet: SheetPreset =
+    singleCut && sheetId !== "custom" ? { ...baseSheet, gapX: 0, gapY: 0 } : baseSheet;
+  const showCropMarks = cutGuideStyle !== "none";
   const paper = PAPER_SIZES[sheet.paper];
   const paperShort = PAPER_SHORT[sheet.paper];
   const cardCount = sheet.cols * sheet.rows;
@@ -535,7 +540,8 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
       setTagline(s.tagline);
       setIncludeQr(s.includeQr);
       setIncludeBack(s.includeBack);
-      setShowCropMarks(s.showCropMarks);
+      setCutGuideStyle(s.cutGuideStyle ?? (s.showCropMarks ? "dashed-grid" : "none"));
+      setSingleCut(Boolean(s.singleCut));
       setIncludeBleed(Boolean(s.includeBleed));
       setSheetId(s.sheetId);
       if (s.customSheet) setCustomSheet(s.customSheet);
@@ -597,6 +603,8 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
         includeQr,
         includeBack,
         showCropMarks,
+        cutGuideStyle,
+        singleCut,
         includeBleed,
         sheetId,
         customSheet,
@@ -622,6 +630,8 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
       includeQr,
       includeBack,
       showCropMarks,
+      cutGuideStyle,
+      singleCut,
       includeBleed,
       sheetId,
       customSheet,
@@ -891,6 +901,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
           sheet,
           includeBack: backOn,
           showCropMarks,
+          cutGuideStyle,
           includeBleed,
           offsetX,
           offsetY,
@@ -906,8 +917,14 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
         const pdfFit = pdfFitFor(doc);
         const { cells } = geo;
         const marks = (g = geo) =>
-          showCropMarks &&
-          drawGridCropMarks(doc, { startX: g.startX, startY: g.startY, sheet, paperW: paper.widthMm, paperH: paper.heightMm });
+          drawSheetCutGuides(doc, {
+            startX: g.startX,
+            startY: g.startY,
+            sheet,
+            paperW: paper.widthMm,
+            paperH: paper.heightMm,
+            style: cutGuideStyle,
+          });
 
         if (mode === "upload" && uploadedFront) {
           const prepared = await renderImageToBoxDataUrl(uploadedFront, sheet.cardW / sheet.cardH, "cover");
@@ -1057,7 +1074,49 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
           {cardFace(side)}
         </div>
       ))}
-      {showCropMarks && (
+      {cutGuideStyle === "dashed-grid" && (
+        <div aria-hidden="true" className="pointer-events-none">
+          {Array.from(new Set(tg.cells.flatMap(([x]) => [x, x + sheet.cardW]))).map((x, i) => (
+            <span
+              key={`dgv${i}`}
+              className="absolute border-l border-dashed border-zinc-400"
+              style={{
+                left: pct(x, paper.widthMm),
+                top: pct(Math.max(2, tg.startY - 4), paper.heightMm),
+                height: pct(Math.min(paper.heightMm - 4, tg.gridH + 8), paper.heightMm),
+              }}
+            />
+          ))}
+          {Array.from(new Set(tg.cells.flatMap(([, y]) => [y, y + sheet.cardH]))).map((y, i) => (
+            <span
+              key={`dgh${i}`}
+              className="absolute border-t border-dashed border-zinc-400"
+              style={{
+                left: pct(Math.max(2, tg.startX - 4), paper.widthMm),
+                top: pct(y, paper.heightMm),
+                width: pct(Math.min(paper.widthMm - 4, tg.gridW + 8), paper.widthMm),
+              }}
+            />
+          ))}
+        </div>
+      )}
+      {cutGuideStyle === "card-outline" && (
+        <div aria-hidden="true" className="pointer-events-none">
+          {tg.cells.map(([x, y], i) => (
+            <span
+              key={`co${i}`}
+              className="absolute border border-dashed border-zinc-400"
+              style={{
+                left: pct(x, paper.widthMm),
+                top: pct(y, paper.heightMm),
+                width: pct(sheet.cardW, paper.widthMm),
+                height: pct(sheet.cardH, paper.heightMm),
+              }}
+            />
+          ))}
+        </div>
+      )}
+      {cutGuideStyle === "crop-marks" && (
         <div aria-hidden="true">
           {Array.from(new Set(tg.cells.flatMap(([x]) => [x, x + sheet.cardW]))).flatMap((x) => [
             [x, tg.startY - 1 - markLen],
@@ -1595,22 +1654,75 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
               </div>
             </details>
 
-            <div className="mt-4 space-y-2">
-              <label className={checkRowClass}>
-                <input
-                  type="checkbox"
-                  checked={showCropMarks}
-                  onChange={(e) => setShowCropMarks(e.target.checked)}
-                  className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
-                />
-                <Scissors aria-hidden="true" className="h-4 w-4 text-zinc-600" />
-                Show cut guides (crop marks)
-              </label>
+            <div className="mt-4 space-y-2.5">
+              <fieldset className="space-y-1.5">
+                <legend className={labelClass}>Cutting guides</legend>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(
+                    [
+                      ["dashed-grid", "Easy cut lines", "Full dashed lines — best for scissors & ruler"],
+                      ["card-outline", "Card outlines", "Dashed border around every card"],
+                      ["crop-marks", "Corner marks", "Pro ticks for paper trimmers"],
+                      ["none", "No guides", "For pre-cut perforated paper"],
+                    ] as const
+                  ).map(([id, title, desc]) => {
+                    const active = cutGuideStyle === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setCutGuideStyle(id)}
+                        className={`rounded-xl px-3 py-2 text-left transition cursor-pointer ${
+                          active
+                            ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]"
+                            : "bg-[#f5f5f7] hover:bg-[#ebeced]"
+                        }`}
+                      >
+                        <span className={`flex items-center gap-1.5 text-xs font-bold ${active ? "text-[#365314]" : "text-zinc-900"}`}>
+                          <Scissors aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                          {title}
+                        </span>
+                        <span className="mt-0.5 block text-[11px] leading-snug text-zinc-600">{desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              {sheetId !== "custom" && (
+                <div className="space-y-1">
+                  <label className={checkRowClass}>
+                    <input
+                      type="checkbox"
+                      checked={singleCut}
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        setSingleCut(on);
+                        if (on && includeBleed) setIncludeBleed(false);
+                      }}
+                      className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
+                    />
+                    <Scissors aria-hidden="true" className="h-4 w-4 text-[#4d7c0f]" />
+                    <span>
+                      Single-cut layout <span className="text-xs font-normal text-zinc-600">(fewer cuts, no thin strips)</span>
+                    </span>
+                  </label>
+                  <FieldHint>
+                    Cards touch edge-to-edge so one straight cut separates two cards (9 cuts instead of 14). Great for white-background cards!
+                  </FieldHint>
+                </div>
+              )}
+
               <label className={checkRowClass}>
                 <input
                   type="checkbox"
                   checked={includeBleed}
-                  onChange={(e) => setIncludeBleed(e.target.checked)}
+                  onChange={(e) => {
+                    const on = e.target.checked;
+                    setIncludeBleed(on);
+                    if (on && singleCut) setSingleCut(false);
+                  }}
                   className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
                 />
                 <SlidersHorizontal aria-hidden="true" className="h-4 w-4 text-zinc-600" />
@@ -1620,7 +1732,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                 <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
                   <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                   <span>
-                    <strong>Dark / edge-to-edge card:</strong> Keep cut guides and bleed enabled so trimming won&rsquo;t leave thin white borders.
+                    <strong>Dark / edge-to-edge card:</strong> Keep cut guides and bleed enabled (with Single-cut off) so trimming won&rsquo;t leave thin white borders.
                   </span>
                 </div>
               )}
@@ -1718,7 +1830,13 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
               paperLabel={paperShort}
               open={tipsOpen}
               extraSteps={extraSteps}
-              cutStep="Cut along the crop marks with a paper trimmer for straight edges."
+              cutStep={
+                cutGuideStyle === "dashed-grid"
+                  ? "Follow the dashed cut lines straight across with scissors or a ruler & craft knife — cut right on the dashed line so it disappears cleanly."
+                  : cutGuideStyle === "card-outline"
+                    ? "Cut directly along the dashed border around each card using scissors or a paper trimmer."
+                    : "Line your ruler or paper trimmer up with the corner marks to cut straight edges."
+              }
             />
           </section>
         </div>
@@ -1833,7 +1951,8 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
         sheetId={sheetId}
         customSheet={customSheet}
         sheet={sheet}
-        showCropMarks={showCropMarks}
+        cutGuideStyle={cutGuideStyle}
+        singleCut={singleCut}
         includeBleed={includeBleed}
         offsetX={offsetX}
         offsetY={offsetY}
@@ -1867,8 +1986,15 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
         onRedo={hist.redo}
         onChangeSheetId={setSheetId}
         onChangeCustomSheet={(patch) => setCustomSheet((c) => ({ ...c, ...patch }))}
-        onToggleCropMarks={setShowCropMarks}
-        onToggleBleed={setIncludeBleed}
+        onChangeCutGuideStyle={setCutGuideStyle}
+        onToggleSingleCut={(on) => {
+          setSingleCut(on);
+          if (on && includeBleed) setIncludeBleed(false);
+        }}
+        onToggleBleed={(on) => {
+          setIncludeBleed(on);
+          if (on && singleCut) setSingleCut(false);
+        }}
         onLoadPayload={applyPersistedPayload}
         onClose={closeAdvancedEditor}
       />

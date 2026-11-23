@@ -5,13 +5,14 @@ import {
   PT_TO_MM,
   cssStack,
   drawCardElsPdf,
-  drawGridCropMarks,
+  drawSheetCutGuides,
   pdfFitFor,
   previewFit,
   rgbCss,
   sheetGeometry,
   type BackStyleId,
   type CardStyleId,
+  type CutGuideStyle,
   type FontPairId,
   type PatternKind,
   type RGB,
@@ -170,7 +171,7 @@ export async function renderSideToCanvas(
   side: SideDesign,
   W: number,
   H: number,
-  opts: { bleedMm?: number; dpi?: number; images?: { logo?: string; qr?: string } } = {}
+  opts: { bleedMm?: number; dpi?: number; round?: boolean; images?: { logo?: string; qr?: string } } = {}
 ): Promise<HTMLCanvasElement> {
   if (typeof document !== "undefined" && "fonts" in document) {
     try {
@@ -195,7 +196,15 @@ export async function renderSideToCanvas(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  // Base white card paper
+  if (opts.round) {
+    // Clip round stickers/labels to an exact transparent circle (including bleed ring if enabled)
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+  }
+
+  // Base white paper inside trim/bleed shape
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -505,9 +514,13 @@ export async function exportSidePng(
   W: number,
   H: number,
   filename: string,
-  opts: { bleedMm?: number; dpi?: number } = {}
+  opts: { bleedMm?: number; dpi?: number; round?: boolean } = {}
 ): Promise<void> {
-  const canvas = await renderSideToCanvas(side, W, H, { bleedMm: opts.bleedMm ?? 0, dpi: opts.dpi ?? 300 });
+  const canvas = await renderSideToCanvas(side, W, H, {
+    bleedMm: opts.bleedMm ?? 0,
+    dpi: opts.dpi ?? 300,
+    round: opts.round,
+  });
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("Failed to encode PNG");
   triggerBlobDownload(blob, filename);
@@ -530,7 +543,7 @@ export function buildSideSvgString(
   side: SideDesign,
   W: number,
   H: number,
-  opts: { bleedMm?: number } = {}
+  opts: { bleedMm?: number; round?: boolean } = {}
 ): string {
   const bleed = Math.max(0, opts.bleedMm ?? 0);
   const totalW = W + 2 * bleed;
@@ -539,6 +552,11 @@ export function buildSideSvgString(
 
   const defs: string[] = [];
   const body: string[] = [];
+  if (opts.round) {
+    defs.push(
+      `<clipPath id="round-label-clip"><circle cx="${(totalW / 2).toFixed(3)}" cy="${(totalH / 2).toFixed(3)}" r="${(Math.min(totalW, totalH) / 2).toFixed(3)}" /></clipPath>`
+    );
+  }
   const usedCustomFonts = new Set<string>();
 
   for (const el of els) {
@@ -676,22 +694,26 @@ export function buildSideSvgString(
 
   const translateOpen = bleed > 0 ? `<g transform="translate(${bleed} ${bleed})">` : "";
   const translateClose = bleed > 0 ? "</g>" : "";
+  const roundOpen = opts.round ? `<g clip-path="url(#round-label-clip)">` : "";
+  const roundClose = opts.round ? "</g>" : "";
 
   return [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}mm" height="${totalH}mm" viewBox="0 0 ${totalW} ${totalH}">`,
     defs.length ? `<defs>${defs.join("")}</defs>` : "",
+    roundOpen,
     ...body,
     translateOpen,
     ...layersXml,
     translateClose,
+    roundClose,
     `</svg>`,
   ]
     .filter(Boolean)
     .join("\n");
 }
 
-export function exportSideSvg(side: SideDesign, W: number, H: number, filename: string, opts: { bleedMm?: number } = {}) {
+export function exportSideSvg(side: SideDesign, W: number, H: number, filename: string, opts: { bleedMm?: number; round?: boolean } = {}) {
   const svg = buildSideSvgString(side, W, H, opts);
   const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
   triggerBlobDownload(blob, filename);
@@ -724,17 +746,20 @@ export async function exportAdvancedPdf(params: {
   sheet: SheetPreset;
   includeBack: boolean;
   showCropMarks: boolean;
+  cutGuideStyle?: CutGuideStyle;
   includeBleed: boolean;
   offsetX: number;
   offsetY: number;
   filename: string;
 }): Promise<{ effectiveBleedMm: number }> {
-  const { mode, design, sheet, includeBack, showCropMarks, includeBleed, offsetX, offsetY, filename } = params;
+  const { mode, design, sheet, includeBack, showCropMarks, cutGuideStyle, includeBleed, offsetX, offsetY, filename } = params;
+  const resolvedStyle: CutGuideStyle = cutGuideStyle ?? (showCropMarks ? "dashed-grid" : "none");
   const { jsPDF } = await import("jspdf");
 
   if (mode === "single") {
     const bleed = includeBleed ? 3 : 0;
-    const margin = showCropMarks ? 8 : bleed;
+    const hasMarks = resolvedStyle !== "none";
+    const margin = hasMarks ? 8 : bleed;
     const pageW = sheet.cardW + 2 * margin;
     const pageH = sheet.cardH + 2 * margin;
     const doc = new jsPDF({ orientation: pageW >= pageH ? "landscape" : "portrait", unit: "mm", format: [pageW, pageH] });
@@ -743,7 +768,14 @@ export async function exportAdvancedPdf(params: {
       const canvas = await renderSideToCanvas(side, sheet.cardW, sheet.cardH, { bleedMm: bleed, dpi: 360 });
       const dataUrl = canvas.toDataURL("image/png");
       doc.addImage(dataUrl, "PNG", margin - bleed, margin - bleed, sheet.cardW + 2 * bleed, sheet.cardH + 2 * bleed, alias);
-      if (showCropMarks) {
+      if (hasMarks) {
+        if (resolvedStyle === "card-outline" || resolvedStyle === "dashed-grid") {
+          doc.setDrawColor(140, 140, 150);
+          doc.setLineWidth(0.2);
+          doc.setLineDashPattern([1.8, 1.4], 0);
+          doc.rect(margin, margin, sheet.cardW, sheet.cardH);
+          doc.setLineDashPattern([], 0);
+        }
         const off = Math.max(1.2, bleed + 0.8);
         const len = 3.5;
         const x0 = margin;
@@ -805,16 +837,15 @@ export async function exportAdvancedPdf(params: {
         drawCardElsPdf(doc, els, x, y, {});
       }
     }
-    if (showCropMarks) {
-      drawGridCropMarks(doc, {
-        startX: g.startX,
-        startY: g.startY,
-        sheet,
-        paperW: paper.widthMm,
-        paperH: paper.heightMm,
-        bleedMm: effectiveBleedMm,
-      });
-    }
+    drawSheetCutGuides(doc, {
+      startX: g.startX,
+      startY: g.startY,
+      sheet,
+      paperW: paper.widthMm,
+      paperH: paper.heightMm,
+      bleedMm: effectiveBleedMm,
+      style: resolvedStyle,
+    });
   };
 
   await drawSideOnSheet(design.front, geo.cells, geo, "sheet-front");
@@ -846,6 +877,8 @@ export interface SavedSimpleState {
   includeQr: boolean;
   includeBack: boolean;
   showCropMarks: boolean;
+  cutGuideStyle?: CutGuideStyle;
+  singleCut?: boolean;
   includeBleed: boolean;
   sheetId: SheetPresetId | "custom";
   customSheet: {

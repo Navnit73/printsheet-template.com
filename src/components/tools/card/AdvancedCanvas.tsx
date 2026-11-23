@@ -48,6 +48,8 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
   H,
   side,
   sideName,
+  round = false,
+  itemLabel = "card",
   selectedId,
   editingTextId,
   zoom,
@@ -68,7 +70,11 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
   W: number;
   H: number;
   side: SideDesign;
-  sideName: "front" | "back";
+  sideName: "front" | "back" | "label";
+  /** Circular trim & safe-area guides (for round labels / stickers). */
+  round?: boolean;
+  /** Friendly noun for captions/tooltips (e.g. "card", "label", "sticker"). */
+  itemLabel?: string;
   selectedId: string | null;
   editingTextId: string | null;
   zoom: number;
@@ -519,7 +525,7 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
       {eyedropperActive && (
         <div className="pointer-events-auto absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-zinc-950 px-4 py-1.5 text-xs font-semibold text-white shadow-lg">
           <Pipette className="h-3.5 w-3.5 text-amber-400" />
-          Click anywhere on the card to pick a colour
+          Click anywhere on the {itemLabel} to pick a colour
           <button
             type="button"
             onClick={(e) => {
@@ -536,7 +542,7 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
       {/* Drag & drop overlay */}
       {dragOverFile && (
         <div className="pointer-events-none absolute inset-4 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-[#4d7c0f] bg-[#eef6e4]/80 text-sm font-bold text-[#365314]">
-          Drop image to place on card
+          Drop image to place on {itemLabel}
         </div>
       )}
 
@@ -553,7 +559,7 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
         {bleedPx > 0 && (
           <div
             aria-hidden="true"
-            className={`pointer-events-none absolute inset-0 rounded-[2px] ${
+            className={`pointer-events-none absolute inset-0 ${round ? "rounded-full" : "rounded-[2px]"} ${
               includeBleed ? "opacity-95 shadow-sm" : "bg-white/45"
             }`}
             style={includeBleed ? bleedBgStyle : undefined}
@@ -564,7 +570,7 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
         {showGuides && bleedPx > 0 && (
           <div
             aria-hidden="true"
-            className={`pointer-events-none absolute inset-0 border border-dashed ${
+            className={`pointer-events-none absolute inset-0 border border-dashed ${round ? "rounded-full" : ""} ${
               includeBleed ? "border-amber-600/80" : "border-zinc-400/60"
             }`}
           >
@@ -574,7 +580,7 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
           </div>
         )}
 
-        {/* Actual card trim box (e.g. 90 × 55 mm) */}
+        {/* Actual trim box (e.g. 90 × 55 mm card or Ø 50 mm round sticker) */}
         <div
           ref={cardRef}
           onClick={eyedropperActive ? handleCardEyedropperClick : undefined}
@@ -582,8 +588,8 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
           onPointerUp={endPointer}
           onPointerCancel={endPointer}
           className={`relative bg-white shadow-[0_12px_36px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.08)] ${
-            eyedropperActive ? "cursor-crosshair" : ""
-          }`}
+            round ? "rounded-full" : ""
+          } ${eyedropperActive ? "cursor-crosshair" : ""}`}
           style={{
             width: cardWidthPx,
             height: cardHeightPx,
@@ -591,13 +597,13 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
           }}
         >
           {/* Clipped artwork layer */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className={`pointer-events-none absolute inset-0 overflow-hidden ${round ? "rounded-full" : ""}`}>
             <CardFacePreview
               W={W}
               H={H}
               els={compiled.els}
               images={{}}
-              label={`${sideName} of business card`}
+              label={`${sideName} of ${itemLabel}`}
               editingLayerId={editingTextId}
             />
           </div>
@@ -606,7 +612,7 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
           {showGrid && (
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0"
+              className={`pointer-events-none absolute inset-0 ${round ? "rounded-full" : ""}`}
               style={{
                 backgroundImage:
                   "linear-gradient(to right, rgba(77,124,15,0.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(77,124,15,0.14) 1px, transparent 1px)",
@@ -615,19 +621,23 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
             />
           )}
 
-          {/* Safe-area guide (4 mm inset) */}
+          {/* Safe-area guide */}
           {showGuides && (
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute border border-dashed border-emerald-600/65"
+              className={`pointer-events-none absolute border border-dashed border-emerald-600/65 ${round ? "rounded-full" : ""}`}
               style={{
-                left: pctX(SAFE_MM),
-                top: pctY(SAFE_MM),
-                right: pctX(SAFE_MM),
-                bottom: pctY(SAFE_MM),
+                left: pctX(Math.min(SAFE_MM, W * 0.12)),
+                top: pctY(Math.min(SAFE_MM, H * 0.12)),
+                right: pctX(Math.min(SAFE_MM, W * 0.12)),
+                bottom: pctY(Math.min(SAFE_MM, H * 0.12)),
               }}
             >
-              <span className="absolute bottom-0.5 right-1 rounded bg-white/80 px-1 text-[9px] font-semibold text-emerald-800">
+              <span
+                className={`absolute rounded bg-white/80 px-1 text-[9px] font-semibold text-emerald-800 ${
+                  round ? "bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap" : "bottom-0.5 right-1"
+                }`}
+              >
                 Safe area
               </span>
             </div>
@@ -821,7 +831,8 @@ export const AdvancedCanvas = React.memo(function AdvancedCanvas({
         {/* Dimensions caption under canvas */}
         <div className="pointer-events-none absolute -bottom-6 inset-x-0 flex items-center justify-center gap-2 text-[10px] font-medium text-zinc-500">
           <span>
-            {sideName === "front" ? "Front" : "Back"} · {W} × {H} mm
+            {sideName === "label" ? (round ? `Round ${itemLabel}` : `${itemLabel[0].toUpperCase()}${itemLabel.slice(1)}`) : sideName === "front" ? "Front" : "Back"} ·{" "}
+            {round ? `Ø ${W} mm` : `${W} × ${H} mm`}
           </span>
           {includeBleed && <span className="text-amber-700">· +3 mm bleed</span>}
         </div>
