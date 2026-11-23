@@ -27,9 +27,7 @@ import { useNumberField } from "@/lib/use-number-field";
 import { PRINTER_SAFE_MARGIN_MM, isPdfSafeText } from "@/lib/pdf-utils";
 import {
   FieldHint,
-  MobileActionBar,
   PrintTipsPanel,
-  StepHeader,
   ToolStatus,
   UploadDropzone,
   primaryButtonClass,
@@ -37,6 +35,8 @@ import {
   type ToolStatusTone,
   type ToolStatusValue,
 } from "./ui/ToolUi";
+import { FullPageToolShell, type ToolStepDef } from "./ui/FullPageToolShell";
+import { PASSPORT_HOW_TO } from "./ui/tool-howto-guides";
 import { CropEditor, HeadGuideOverlay } from "./ui/CropEditor";
 import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 import {
@@ -398,6 +398,10 @@ export interface PassportSheetToolProps {
   initialPaperSize?: PassportPaperOption["id"];
   initialPhotoStandard?: PassportStandardOption["id"];
   initialPhotoCount?: number;
+  open?: boolean;
+  onClose?: () => void;
+  headerCenter?: React.ReactNode;
+  autoSampleSignal?: number;
 }
 
 
@@ -406,9 +410,14 @@ export function PassportSheetTool({
   initialPaperSize,
   initialPhotoStandard,
   initialPhotoCount,
+  open = true,
+  onClose = () => {},
+  headerCenter,
+  autoSampleSignal = 0,
 }: PassportSheetToolProps) {
   const { requirePayment } = useDownloadGate();
   const defaults = getDefaultsForPage(pageId);
+  const [activeStep, setActiveStep] = useState(0);
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [paperSizeId, setPaperSizeId] = useState<PassportPaperOption["id"]>(
@@ -422,7 +431,7 @@ export function PassportSheetTool({
 
   const [guideStyle, setGuideStyle] = useState<
     "corner" | "dashed" | "solid" | "none"
-  >("corner");
+  >("dashed");
   const [gapMm, setGapMm] = useState<number>(0);
   const [marginMm, setMarginMm] = useState<number>(1);
   const [showAdvancedSpacing, setShowAdvancedSpacing] = useState<boolean>(false);
@@ -851,8 +860,24 @@ export function PassportSheetTool({
   }, [imageSrc, renderCanvas]);
 
   useEffect(() => {
-    renderCanvas();
-  }, [renderCanvas]);
+    if (open) renderCanvas();
+  }, [open, renderCanvas]);
+
+  const prevSampleSignalRef = useRef(0);
+  useEffect(() => {
+    if (autoSampleSignal <= prevSampleSignalRef.current) return;
+    prevSampleSignalRef.current = autoSampleSignal;
+    const rafId = window.requestAnimationFrame(() => {
+      const sample = createSamplePortraitDataUrl();
+      if (sample) {
+        setStatus(null);
+        setUploadError(null);
+        setCrop(DEFAULT_CROP);
+        setImageSrc(sample);
+      }
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [autoSampleSignal]);
 
   const handlePaperChange = (id: PassportPaperOption["id"]) => {
     setPaperSizeId(id);
@@ -1246,7 +1271,7 @@ export function PassportSheetTool({
   const disabledReason = !photoFits
     ? `${photoSizeLabel} photos don't fit on ${currentPaper.shortName}. Pick bigger paper, turn the paper, or make the edge margin smaller.`
     : !hasPhoto
-      ? "Upload your photo in step 1 (or try the sample) to turn on download."
+      ? "Upload your photo in step 2 (or try the sample) to turn on download."
       : null;
   const downloadPdfLabel = isExporting
     ? "Creating PDF…"
@@ -1261,8 +1286,621 @@ export function PassportSheetTool({
         : "bg-[#f5f5f7] hover:bg-[#ebeced] text-zinc-800"
     }`;
 
+  const countrySizeContent = (
+    <div className="space-y-4">
+      <div
+        role="group"
+        aria-label="Country or document"
+        className="grid grid-cols-2 gap-2"
+      >
+        {PASSPORT_STANDARDS.map((std) => {
+          const active = photoStandardId === std.id;
+          return (
+            <button
+              key={std.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => {
+                setPhotoStandardId(std.id);
+                clearStatus();
+              }}
+              className={`min-h-[60px] px-3 py-2.5 ${choiceClass(active)}`}
+            >
+              <span className="block text-xs font-bold text-zinc-950 truncate">
+                <span aria-hidden="true">{std.flag} </span>
+                {std.regionCode}
+              </span>
+              <span className="mt-1 block text-[11px] font-semibold text-[#365314]">
+                {std.sizeLabel}
+              </span>
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          aria-pressed={photoStandardId === "custom"}
+          onClick={() => {
+            setPhotoStandardId("custom");
+            clearStatus();
+          }}
+          className={`min-h-[60px] px-3 py-2.5 ${choiceClass(photoStandardId === "custom")}`}
+        >
+          <span className="block text-xs font-bold text-zinc-950 truncate">
+            Other size
+          </span>
+          <span className="mt-1 block text-[11px] text-zinc-600 truncate">
+            Type width × height
+          </span>
+        </button>
+      </div>
+
+      {photoStandardId === "custom" && (
+        <div className="space-y-2 rounded-2xl bg-[#f5f5f7] p-3.5">
+          <div className="grid grid-cols-2 gap-2">
+            <label
+              htmlFor="passport-custom-width-mm"
+              className="text-[11px] font-bold text-zinc-700 block"
+            >
+              Width (mm)
+              <input
+                id="passport-custom-width-mm"
+                type="number"
+                {...customWidthField.inputProps}
+                aria-describedby="passport-custom-size-hint"
+                className="mt-1 w-full min-h-[40px] bg-white rounded-xl px-3 py-1.5 text-sm font-mono text-zinc-950 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-400"
+              />
+              {customWidthField.error && (
+                <span className="mt-1 block text-[11px] font-medium text-red-700">
+                  {customWidthField.error}
+                </span>
+              )}
+            </label>
+            <label
+              htmlFor="passport-custom-height-mm"
+              className="text-[11px] font-bold text-zinc-700 block"
+            >
+              Height (mm)
+              <input
+                id="passport-custom-height-mm"
+                type="number"
+                {...customHeightField.inputProps}
+                aria-describedby="passport-custom-size-hint"
+                className="mt-1 w-full min-h-[40px] bg-white rounded-xl px-3 py-1.5 text-sm font-mono text-zinc-950 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-400"
+              />
+              {customHeightField.error && (
+                <span className="mt-1 block text-[11px] font-medium text-red-700">
+                  {customHeightField.error}
+                </span>
+              )}
+            </label>
+          </div>
+          <FieldHint id="passport-custom-size-hint">
+            15–120 mm per side. 1 inch = 25.4 mm.
+          </FieldHint>
+        </div>
+      )}
+
+      <div className="rounded-2xl bg-[#f5f5f7] p-3.5 text-xs text-zinc-700 leading-relaxed">
+        <strong className="block text-zinc-950 mb-0.5">Head &amp; background guide</strong>
+        {photoGuide} — always check your country&apos;s official rules.
+      </div>
+    </div>
+  );
+
+  const photoUploadContent = (
+    <div className="space-y-4">
+      {!imageSrc ? (
+        <UploadDropzone
+          title="Upload your passport photo"
+          hint="JPG, PNG or WebP · never leaves your device"
+          onFiles={(files) => files[0] && processFile(files[0])}
+          secondaryAction={
+            <button
+              type="button"
+              onClick={handleLoadSample}
+              className={secondaryButtonClass}
+            >
+              Try sample
+            </button>
+          }
+        />
+      ) : (
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`flex flex-col gap-3 rounded-2xl border-2 border-dashed p-3 transition-colors ${
+            isDragging
+              ? "border-[#4d7c0f] bg-[#eef6e4]"
+              : "border-zinc-200 bg-[#fafafa]"
+          }`}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local data URL */}
+            <img
+              src={imageSrc}
+              alt="Your uploaded photo"
+              className="h-14 w-11 shrink-0 rounded-lg object-cover bg-white"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-zinc-950">Photo added</p>
+              <p className="text-xs text-zinc-600">
+                {photoFits
+                  ? `${photosLabel(activePhotoCount)} of ${photoSizeLabel} on ${currentPaper.shortName}`
+                  : `${photoSizeLabel} doesn't fit on ${currentPaper.shortName}`}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className={`${secondaryButtonClass} whitespace-nowrap px-3`}
+            >
+              <Upload aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
+              Change photo
+            </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              className={`${secondaryButtonClass} whitespace-nowrap px-3`}
+            >
+              <Trash2 aria-hidden="true" className="h-4 w-4 text-zinc-600" />
+              Remove
+            </button>
+          </div>
+        </div>
+      )}
+
+      {hasPhoto && imageSrc && (
+        <div
+          aria-labelledby="passport-face-title"
+          role="group"
+          className="pt-4 border-t border-[#ebeced] space-y-3"
+        >
+          <div>
+            <h4
+              id="passport-face-title"
+              className="text-sm font-bold tracking-tight text-zinc-950"
+            >
+              Position your face
+            </h4>
+            <p className="mt-1 text-xs text-zinc-600 leading-relaxed">
+              Drag to move and use the slider (or pinch) to zoom. Every photo on the sheet uses this framing.
+            </p>
+          </div>
+          <div className="max-w-[260px] mx-auto">
+            <CropEditor
+              src={imageSrc}
+              aspect={cropAspect}
+              value={crop}
+              onChange={setCrop}
+              overlay={cropOverlay}
+              label="Position your face"
+              maxWidthPx={260}
+            />
+          </div>
+          {isCustomSize ? (
+            <FieldHint>
+              Keep your face inside the oval and centred. Check your document&apos;s rules for the exact head size.
+            </FieldHint>
+          ) : (
+            <div className="rounded-xl bg-[#f5f5f7] p-3 space-y-2">
+              <ul className="space-y-1.5 text-xs text-zinc-700">
+                <li className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-0.5 w-5 shrink-0 rounded bg-[#a3e635] ring-1 ring-[#65a30d]/40"
+                  />
+                  Green line = top of head
+                </li>
+                <li className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-3 w-5 shrink-0 rounded-sm border-y border-dashed border-[#ca8a04] bg-[#facc15]/30"
+                  />
+                  Yellow band = where the chin should sit
+                </li>
+              </ul>
+              <FieldHint>
+                Zoom until the chin lands in the yellow band and the top of the head touches the green line.
+              </FieldHint>
+              <FieldHint>
+                <strong className="text-zinc-800">
+                  {currentStandard.headApprox ? "Head size (approximate):" : "Head size:"}
+                </strong>{" "}
+                {headRangeLabel} chin to crown.{" "}
+                {currentStandard.id === "35x45" &&
+                  "The band covers UK 29–34 mm and Schengen/EU 32–36 mm."}
+              </FieldHint>
+            </div>
+          )}
+          {isLowResolution && (
+            <FieldHint tone="warning">
+              This photo is low resolution for this size — it may print blurry. Use the original camera photo if you can.
+            </FieldHint>
+          )}
+        </div>
+      )}
+
+      {uploadError && <ToolStatus status={{ tone: "error", text: uploadError }} />}
+    </div>
+  );
+
+  const steps: ToolStepDef[] = [
+    {
+      id: "size",
+      number: 1,
+      label: "Country",
+      title: "Choose your country",
+      hint: "This sets the exact ID or passport photo size.",
+      badge: (
+        <span className="text-[11px] font-bold text-[#365314] bg-[#eef6e4] px-2.5 py-0.5 rounded-full whitespace-nowrap">
+          {photoSizeLabel}
+        </span>
+      ),
+      content: countrySizeContent,
+    },
+    {
+      id: "photo",
+      number: 2,
+      label: "Photo",
+      title: "Upload & frame photo",
+      hint: "Front-facing, plain light background, good light.",
+      content: photoUploadContent,
+    },
+    {
+      id: "paper",
+      number: 3,
+      label: "Paper",
+      title: "Choose paper & how many",
+      hint: "A4 or Letter for a home printer; 4 × 6 in for photo paper or a print shop.",
+      content: (
+        <div className="space-y-5">
+          <div
+            role="group"
+            aria-label="Paper size"
+            className="grid grid-cols-2 gap-2"
+          >
+            {PASSPORT_PAPER_SIZES.map((paper) => {
+              const active = paperSizeId === paper.id;
+              return (
+                <button
+                  key={paper.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => handlePaperChange(paper.id)}
+                  className={`min-h-[56px] px-3 py-2 ${choiceClass(active)}`}
+                >
+                  <span className="block font-bold text-xs text-zinc-950 truncate">
+                    {paper.shortName}
+                  </span>
+                  <span className="mt-1 block text-[11px] text-zinc-600 truncate">
+                    {paper.use}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              aria-label={`Turn the paper. Now ${orientation}; switch to ${orientation === "landscape" ? "portrait" : "landscape"}`}
+              onClick={() => {
+                setOrientation(
+                  orientation === "landscape" ? "portrait" : "landscape"
+                );
+                clearStatus();
+              }}
+              className={`min-h-[56px] px-3 py-2 ${choiceClass(false)}`}
+            >
+              <span className="flex items-center gap-1.5 font-bold text-xs text-zinc-950">
+                <RefreshCw aria-hidden="true" className="h-3.5 w-3.5 text-[#3f6212]" />
+                Turn paper
+              </span>
+              <span className="mt-1 block text-[11px] text-zinc-600 capitalize">
+                Now: {orientation}
+              </span>
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span
+                id="passport-count-label"
+                className="text-xs font-bold text-zinc-800"
+              >
+                How many photos
+              </span>
+              <span className="text-[11px] text-zinc-600">
+                {photoFits
+                  ? `Up to ${maxCapacity} fit on ${currentPaper.shortName}`
+                  : "None fit"}
+              </span>
+            </div>
+            {photoFits && (
+              <div
+                role="group"
+                aria-labelledby="passport-count-label"
+                className="flex items-center gap-1.5"
+              >
+                {copyPresets.map((count) => {
+                  const isSelected = activePhotoCount === count;
+                  const isMax = count === maxCapacity;
+                  return (
+                    <button
+                      key={count}
+                      type="button"
+                      aria-pressed={isSelected}
+                      aria-label={
+                        isMax
+                          ? `${count} photos (fill the sheet)`
+                          : `${count} photos`
+                      }
+                      onClick={() => {
+                        setPhotoCountChoice(isMax ? "max" : count);
+                        clearStatus();
+                      }}
+                      className={`min-h-[42px] flex-1 py-2 px-1 rounded-xl text-sm font-bold transition cursor-pointer ${
+                        isSelected
+                          ? "bg-zinc-950 text-white"
+                          : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced]"
+                      }`}
+                    >
+                      {isMax ? `All ${count}` : count}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span
+                id="passport-marks-label"
+                className="text-xs font-bold text-zinc-800"
+              >
+                Cutting marks
+              </span>
+              <button
+                type="button"
+                aria-expanded={showAdvancedSpacing}
+                aria-controls="passport-spacing-panel"
+                onClick={() => setShowAdvancedSpacing(!showAdvancedSpacing)}
+                className="min-h-[32px] inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-[#3f6212] hover:bg-[#f5f5f7] cursor-pointer"
+              >
+                <SlidersHorizontal aria-hidden="true" className="h-3.5 w-3.5" />
+                Spacing
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`h-3.5 w-3.5 transition ${showAdvancedSpacing ? "rotate-180" : ""}`}
+                />
+              </button>
+            </div>
+
+            <div
+              role="group"
+              aria-labelledby="passport-marks-label"
+              className="grid grid-cols-2 gap-1.5"
+            >
+              {(
+                [
+                  { id: "dashed", label: "Dashed box" },
+                  { id: "corner", label: "Corners" },
+                  { id: "solid", label: "Solid box" },
+                  { id: "none", label: "None" },
+                ] as const
+              ).map((style) => {
+                const isSelected = guideStyle === style.id;
+                return (
+                  <button
+                    key={style.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      setGuideStyle(style.id);
+                      clearStatus();
+                    }}
+                    className={`min-h-[40px] py-2 px-2 rounded-xl text-xs transition cursor-pointer ${
+                      isSelected
+                        ? "bg-[#eef6e4] text-[#365314] font-bold ring-2 ring-[#4d7c0f]"
+                        : "bg-[#f5f5f7] text-zinc-700 font-semibold hover:bg-[#ebeced]"
+                    }`}
+                  >
+                    {style.label}
+                  </button>
+                );
+              })}
+            </div>
+            <FieldHint>Thin lines that show you where to cut.</FieldHint>
+
+            {showAdvancedSpacing && (
+              <div id="passport-spacing-panel" className="space-y-2 pt-1">
+                <div className="grid grid-cols-1 gap-2">
+                  <label
+                    htmlFor="passport-gap-mm"
+                    className="block rounded-xl bg-[#f5f5f7] p-3"
+                  >
+                    <span className="flex justify-between text-xs font-semibold text-zinc-800 mb-1">
+                      <span>Space between photos</span>
+                      <span className="font-mono">{gapMm} mm</span>
+                    </span>
+                    <input
+                      id="passport-gap-mm"
+                      type="range"
+                      min={0}
+                      max={8}
+                      step={0.5}
+                      value={gapMm}
+                      onChange={(e) => {
+                        setGapMm(parseFloat(e.target.value));
+                        clearStatus();
+                      }}
+                      className="w-full accent-[#4d7c0f] cursor-pointer"
+                    />
+                  </label>
+                  <label
+                    htmlFor="passport-margin-mm"
+                    className="block rounded-xl bg-[#f5f5f7] p-3"
+                  >
+                    <span className="flex justify-between text-xs font-semibold text-zinc-800 mb-1">
+                      <span>Edge margin</span>
+                      <span className="font-mono">{marginMm} mm</span>
+                    </span>
+                    <input
+                      id="passport-margin-mm"
+                      type="range"
+                      min={1}
+                      max={12}
+                      step={0.5}
+                      value={marginMm}
+                      onChange={(e) => {
+                        setMarginMm(parseFloat(e.target.value));
+                        clearStatus();
+                      }}
+                      className="w-full accent-[#4d7c0f] cursor-pointer"
+                    />
+                  </label>
+                </div>
+                <FieldHint>
+                  Edge margin is the blank border around the sheet. Most home printers need at least 3–4 mm.
+                </FieldHint>
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "export",
+      number: 4,
+      label: "Export",
+      title: "Download & print",
+      hint: "Prints at exact size when you print at 100%.",
+      content: (
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => void handleDownloadPdf()}
+            disabled={isExporting || !canExport}
+            aria-describedby={disabledReason ? exportHintId : undefined}
+            className={`${primaryButtonClass} w-full`}
+          >
+            <Download aria-hidden="true" className="h-4 w-4 shrink-0" />
+            {downloadPdfLabel}
+          </button>
+
+          <DownloadPassBadge />
+
+          {disabledReason && (
+            <FieldHint id={exportHintId} tone={photoFits ? "muted" : "error"}>
+              {disabledReason}
+            </FieldHint>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={!canExport}
+              aria-describedby={disabledReason ? exportHintId : undefined}
+              className={secondaryButtonClass}
+            >
+              <Printer aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
+              Print
+            </button>
+            <button
+              type="button"
+              onClick={handleCopy}
+              disabled={!canExport}
+              aria-describedby={disabledReason ? exportHintId : undefined}
+              className={secondaryButtonClass}
+            >
+              {copied ? (
+                <>
+                  <CheckCheck aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
+                  <span className="text-[#365314]">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy aria-hidden="true" className="h-4 w-4 text-zinc-600" />
+                  Copy image
+                </>
+              )}
+            </button>
+          </div>
+
+          <details className="group rounded-xl border border-[#ebeced] px-3 py-2">
+            <summary className="flex min-h-[32px] cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold text-zinc-700 [&::-webkit-details-marker]:hidden">
+              Other formats (JPEG, PNG)
+              <ChevronDown
+                aria-hidden="true"
+                className="h-4 w-4 text-zinc-500 transition group-open:rotate-180"
+              />
+            </summary>
+            <div className="mt-2 grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={() => handleDownloadRaster("jpeg")}
+                disabled={isExporting || !canExport}
+                className={`${secondaryButtonClass} justify-start text-left`}
+              >
+                <Download aria-hidden="true" className="h-4 w-4 shrink-0" />
+                JPEG (for photo kiosks / print shops)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownloadRaster("png")}
+                disabled={isExporting || !canExport}
+                className={`${secondaryButtonClass} justify-start text-left`}
+              >
+                <Download aria-hidden="true" className="h-4 w-4 shrink-0" />
+                PNG
+              </button>
+            </div>
+          </details>
+
+          <ToolStatus status={status} />
+
+          <PrintTipsPanel
+            paperLabel={currentPaper.shortName}
+            open={status?.tone === "success"}
+            extraSteps={[
+              <>
+                Use matte or glossy photo paper and &lsquo;Best&rsquo; /
+                &lsquo;Photo&rsquo; quality.
+              </>,
+            ]}
+          />
+        </div>
+      ),
+    },
+  ];
+
+  const previewNode = (
+    <div className="w-full flex flex-col items-center gap-3">
+      <button
+        type="button"
+        onClick={openZoom}
+        aria-label="Enlarge the preview"
+        className="w-full flex items-center justify-center p-2 sm:p-4 overflow-hidden rounded-2xl cursor-zoom-in"
+      >
+        <canvas
+          ref={canvasRef}
+          role="img"
+          aria-label={
+            photoFits
+              ? `Preview: ${photosLabel(activePhotoCount, "passport photo")} (${photoWidthMm} by ${photoHeightMm} mm) on ${currentPaper.name}`
+              : `${photoWidthMm} by ${photoHeightMm} mm photos don't fit on ${currentPaper.name}`
+          }
+          className="max-w-full max-h-[62vh] lg:max-h-[68vh] w-auto h-auto rounded-md bg-white shadow-md ring-1 ring-zinc-200"
+        />
+      </button>
+    </div>
+  );
+
   return (
-    <div className="rounded-3xl bg-[#f5f5f7] p-2 sm:p-5 lg:p-6 space-y-2 sm:space-y-5">
+    <>
       <input
         ref={fileInputRef}
         type="file"
@@ -1272,684 +1910,69 @@ export function PassportSheetTool({
         className="hidden"
       />
 
-      {/* STEP 1: UPLOAD */}
-      <section
-        aria-labelledby="passport-step-1"
-        className="rounded-2xl bg-white p-4 sm:p-5"
-      >
-        <StepHeader
-          id="passport-step-1"
-          step={1}
-          title="Upload your photo"
-          hint="Front-facing, plain light background, good light."
-        />
-        {!imageSrc ? (
-          <UploadDropzone
-            title="Upload your passport photo"
-            hint="JPG, PNG or WebP · never leaves your device"
-            onFiles={(files) => files[0] && processFile(files[0])}
-            secondaryAction={
-              <button
-                type="button"
-                onClick={handleLoadSample}
-                className={secondaryButtonClass}
-              >
-                Try sample
-              </button>
-            }
-          />
-        ) : (
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border-2 border-dashed px-3 py-3 transition-colors ${
-              isDragging
-                ? "border-[#4d7c0f] bg-[#eef6e4]"
-                : "border-zinc-200 bg-[#fafafa]"
-            }`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local data URL */}
-              <img
-                src={imageSrc}
-                alt="Your uploaded photo"
-                className="h-14 w-11 shrink-0 rounded-lg object-cover bg-white"
-              />
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-zinc-950">Photo added</p>
-                <p className="text-xs text-zinc-600">
-                  {photoFits
-                    ? `${photosLabel(activePhotoCount)} of ${photoSizeLabel} on ${currentPaper.shortName}`
-                    : `${photoSizeLabel} doesn't fit on ${currentPaper.shortName}`}
-                  <span className="hidden sm:inline"> · drop a new photo here to replace it</span>
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className={`${secondaryButtonClass} whitespace-nowrap px-3`}
-              >
-                <Upload aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
-                Change photo
-              </button>
-              <button
-                type="button"
-                onClick={handleReset}
-                className={`${secondaryButtonClass} whitespace-nowrap px-3`}
-              >
-                <Trash2 aria-hidden="true" className="h-4 w-4 text-zinc-600" />
-                Remove
-              </button>
-            </div>
-          </div>
-        )}
-        {hasPhoto && imageSrc && (
-          <div
-            aria-labelledby="passport-face-title"
-            role="group"
-            className="mt-4 pt-4 border-t border-[#ebeced] flex flex-col-reverse sm:flex-row gap-4 sm:gap-6"
-          >
-            <div className="w-full max-w-[280px] mx-auto sm:mx-0 shrink-0">
-              <CropEditor
-                src={imageSrc}
-                aspect={cropAspect}
-                value={crop}
-                onChange={setCrop}
-                overlay={cropOverlay}
-                label="Position your face"
-                maxWidthPx={280}
-              />
-            </div>
-            <div className="min-w-0 flex-1 space-y-2">
-              <h3
-                id="passport-face-title"
-                className="text-sm font-bold tracking-tight text-zinc-950"
-              >
-                Position your face
-              </h3>
-              <p className="text-xs text-zinc-600 leading-relaxed">
-                Drag the photo to move it and use the slider (or pinch) to zoom.
-                Every photo on the sheet uses this framing.
-              </p>
-              {isCustomSize ? (
-                <FieldHint>
-                  Keep your face inside the oval and centred. Check your
-                  document&apos;s rules for the exact head size.
-                </FieldHint>
-              ) : (
-                <>
-                  <ul className="space-y-1.5 text-xs text-zinc-700">
-                    <li className="flex items-center gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="inline-block h-0.5 w-5 shrink-0 rounded bg-[#a3e635] ring-1 ring-[#65a30d]/40"
-                      />
-                      Green line = top of head
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="inline-block h-3 w-5 shrink-0 rounded-sm border-y border-dashed border-[#ca8a04] bg-[#facc15]/30"
-                      />
-                      Yellow band = where the chin should sit
-                    </li>
-                  </ul>
-                  <FieldHint>
-                    Zoom until the chin lands in the yellow band and the top of
-                    the head touches the green line.
-                  </FieldHint>
-                  <FieldHint>
-                    <strong className="text-zinc-800">
-                      {currentStandard.headApprox
-                        ? "Head size (approximate):"
-                        : "Head size:"}
-                    </strong>{" "}
-                    {headRangeLabel} chin to crown.{" "}
-                    {currentStandard.id === "35x45" &&
-                      "The band covers UK 29–34 mm and Schengen/EU 32–36 mm."}
-                  </FieldHint>
-                </>
-              )}
-              {isLowResolution && (
-                <FieldHint tone="warning">
-                  This photo is low resolution for this size — it may print
-                  blurry. Use the original camera photo if you can.
-                </FieldHint>
-              )}
-            </div>
-          </div>
-        )}
-        {uploadError && (
-          <div className="mt-3">
-            <ToolStatus status={{ tone: "error", text: uploadError }} />
-          </div>
-        )}
-      </section>
-
-      {/* MAIN: CONTROLS + PREVIEW */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-5 items-start">
-        {/* LEFT COLUMN: steps 2–4 */}
-        <div className="order-2 lg:order-1 lg:col-span-6 rounded-2xl bg-white p-4 sm:p-6 flex flex-col gap-7">
-          {/* STEP 2: COUNTRY */}
-          <section aria-labelledby="passport-step-2">
-            <StepHeader
-              id="passport-step-2"
-              step={2}
-              title="Choose your country"
-              hint="This sets the photo size."
-              aside={
-                <span className="text-[11px] font-bold text-[#365314] bg-[#eef6e4] px-2 py-0.5 rounded-full whitespace-nowrap">
-                  {photoSizeLabel}
-                </span>
-              }
-            />
-
-            <div
-              role="group"
-              aria-label="Country or document"
-              className="grid grid-cols-2 sm:grid-cols-3 gap-2"
-            >
-              {PASSPORT_STANDARDS.map((std) => {
-                const active = photoStandardId === std.id;
-                return (
-                  <button
-                    key={std.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => {
-                      setPhotoStandardId(std.id);
-                      clearStatus();
-                    }}
-                    className={`min-h-[60px] px-3 py-2.5 ${choiceClass(active)}`}
-                  >
-                    <span className="block text-xs font-bold text-zinc-950 truncate">
-                      <span aria-hidden="true">{std.flag} </span>
-                      {std.regionCode}
-                    </span>
-                    <span className="mt-1 block text-[11px] font-semibold text-[#365314]">
-                      {std.sizeLabel}
-                    </span>
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                aria-pressed={photoStandardId === "custom"}
-                onClick={() => {
-                  setPhotoStandardId("custom");
-                  clearStatus();
-                }}
-                className={`min-h-[60px] px-3 py-2.5 ${choiceClass(photoStandardId === "custom")}`}
-              >
-                <span className="block text-xs font-bold text-zinc-950 truncate">
-                  Other size
-                </span>
-                <span className="mt-1 block text-[11px] text-zinc-600 truncate">
-                  Type width × height
-                </span>
-              </button>
-            </div>
-
-            {photoStandardId === "custom" && (
-              <div className="space-y-1.5 pt-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <label
-                    htmlFor="passport-custom-width-mm"
-                    className="text-[11px] font-bold text-zinc-700 block"
-                  >
-                    Width (mm)
-                    <input
-                      id="passport-custom-width-mm"
-                      type="number"
-                      {...customWidthField.inputProps}
-                      aria-describedby="passport-custom-size-hint"
-                      className="mt-1 w-full min-h-[40px] bg-[#f5f5f7] rounded-xl px-3 py-1.5 text-sm font-mono text-zinc-950 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-400"
-                    />
-                    {customWidthField.error && (
-                      <span className="mt-1 block text-[11px] font-medium text-red-700">
-                        {customWidthField.error}
-                      </span>
-                    )}
-                  </label>
-                  <label
-                    htmlFor="passport-custom-height-mm"
-                    className="text-[11px] font-bold text-zinc-700 block"
-                  >
-                    Height (mm)
-                    <input
-                      id="passport-custom-height-mm"
-                      type="number"
-                      {...customHeightField.inputProps}
-                      aria-describedby="passport-custom-size-hint"
-                      className="mt-1 w-full min-h-[40px] bg-[#f5f5f7] rounded-xl px-3 py-1.5 text-sm font-mono text-zinc-950 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-400"
-                    />
-                    {customHeightField.error && (
-                      <span className="mt-1 block text-[11px] font-medium text-red-700">
-                        {customHeightField.error}
-                      </span>
-                    )}
-                  </label>
-                </div>
-                <FieldHint id="passport-custom-size-hint">
-                  15–120 mm per side. 1 inch = 25.4 mm.
-                </FieldHint>
-              </div>
-            )}
-          </section>
-
-          {/* STEP 3: PAPER & COUNT */}
-          <section
-            aria-labelledby="passport-step-3"
-            className="pt-6 border-t border-[#ebeced]"
-          >
-            <StepHeader
-              id="passport-step-3"
-              step={3}
-              title="Choose paper & how many"
-              hint="A4 or Letter for a home printer; 4 × 6 in for photo paper or a print shop."
-            />
-
-            <div
-              role="group"
-              aria-label="Paper size"
-              className="grid grid-cols-2 sm:grid-cols-3 gap-2"
-            >
-              {PASSPORT_PAPER_SIZES.map((paper) => {
-                const active = paperSizeId === paper.id;
-                return (
-                  <button
-                    key={paper.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => handlePaperChange(paper.id)}
-                    className={`min-h-[56px] px-3 py-2 ${choiceClass(active)}`}
-                  >
-                    <span className="block font-bold text-xs text-zinc-950 truncate">
-                      {paper.shortName}
-                    </span>
-                    <span className="mt-1 block text-[11px] text-zinc-600 truncate">
-                      {paper.use}
-                    </span>
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                aria-label={`Turn the paper. Now ${orientation}; switch to ${orientation === "landscape" ? "portrait" : "landscape"}`}
-                onClick={() => {
-                  setOrientation(
-                    orientation === "landscape" ? "portrait" : "landscape"
-                  );
-                  clearStatus();
-                }}
-                className={`min-h-[56px] px-3 py-2 ${choiceClass(false)}`}
-              >
-                <span className="flex items-center gap-1.5 font-bold text-xs text-zinc-950">
-                  <RefreshCw aria-hidden="true" className="h-3.5 w-3.5 text-[#3f6212]" />
-                  Turn paper
-                </span>
-                <span className="mt-1 block text-[11px] text-zinc-600 capitalize">
-                  Now: {orientation}
-                </span>
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span
-                  id="passport-count-label"
-                  className="text-xs font-bold text-zinc-800"
-                >
-                  How many photos
-                </span>
-                <span className="text-[11px] text-zinc-600">
-                  {photoFits
-                    ? `Up to ${maxCapacity} fit on ${currentPaper.shortName}`
-                    : "None fit"}
-                </span>
-              </div>
-              {photoFits && (
-                <div
-                  role="group"
-                  aria-labelledby="passport-count-label"
-                  className="flex items-center gap-1.5"
-                >
-                  {copyPresets.map((count) => {
-                    const isSelected = activePhotoCount === count;
-                    const isMax = count === maxCapacity;
-                    return (
-                      <button
-                        key={count}
-                        type="button"
-                        aria-pressed={isSelected}
-                        aria-label={
-                          isMax
-                            ? `${count} photos (fill the sheet)`
-                            : `${count} photos`
-                        }
-                        onClick={() => {
-                          setPhotoCountChoice(isMax ? "max" : count);
-                          clearStatus();
-                        }}
-                        className={`min-h-[42px] flex-1 py-2 px-1 rounded-xl text-sm font-bold transition cursor-pointer ${
-                          isSelected
-                            ? "bg-zinc-950 text-white"
-                            : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced]"
-                        }`}
-                      >
-                        {isMax ? `All ${count}` : count}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-5 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span
-                  id="passport-marks-label"
-                  className="text-xs font-bold text-zinc-800"
-                >
-                  Cutting marks
-                </span>
-                <button
-                  type="button"
-                  aria-expanded={showAdvancedSpacing}
-                  aria-controls="passport-spacing-panel"
-                  onClick={() => setShowAdvancedSpacing(!showAdvancedSpacing)}
-                  className="min-h-[32px] inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-[#3f6212] hover:bg-[#f5f5f7] cursor-pointer"
-                >
-                  <SlidersHorizontal aria-hidden="true" className="h-3.5 w-3.5" />
-                  Spacing
-                  <ChevronDown
-                    aria-hidden="true"
-                    className={`h-3.5 w-3.5 transition ${showAdvancedSpacing ? "rotate-180" : ""}`}
-                  />
-                </button>
-              </div>
-
-              <div
-                role="group"
-                aria-labelledby="passport-marks-label"
-                className="grid grid-cols-2 sm:grid-cols-4 gap-1.5"
-              >
-                {(
-                  [
-                    { id: "corner", label: "Corners" },
-                    { id: "dashed", label: "Dashed box" },
-                    { id: "solid", label: "Solid box" },
-                    { id: "none", label: "None" },
-                  ] as const
-                ).map((style) => {
-                  const isSelected = guideStyle === style.id;
-                  return (
-                    <button
-                      key={style.id}
-                      type="button"
-                      aria-pressed={isSelected}
-                      onClick={() => {
-                        setGuideStyle(style.id);
-                        clearStatus();
-                      }}
-                      className={`min-h-[40px] py-2 px-1 rounded-xl text-xs transition cursor-pointer ${
-                        isSelected
-                          ? "bg-[#eef6e4] text-[#365314] font-bold ring-2 ring-[#4d7c0f]"
-                          : "bg-[#f5f5f7] text-zinc-700 font-semibold hover:bg-[#ebeced]"
-                      }`}
-                    >
-                      {style.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <FieldHint>Thin lines that show you where to cut.</FieldHint>
-
-              {showAdvancedSpacing && (
-                <div id="passport-spacing-panel" className="space-y-2 pt-1">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label
-                      htmlFor="passport-gap-mm"
-                      className="block rounded-xl bg-[#f5f5f7] p-3"
-                    >
-                      <span className="flex justify-between text-xs font-semibold text-zinc-800 mb-1">
-                        <span>Space between photos</span>
-                        <span className="font-mono">{gapMm} mm</span>
-                      </span>
-                      <input
-                        id="passport-gap-mm"
-                        type="range"
-                        min={0}
-                        max={8}
-                        step={0.5}
-                        value={gapMm}
-                        onChange={(e) => {
-                          setGapMm(parseFloat(e.target.value));
-                          clearStatus();
-                        }}
-                        className="w-full accent-[#4d7c0f] cursor-pointer"
-                      />
-                    </label>
-                    <label
-                      htmlFor="passport-margin-mm"
-                      className="block rounded-xl bg-[#f5f5f7] p-3"
-                    >
-                      <span className="flex justify-between text-xs font-semibold text-zinc-800 mb-1">
-                        <span>Edge margin</span>
-                        <span className="font-mono">{marginMm} mm</span>
-                      </span>
-                      <input
-                        id="passport-margin-mm"
-                        type="range"
-                        min={1}
-                        max={12}
-                        step={0.5}
-                        value={marginMm}
-                        onChange={(e) => {
-                          setMarginMm(parseFloat(e.target.value));
-                          clearStatus();
-                        }}
-                        className="w-full accent-[#4d7c0f] cursor-pointer"
-                      />
-                    </label>
-                  </div>
-                  <FieldHint>
-                    Edge margin is the blank border around the sheet. Most home
-                    printers need at least 3–4 mm.
-                  </FieldHint>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* STEP 4: DOWNLOAD & PRINT */}
-          <section
-            aria-labelledby="passport-step-4"
-            className="pt-6 border-t border-[#ebeced] space-y-3"
-          >
-            <StepHeader
-              id="passport-step-4"
-              step={4}
-              title="Download & print"
-              hint="Prints at exact size when you print at 100%."
-            />
-
-            <button
-              type="button"
-              onClick={() => void handleDownloadPdf()}
-              disabled={isExporting || !canExport}
-              aria-describedby={disabledReason ? exportHintId : undefined}
-              className={`${primaryButtonClass} w-full`}
-            >
-              <Download aria-hidden="true" className="h-4 w-4 shrink-0" />
-              {downloadPdfLabel}
-            </button>
-
-            <DownloadPassBadge />
-
-            {disabledReason && (
-              <FieldHint id={exportHintId} tone={photoFits ? "muted" : "error"}>
-                {disabledReason}
-              </FieldHint>
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={handlePrint}
-                disabled={!canExport}
-                aria-describedby={disabledReason ? exportHintId : undefined}
-                className={secondaryButtonClass}
-              >
-                <Printer aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
-                Print
-              </button>
-              <button
-                type="button"
-                onClick={handleCopy}
-                disabled={!canExport}
-                aria-describedby={disabledReason ? exportHintId : undefined}
-                className={secondaryButtonClass}
-              >
-                {copied ? (
-                  <>
-                    <CheckCheck aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
-                    <span className="text-[#365314]">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy aria-hidden="true" className="h-4 w-4 text-zinc-600" />
-                    Copy image
-                  </>
-                )}
-              </button>
-            </div>
-
-            <details className="group rounded-xl border border-[#ebeced] px-3 py-2">
-              <summary className="flex min-h-[32px] cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold text-zinc-700 [&::-webkit-details-marker]:hidden">
-                Other formats (JPEG, PNG)
-                <ChevronDown
-                  aria-hidden="true"
-                  className="h-4 w-4 text-zinc-500 transition group-open:rotate-180"
-                />
-              </summary>
-              <div className="mt-2 grid grid-cols-1 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleDownloadRaster("jpeg")}
-                  disabled={isExporting || !canExport}
-                  className={`${secondaryButtonClass} justify-start text-left`}
-                >
-                  <Download aria-hidden="true" className="h-4 w-4 shrink-0" />
-                  JPEG (for photo kiosks / print shops)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDownloadRaster("png")}
-                  disabled={isExporting || !canExport}
-                  className={`${secondaryButtonClass} justify-start text-left`}
-                >
-                  <Download aria-hidden="true" className="h-4 w-4 shrink-0" />
-                  PNG
-                </button>
-              </div>
-            </details>
-
-            <ToolStatus status={status} />
-
-            <PrintTipsPanel
-              paperLabel={currentPaper.shortName}
-              open={status?.tone === "success"}
-              extraSteps={[
-                <>
-                  Use matte or glossy photo paper and &lsquo;Best&rsquo; /
-                  &lsquo;Photo&rsquo; quality.
-                </>,
-              ]}
-            />
-          </section>
-        </div>
-
-        {/* RIGHT COLUMN: PREVIEW */}
-        <section
-          aria-labelledby="passport-preview-title"
-          className="order-1 lg:order-2 lg:col-span-6 lg:sticky lg:top-24 rounded-2xl bg-white p-3 sm:p-6 flex flex-col"
-        >
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="min-w-0">
-              <h3
-                id="passport-preview-title"
-                className="text-sm font-bold tracking-tight text-zinc-950"
-              >
-                Preview of your sheet
-              </h3>
-              <p className="text-xs text-zinc-600 truncate">
-                {photoFits
-                  ? `${photosLabel(activePhotoCount)} · ${photoSizeLabel} · ${currentPaper.shortName}`
-                  : `Doesn't fit on ${currentPaper.shortName}`}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={openZoom}
-              className={`${secondaryButtonClass} shrink-0 min-h-[40px] px-3`}
-            >
-              <Maximize2 aria-hidden="true" className="h-4 w-4" />
-              Zoom
-            </button>
-          </div>
-
+      <FullPageToolShell
+        open={open}
+        onClose={onClose}
+        toolTitle="Passport Photo Sheet"
+        toolSummary={summaryText}
+        steps={steps}
+        activeStep={activeStep}
+        onStepChange={setActiveStep}
+        headerCenter={headerCenter}
+        previewToolbar={
           <button
             type="button"
             onClick={openZoom}
-            aria-label="Enlarge the preview"
-            className="w-full flex items-center justify-center p-2 sm:p-6 min-h-[220px] sm:min-h-[320px] lg:min-h-[420px] overflow-hidden bg-[#f5f5f7] rounded-xl cursor-zoom-in"
+            className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-[#f5f5f7] px-3 text-xs font-semibold text-zinc-800 hover:bg-[#ebeced] transition cursor-pointer"
           >
-            <canvas
-              ref={canvasRef}
-              role="img"
-              aria-label={
-                photoFits
-                  ? `Preview: ${photosLabel(activePhotoCount, "passport photo")} (${photoWidthMm} by ${photoHeightMm} mm) on ${currentPaper.name}`
-                  : `${photoWidthMm} by ${photoHeightMm} mm photos don't fit on ${currentPaper.name}`
-              }
-              className="max-w-full max-h-[62vh] sm:max-h-[420px] lg:max-h-[400px] xl:max-h-[430px] w-auto h-auto rounded-md bg-white shadow-sm"
-            />
+            <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+            Zoom
           </button>
-
-          <div className="mt-3 space-y-1">
+        }
+        preview={previewNode}
+        previewFooter={
+          <div className="space-y-1 text-center">
             <FieldHint>
-              <strong className="text-zinc-800">Photo guide:</strong>{" "}
-              {photoGuide} — check your country&apos;s official rules.
+              <strong className="text-zinc-800">Photo guide:</strong> {photoGuide} — check your country&apos;s official rules.
             </FieldHint>
             <FieldHint>
-              Prints at exact size ({paperWidthMm} × {paperHeightMm} mm sheet)
-              when printed at 100%.
+              Prints at exact size ({paperWidthMm} × {paperHeightMm} mm sheet) when printed at 100%.
             </FieldHint>
           </div>
-        </section>
-      </div>
-
-      <MobileActionBar summary={summaryText}>
-        <button
-          type="button"
-          onClick={() => void handleDownloadPdf()}
-          disabled={isExporting || !canExport}
-          aria-describedby={disabledReason ? exportHintId : undefined}
-          className={`${primaryButtonClass} min-h-[44px] px-4 py-2`}
-        >
-          <Download aria-hidden="true" className="h-4 w-4 shrink-0" />
-          {isExporting ? "Creating…" : "Download PDF"}
-        </button>
-      </MobileActionBar>
+        }
+        primaryAction={{
+          label: downloadPdfLabel,
+          mobileLabel: isExporting ? "Creating…" : "Download PDF",
+          onClick: () => {
+            if (!canExport) {
+              setActiveStep(!hasPhoto ? 1 : 2);
+              return;
+            }
+            void handleDownloadPdf();
+          },
+          disabled: isExporting || !canExport,
+          loading: isExporting,
+          describedBy: disabledReason ? exportHintId : undefined,
+        }}
+        howTo={PASSPORT_HOW_TO}
+        mobileSummary={summaryText}
+        disableEscapeClose={Boolean(zoomUrl)}
+      />
 
       <dialog
         ref={zoomDialogRef}
         aria-labelledby="passport-zoom-title"
+        onCancel={(e) => {
+          e.preventDefault();
+          closeZoom();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            closeZoom();
+          }
+        }}
         onClose={() => {
           if (zoomUrl) URL.revokeObjectURL(zoomUrl);
           setZoomUrl(null);
@@ -1990,6 +2013,6 @@ export function PassportSheetTool({
           )}
         </div>
       </dialog>
-    </div>
+    </>
   );
 }

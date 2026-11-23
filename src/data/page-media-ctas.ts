@@ -912,12 +912,15 @@ export function getPageCtas(
     ? PAGES_META[meta.parentHub]
     : PAGES_META.HOME;
 
+  const launchUrl = (target: PageMeta) =>
+    target.type === "Tool" ? `${target.url}#open-studio` : target.url;
+
   if (isHome) {
     return {
       heroPrimary: {
         label: "Open Interactive Print Sheet Studio",
         href: "#interactive-studio-workspace",
-        sublabel: "Free · Instant Browser PDF",
+        sublabel: "Free · Full-Page Studio · Instant PDF",
       },
       heroSecondary: {
         label: "Browse All 4 Print Categories",
@@ -928,12 +931,12 @@ export function getPageCtas(
         heading: "Create Exact-Size Photo, Card & Label Sheets in Seconds",
         body: "Skip complex word-processor tables. Pick A4, A3, US Letter, or 4×6 inch paper, drop in your images or text, and export a 100%-scale print-ready PDF.",
         primary: {
-          label: "Launch Quick Print Studio Above",
+          label: "Open Full-Page Print Studio",
           href: "#interactive-studio-workspace",
         },
         secondary: {
           label: "Try Photo Sheet Maker",
-          href: "/photo-sheets/photo-sheet-maker/",
+          href: "/photo-sheets/photo-sheet-maker/#open-studio",
         },
         trustPoints: [
           "100% Free & No Sign-Up",
@@ -944,9 +947,9 @@ export function getPageCtas(
       sidebarCard: {
         eyebrow: "QUICK STUDIO LAUNCH",
         heading: "Build Your Print Sheet",
-        body: "Use the interactive 5-in-1 studio on this page or jump straight to a dedicated sheet maker.",
+        body: "Launch the full-page 5-in-1 studio right here or jump straight to a dedicated sheet maker.",
         button: {
-          label: "Jump to Interactive Studio",
+          label: "Open Full-Page Studio",
           href: "#interactive-studio-workspace",
         },
         secondaryLink: {
@@ -957,14 +960,14 @@ export function getPageCtas(
       bottomCard: {
         eyebrow: "READY TO PRINT AT 100% SCALE?",
         heading: "Start Your Free Print Sheet Layout Now",
-        body: "Choose a specialized generator below or scroll up to export your print-ready PDF with optional hairline crop marks.",
+        body: "Choose a specialized generator below or launch the full-page studio to export your print-ready PDF with optional hairline crop marks.",
         primary: {
-          label: "Use Interactive Studio Now",
+          label: "Open Interactive Studio Now",
           href: "#interactive-studio-workspace",
         },
         secondary: {
           label: "Open 10-Up Business Card Maker",
-          href: "/business-cards/business-card-sheet-maker/",
+          href: "/business-cards/business-card-sheet-maker/#open-studio",
         },
       },
     };
@@ -973,9 +976,9 @@ export function getPageCtas(
   if (isTool) {
     return {
       heroPrimary: {
-        label: `Start Your ${meta.primaryKeyword} Layout`,
+        label: `Open ${meta.primaryKeyword} Studio`,
         href: "#interactive-studio-workspace",
-        sublabel: "Free Print-Ready PDF",
+        sublabel: "Full-Page Tool · Free Print-Ready PDF",
       },
       heroSecondary: {
         label: `Explore ${parentHubMeta.primaryKeyword}`,
@@ -984,14 +987,14 @@ export function getPageCtas(
       midBanner: {
         eyebrow: "FREE INTERACTIVE SHEET GENERATOR",
         heading: `Build & Download Your ${meta.h1.split(":")[0]} PDF`,
-        body: `Configure paper size, margins, gutters, and crop marks in real time using the ${meta.primaryKeyword} workspace above—no account or watermark.`,
+        body: `Configure paper size, margins, gutters, and crop marks in real time using the full-page ${meta.primaryKeyword} studio—no account or watermark.`,
         primary: {
-          label: "Scroll Up to Interactive Tool",
+          label: "Open Full-Page Interactive Tool",
           href: "#interactive-studio-workspace",
         },
         secondary: {
           label: `Try ${secondaryTargetMeta.primaryKeyword}`,
-          href: secondaryTargetMeta.url,
+          href: launchUrl(secondaryTargetMeta),
         },
         trustPoints: [
           "Exact 100% Scale PDF",
@@ -1002,9 +1005,9 @@ export function getPageCtas(
       sidebarCard: {
         eyebrow: "LIVE TOOL ON THIS PAGE",
         heading: `Use ${meta.primaryKeyword}`,
-        body: "Configure your grid in the interactive studio at the top of this page and download a print-ready PDF.",
+        body: "Launch the full-page interactive studio on this page and download a print-ready PDF.",
         button: {
-          label: "Jump to Tool Workspace",
+          label: "Open Full-Page Studio",
           href: "#interactive-studio-workspace",
         },
         secondaryLink: {
@@ -1015,9 +1018,9 @@ export function getPageCtas(
       bottomCard: {
         eyebrow: "PRINT-READY IN UNDER A MINUTE",
         heading: `Ready to Print Your ${meta.h1.split(":")[0]}?`,
-        body: "Jump back to the live canvas workspace above to customize your layout and download a locked-scale PDF, or explore companion tools.",
+        body: "Open the full-page canvas studio to customize your layout and download a locked-scale PDF, or explore companion tools.",
         primary: {
-          label: "Open Tool Workspace Above",
+          label: "Open Full-Page Studio",
           href: "#interactive-studio-workspace",
         },
         secondary: {
@@ -1032,8 +1035,8 @@ export function getPageCtas(
     return {
       heroPrimary: {
         label: `Launch ${primaryTargetMeta.primaryKeyword}`,
-        href: primaryTargetMeta.url,
-        sublabel: "Most Popular Tool",
+        href: launchUrl(primaryTargetMeta),
+        sublabel: "Opens Full-Page Studio",
       },
       heroSecondary: {
         label: `Try ${secondaryTargetMeta.primaryKeyword}`,
@@ -1045,7 +1048,7 @@ export function getPageCtas(
         body: `Jump directly into our most popular browser-based sheet maker in this collection and export a millimetre-exact PDF in seconds.`,
         primary: {
           label: `Open ${primaryTargetMeta.primaryKeyword}`,
-          href: primaryTargetMeta.url,
+          href: launchUrl(primaryTargetMeta),
         },
         secondary: {
           label: `Open ${secondaryTargetMeta.primaryKeyword}`,
@@ -1063,7 +1066,7 @@ export function getPageCtas(
         body: "Skip the setup guesswork and build your sheet directly in your browser.",
         button: {
           label: `Open ${primaryTargetMeta.primaryKeyword}`,
-          href: primaryTargetMeta.url,
+          href: launchUrl(primaryTargetMeta),
         },
         secondaryLink: {
           label: `Try ${secondaryTargetMeta.primaryKeyword}`,
@@ -1076,7 +1079,7 @@ export function getPageCtas(
         body: "Pick a tool from this hub to arrange your content on A4, Letter, or 4×6 sheets and download a crisp PDF immediately.",
         primary: {
           label: `Launch ${primaryTargetMeta.primaryKeyword}`,
-          href: primaryTargetMeta.url,
+          href: launchUrl(primaryTargetMeta),
         },
         secondary: {
           label: `Open ${secondaryTargetMeta.primaryKeyword}`,
@@ -1089,8 +1092,8 @@ export function getPageCtas(
   return {
     heroPrimary: {
       label: `Open Free ${primaryTargetMeta.primaryKeyword} Tool`,
-      href: primaryTargetMeta.url,
-      sublabel: "Instant PDF Generator",
+      href: launchUrl(primaryTargetMeta),
+      sublabel: "Opens Full-Page Studio",
     },
     heroSecondary: {
       label: `Try ${secondaryTargetMeta.primaryKeyword}`,
@@ -1102,7 +1105,7 @@ export function getPageCtas(
       body: `Instead of wrestling with printer driver scaling or manual table margins, generate a locked 100%-scale PDF directly in your browser using our ${primaryTargetMeta.primaryKeyword} tool.`,
       primary: {
         label: `Launch ${primaryTargetMeta.primaryKeyword} Now`,
-        href: primaryTargetMeta.url,
+        href: launchUrl(primaryTargetMeta),
       },
       secondary: {
         label: `Explore ${secondaryTargetMeta.primaryKeyword}`,
@@ -1120,7 +1123,7 @@ export function getPageCtas(
       body: `Apply everything in this ${meta.type.toLowerCase()} immediately with our free online sheet generator.`,
       button: {
         label: `Open ${primaryTargetMeta.primaryKeyword}`,
-        href: primaryTargetMeta.url,
+        href: launchUrl(primaryTargetMeta),
       },
       secondaryLink: {
         label: `Browse ${parentHubMeta.primaryKeyword}`,
@@ -1133,7 +1136,7 @@ export function getPageCtas(
       body: "Generate a print-ready PDF with exact margins, custom gutters, and hairline crop marks right now—completely free and with no sign-up.",
       primary: {
         label: `Launch ${primaryTargetMeta.primaryKeyword}`,
-        href: primaryTargetMeta.url,
+        href: launchUrl(primaryTargetMeta),
       },
       secondary: {
         label: `Try ${secondaryTargetMeta.primaryKeyword}`,

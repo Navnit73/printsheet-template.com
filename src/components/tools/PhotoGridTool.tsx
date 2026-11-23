@@ -29,15 +29,15 @@ import {
 } from "@/lib/pdf-utils";
 import {
   FieldHint,
-  MobileActionBar,
   PrintTipsPanel,
-  StepHeader,
   ToolStatus,
   UploadDropzone,
   primaryButtonClass,
   secondaryButtonClass,
   type ToolStatusValue,
 } from "@/components/tools/ui/ToolUi";
+import { FullPageToolShell, type ToolStepDef } from "@/components/tools/ui/FullPageToolShell";
+import { PHOTO_GRID_HOW_TO } from "@/components/tools/ui/tool-howto-guides";
 import { CropEditor } from "@/components/tools/ui/CropEditor";
 import { DownloadPassBadge, useDownloadGate } from "@/components/payment/DownloadPaywallProvider";
 import {
@@ -586,8 +586,21 @@ const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp";
 
 type StatusArea = "upload" | "download";
 
-export function PhotoGridTool({ pageId }: { pageId: PageId }) {
+export function PhotoGridTool({
+  pageId,
+  open = true,
+  onClose = () => {},
+  headerCenter,
+  autoSampleSignal = 0,
+}: {
+  pageId: PageId;
+  open?: boolean;
+  onClose?: () => void;
+  headerCenter?: React.ReactNode;
+  autoSampleSignal?: number;
+}) {
   const { requirePayment } = useDownloadGate();
+  const [activeStep, setActiveStep] = useState(0);
   const presets = useMemo(() => getPresetsForTool(pageId), [pageId]);
   const [selectedPresetId, setSelectedPresetId] = useState(presets[0].id);
   const preset =
@@ -994,9 +1007,739 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
   const selSlot = sel !== null ? computedSlots[sel] : null;
   const selPhoto = sel !== null ? slotPhotos[sel] : null;
 
+  const prevSampleSignalRef = useRef(0);
+  useEffect(() => {
+    if (autoSampleSignal > prevSampleSignalRef.current) {
+      prevSampleSignalRef.current = autoSampleSignal;
+      void handleLoadSamples();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSampleSignal]);
+
+  const steps: ToolStepDef[] = [
+    {
+      id: "photos",
+      number: 1,
+      label: "Photos",
+      title: preset.duplicateFirst ? "Add your photo" : "Add your photos",
+      hint: preset.duplicateFirst
+        ? "Pick one photo — it's copied into every spot on the sheet."
+        : "Pick the photos you want to print. You can choose several at once.",
+      badge: hasPhotos ? (
+        <span className="rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-bold text-[#365314]">
+          {photosWord(photos.length)}
+        </span>
+      ) : undefined,
+      content: (
+        <div className="space-y-4">
+          {!hasPhotos ? (
+            <UploadDropzone
+              onFiles={(files) => void addFiles(files)}
+              accept={ACCEPTED_TYPES}
+              multiple={!preset.duplicateFirst}
+              title={preset.duplicateFirst ? "Add your photo" : "Add your photos"}
+              buttonLabel={preset.duplicateFirst ? "Choose photo" : "Choose photos"}
+              secondaryAction={
+                <button
+                  type="button"
+                  onClick={() => void handleLoadSamples()}
+                  className={secondaryButtonClass}
+                >
+                  <Sparkles aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
+                  {preset.duplicateFirst ? "Load sample" : "Load samples"}
+                </button>
+              }
+            />
+          ) : (
+            <div className="space-y-3">
+              <ul
+                aria-label="Your photos (in sheet order)"
+                className="flex flex-wrap gap-2"
+                data-testid="pg-photo-strip"
+              >
+                {photos.map((p, idx) => {
+                  const canReorder = !preset.duplicateFirst && photos.length > 1;
+                  const unused = !preset.duplicateFirst && !usedPhotoIds.has(p.id);
+                  return (
+                    <li
+                      key={p.id}
+                      draggable={canReorder}
+                      onDragStart={(e) => {
+                        setDragIndex(idx);
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", String(idx));
+                      }}
+                      onDragOver={(e) => {
+                        if (dragIndex === null) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (dragOverIndex !== idx) setDragOverIndex(idx);
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverIndex === idx) setDragOverIndex(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragIndex !== null) movePhoto(dragIndex, idx);
+                        setDragIndex(null);
+                        setDragOverIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDragIndex(null);
+                        setDragOverIndex(null);
+                      }}
+                      className={`relative h-16 w-16 overflow-hidden rounded-xl bg-[#f5f5f7] ${
+                        canReorder ? "cursor-grab active:cursor-grabbing" : ""
+                      } ${unused ? "opacity-40" : ""} ${
+                        dragIndex === idx ? "opacity-50" : ""
+                      } ${
+                        dragOverIndex === idx && dragIndex !== idx
+                          ? "ring-2 ring-[#4d7c0f] ring-offset-1"
+                          : ""
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.src}
+                        alt={`Uploaded photo ${idx + 1}${unused ? " (not on the sheet)" : ""}`}
+                        draggable={false}
+                        className="h-full w-full object-cover pointer-events-none"
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="absolute top-0.5 left-0.5 rounded bg-zinc-950/75 px-1 text-[9px] font-bold text-white"
+                      >
+                        {idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        aria-label={`Remove photo ${idx + 1}`}
+                        className="absolute top-0.5 right-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-950/75 text-white hover:bg-zinc-950 cursor-pointer"
+                      >
+                        <X aria-hidden="true" className="h-3.5 w-3.5" />
+                      </button>
+                      {canReorder && (
+                        <div className="absolute bottom-0.5 inset-x-0.5 flex justify-between">
+                          <button
+                            type="button"
+                            onClick={() => movePhoto(idx, idx - 1)}
+                            disabled={idx === 0}
+                            aria-label={`Move photo ${idx + 1} earlier`}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-zinc-900 hover:bg-white cursor-pointer disabled:invisible"
+                          >
+                            <ChevronLeft aria-hidden="true" className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => movePhoto(idx, idx + 1)}
+                            disabled={idx === photos.length - 1}
+                            aria-label={`Move photo ${idx + 1} later`}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-zinc-900 hover:bg-white cursor-pointer disabled:invisible"
+                          >
+                            <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {!preset.duplicateFirst && photos.length > 1 && (
+                <FieldHint>
+                  Drag photos (or use the arrows) to change the order they fill the sheet. Tap a spot in the preview to pick its photo or crop it.
+                </FieldHint>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={secondaryButtonClass}
+                >
+                  <ImagePlus aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
+                  {preset.duplicateFirst ? "Change photo" : "Add more"}
+                </button>
+                {photos.length > 1 && !preset.duplicateFirst && (
+                  <button
+                    type="button"
+                    onClick={rotateImageList}
+                    aria-label="Shuffle photo order (move first photo to the end)"
+                    className={secondaryButtonClass}
+                  >
+                    <RotateCw aria-hidden="true" className="h-4 w-4" />
+                    Shuffle order
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={removeAll}
+                  className={secondaryButtonClass}
+                >
+                  <Trash2 aria-hidden="true" className="h-4 w-4" />
+                  Remove all
+                </button>
+              </div>
+              {unusedPhotoCount > 0 && (
+                <FieldHint tone="warning">
+                  This layout holds {photosWord(slotCount)}, so {photosWord(unusedPhotoCount)} (faded) won&apos;t be printed. Remove some (×), tap a spot to swap one in, or pick a bigger layout in step 2.
+                </FieldHint>
+              )}
+              {!preset.duplicateFirst && hasRepeats && (
+                <FieldHint>
+                  {photosWord(photos.length)} for {slotCount} spots — your photos repeat to fill the sheet (marked &ldquo;copy&rdquo; in the preview). Add more to fill every spot.
+                </FieldHint>
+              )}
+            </div>
+          )}
+          {status?.area === "upload" && <ToolStatus status={status.value} />}
+        </div>
+      ),
+    },
+    {
+      id: "layout",
+      number: 2,
+      label: "Layout",
+      title: "Choose a layout",
+      hint: "How many photos go on one page, and how they're arranged.",
+      badge: (
+        <span className="rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-bold text-[#365314]">
+          {photosWord(slotCount)}
+        </span>
+      ),
+      content: (
+        <div className="space-y-4">
+          <div
+            role="group"
+            aria-label="Layout presets"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+          >
+            {presets.map((p) => {
+              const active = p.id === preset.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => selectPreset(p)}
+                  className={`min-h-[44px] rounded-xl px-3.5 py-2.5 text-left text-xs font-semibold transition cursor-pointer ${
+                    active
+                      ? "bg-[#4d7c0f] text-white"
+                      : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced] hover:text-zinc-950"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="rounded-xl bg-[#eef6e4] px-3.5 py-2.5 text-xs font-semibold text-[#365314]">
+            {perPageText}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "paper",
+      number: 3,
+      label: "Paper",
+      title: "Paper & spacing",
+      hint: "Match the paper in your printer. The defaults work for most people.",
+      content: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                htmlFor="photo-paper-size"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Paper size
+              </label>
+              <select
+                id="photo-paper-size"
+                value={paper}
+                onChange={(e) => {
+                  setPaper(e.target.value as PaperSizeId);
+                  clearStatus();
+                }}
+                className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-900"
+              >
+                {Object.values(PAPER_SIZES).map((ps) => (
+                  <option key={ps.id} value={ps.id}>
+                    {ps.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="photo-orientation"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Page direction
+              </label>
+              <select
+                id="photo-orientation"
+                value={orientation}
+                onChange={(e) => {
+                  setOrientation(e.target.value as "portrait" | "landscape");
+                  clearStatus();
+                }}
+                className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-900"
+              >
+                <option value="portrait">Portrait (tall)</option>
+                <option value="landscape">Landscape (wide)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <div className="rounded-xl bg-[#f5f5f7] p-3">
+              <label
+                htmlFor="photo-margin-mm"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Edge margin: {marginMm} mm
+              </label>
+              <input
+                id="photo-margin-mm"
+                type="range"
+                min={PRINTER_SAFE_MARGIN_MM}
+                max={20}
+                value={marginMm}
+                aria-describedby="photo-margin-hint"
+                onChange={(e) => {
+                  setMarginMm(Number(e.target.value));
+                  clearStatus();
+                }}
+                className="w-full accent-[#4d7c0f]"
+              />
+              <FieldHint id="photo-margin-hint">
+                Blank border round the page — printers can&apos;t print right to the edge.
+              </FieldHint>
+            </div>
+            <div className="rounded-xl bg-[#f5f5f7] p-3">
+              <label
+                htmlFor="photo-spacing-mm"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Gap between photos: {gutterMm} mm
+              </label>
+              <input
+                id="photo-spacing-mm"
+                type="range"
+                min={0}
+                max={15}
+                value={gutterMm}
+                aria-describedby="photo-spacing-hint"
+                onChange={(e) => {
+                  setGutterMm(Number(e.target.value));
+                  clearStatus();
+                }}
+                className="w-full accent-[#4d7c0f]"
+              />
+              <FieldHint id="photo-spacing-hint">
+                Room to cut between photos.
+              </FieldHint>
+            </div>
+          </div>
+
+          <div>
+            <p
+              id="photo-fit-label"
+              className="text-xs font-semibold text-zinc-700 mb-1.5"
+            >
+              How photos fit their spot
+            </p>
+            <div
+              role="radiogroup"
+              aria-labelledby="photo-fit-label"
+              aria-describedby="photo-fit-hint"
+              className="grid grid-cols-2 gap-1.5"
+            >
+              {fitOptions.map((opt) => {
+                const active = fitMode === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => {
+                      setFitMode(opt.id);
+                      clearStatus();
+                    }}
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-left text-xs transition cursor-pointer ring-1 ${
+                      active
+                        ? "bg-[#eef6e4] ring-[#4d7c0f] text-zinc-950"
+                        : "bg-[#f5f5f7] ring-transparent text-zinc-700 hover:bg-[#ebeced]"
+                    }`}
+                  >
+                    <span className="block font-semibold">{opt.title}</span>
+                    <span className="block text-zinc-600">({opt.hint})</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-1.5">
+              <FieldHint id="photo-fit-hint">
+                {fitMode === "cover"
+                  ? "Photos fill their spot edge to edge; a little may be trimmed off the sides. Tap a photo in the preview to choose what's kept."
+                  : "Nothing is trimmed; you may see white bars beside or above the photo."}
+              </FieldHint>
+            </div>
+          </div>
+
+          <label className="min-h-[36px] flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showCutGuides}
+              onChange={(e) => {
+                setShowCutGuides(e.target.checked);
+                clearStatus();
+              }}
+              className="mt-0.5 h-4 w-4 rounded accent-[#4d7c0f]"
+            />
+            <span>
+              <span className="inline-flex items-center gap-1.5 font-semibold text-zinc-800">
+                <Scissors aria-hidden="true" className="h-3.5 w-3.5 text-zinc-600" />
+                Print cut marks
+              </span>
+              <span className="block text-zinc-600">
+                Small lines at each corner showing where to cut.
+              </span>
+            </span>
+          </label>
+
+          {preset.captionArea && (
+            <div>
+              <label
+                htmlFor="photo-caption-text"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Caption at the bottom (optional)
+              </label>
+              <input
+                id="photo-caption-text"
+                type="text"
+                value={captionText}
+                onChange={(e) => {
+                  setCaptionText(e.target.value);
+                  clearStatus();
+                }}
+                className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-900"
+                placeholder="Add caption text..."
+              />
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "export",
+      number: 4,
+      label: "Export",
+      title: "Download & print",
+      hint: "You get a PDF that prints at the exact size. Nothing is uploaded — it's all made on your device.",
+      content: (
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={isExporting || !hasPhotos}
+            aria-describedby={disabledReason ? "photo-download-hint" : undefined}
+            className={`${primaryButtonClass} w-full`}
+          >
+            <Download aria-hidden="true" className="h-4 w-4" />
+            {downloadLabel}
+          </button>
+          <DownloadPassBadge />
+          {disabledReason && (
+            <FieldHint id="photo-download-hint">{disabledReason}</FieldHint>
+          )}
+          <ToolStatus status={status?.area === "download" ? status.value : null} />
+          <PrintTipsPanel paperLabel={paperShort} open={hasDownloaded} />
+        </div>
+      ),
+    },
+  ];
+
+  const previewNode = (
+    <div className="w-full flex flex-col items-center gap-4">
+      <div
+        role="region"
+        aria-label={`Live preview: ${perPageText}`}
+        data-testid="pg-preview"
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && sel !== null) {
+            e.preventDefault();
+            closeSlotPanel();
+          }
+        }}
+        className={`relative bg-white ring-1 ring-zinc-200 shadow-md ${
+          orientation === "landscape"
+            ? "w-[min(100%,540px,calc(58vh*var(--paper-ar)))]"
+            : "w-[min(100%,400px,calc(62vh*var(--paper-ar)))]"
+        }`}
+        style={
+          {
+            aspectRatio: `${orientedPaper.widthMm} / ${orientedPaper.heightMm}`,
+            "--paper-ar": (orientedPaper.widthMm / orientedPaper.heightMm).toFixed(4),
+          } as React.CSSProperties
+        }
+      >
+        {computedSlots.map((slot, idx) => {
+          const leftPct = ((marginMm + slot.x) / orientedPaper.widthMm) * 100;
+          const topPct = ((marginMm + slot.y) / orientedPaper.heightMm) * 100;
+          const widthPct = (slot.w / orientedPaper.widthMm) * 100;
+          const heightPct = (slot.h / orientedPaper.heightMm) * 100;
+          const { photo, photoIndex, repeat } = slotPhotos[idx];
+          const selected = sel === idx;
+          const sizeText = `${Math.round(slot.w)}×${Math.round(slot.h)} mm`;
+          const box = {
+            left: `${leftPct}%`,
+            top: `${topPct}%`,
+            width: `${widthPct}%`,
+            height: `${heightPct}%`,
+          };
+          const selectedCls = selected
+            ? "z-10 outline outline-2 outline-offset-1 outline-[#4d7c0f]"
+            : "";
+
+          if (!photo) {
+            return (
+              <button
+                key={idx}
+                ref={(el) => {
+                  slotButtonRefs.current[idx] = el;
+                }}
+                type="button"
+                data-slot={idx}
+                onClick={() =>
+                  hasPhotos ? openSlot(idx) : fileInputRef.current?.click()
+                }
+                aria-label={
+                  hasPhotos
+                    ? `Spot ${idx + 1} (${sizeText}) is empty — choose a photo`
+                    : `Add photo (slot ${idx + 1}, ${sizeText})`
+                }
+                aria-pressed={hasPhotos ? selected : undefined}
+                className={`absolute flex flex-col items-center justify-center gap-0.5 border border-dashed border-zinc-300 bg-[#fafafa] text-zinc-600 hover:bg-[#eef6e4] hover:text-[#3f6212] cursor-pointer ${selectedCls}`}
+                style={box}
+              >
+                <ImagePlus aria-hidden="true" className="h-4 w-4" />
+                <span className="text-[10px] font-semibold">
+                  {hasPhotos ? "Empty" : "Add photo"}
+                </span>
+              </button>
+            );
+          }
+
+          const aspect = slot.w / Math.max(1, slot.h);
+          return (
+            <button
+              key={idx}
+              ref={(el) => {
+                slotButtonRefs.current[idx] = el;
+              }}
+              type="button"
+              data-slot={idx}
+              onClick={() => openSlot(idx)}
+              aria-pressed={selected}
+              aria-label={`Spot ${idx + 1}: photo ${photoIndex + 1}${repeat ? " (copy)" : ""}. Change photo or crop`}
+              className={`group absolute overflow-hidden flex items-center justify-center bg-white cursor-pointer ${selectedCls}`}
+              style={box}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.src}
+                alt={`Sheet slot ${idx + 1}: photo ${photoIndex + 1}${repeat ? " (copy)" : ""}`}
+                draggable={false}
+                className={
+                  fitMode === "cover" ? "pointer-events-none" : "h-full w-full object-contain"
+                }
+                style={
+                  fitMode === "cover"
+                    ? cropImageStyle(photo, aspect, cropFor(idx, photo.id))
+                    : undefined
+                }
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"
+              />
+              {repeat && (
+                <span className="absolute top-1 right-1 rounded bg-zinc-950/75 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-white">
+                  copy
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {preset.captionArea && captionText.trim() && (
+          <div className="absolute bottom-2 inset-x-0 text-center text-xs font-bold text-zinc-900 px-3 truncate">
+            {captionText}
+          </div>
+        )}
+      </div>
+
+      {sel !== null && selSlot && selPhoto && (
+        <div
+          ref={slotPanelRef}
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="pg-slot-panel-title"
+          tabIndex={-1}
+          data-testid="pg-slot-panel"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              e.stopPropagation();
+              closeSlotPanel();
+            }
+          }}
+          className="w-full max-w-[520px] rounded-2xl bg-white p-4 shadow-md ring-1 ring-zinc-200 space-y-4 outline-none focus-visible:ring-2 focus-visible:ring-[#4d7c0f]"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3
+                id="pg-slot-panel-title"
+                className="text-sm font-bold text-zinc-950"
+              >
+                {preset.duplicateFirst
+                  ? "Your photo (every spot)"
+                  : `Spot ${sel + 1}`}
+                <span className="ml-1.5 font-medium text-zinc-600">
+                  {Math.round(selSlot.w)} × {Math.round(selSlot.h)} mm
+                </span>
+              </h3>
+              <p className="text-xs text-zinc-600">
+                {selPhoto.photo
+                  ? preset.duplicateFirst
+                    ? "Changes apply to every copy on the sheet."
+                    : `Photo ${selPhoto.photoIndex + 1}${
+                        selPhoto.explicit ? " (your pick)" : " (automatic)"
+                      }`
+                  : "Empty — prints blank."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={closeSlotPanel}
+              aria-label="Close spot settings"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced] cursor-pointer"
+            >
+              <X aria-hidden="true" className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => slotFileInputRef.current?.click()}
+              className={secondaryButtonClass}
+            >
+              <ImagePlus aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
+              Replace photo
+            </button>
+            {!preset.duplicateFirst && selPhoto.photo && (
+              <button
+                type="button"
+                onClick={() => chooseForSlot(sel, null)}
+                className={secondaryButtonClass}
+              >
+                <Eraser aria-hidden="true" className="h-4 w-4" />
+                Clear slot
+              </button>
+            )}
+            {!preset.duplicateFirst && selPhoto.explicit && (
+              <button
+                type="button"
+                onClick={() => chooseForSlot(sel, undefined)}
+                className={secondaryButtonClass}
+              >
+                <RotateCcw aria-hidden="true" className="h-4 w-4" />
+                Back to automatic
+              </button>
+            )}
+          </div>
+
+          {!preset.duplicateFirst && photos.length > 0 && (
+            <div>
+              <p
+                id="pg-slot-choose-label"
+                className="text-xs font-semibold text-zinc-700 mb-1.5"
+              >
+                Choose from your photos
+              </p>
+              <div
+                role="radiogroup"
+                aria-labelledby="pg-slot-choose-label"
+                className="flex flex-wrap gap-2"
+              >
+                {photos.map((p, pIdx) => {
+                  const active = selPhoto.photo?.id === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      aria-label={`Photo ${pIdx + 1}`}
+                      onClick={() => chooseForSlot(sel, p.id)}
+                      className={`relative h-12 w-12 overflow-hidden rounded-lg cursor-pointer ring-2 ${
+                        active ? "ring-[#4d7c0f]" : "ring-transparent hover:ring-zinc-300"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.src}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                      {active && (
+                        <span className="absolute bottom-0.5 right-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#4d7c0f] text-white">
+                          <Check aria-hidden="true" className="h-3 w-3" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {selPhoto.photo &&
+            (fitMode === "cover" ? (
+              <div>
+                <p className="text-xs font-semibold text-zinc-700 mb-1.5">
+                  Crop: drag to move, zoom to trim more
+                </p>
+                <CropEditor
+                  key={`${cropKey(sel)}-${selPhoto.photo.id}`}
+                  src={selPhoto.photo.src}
+                  aspect={selSlot.w / Math.max(1, selSlot.h)}
+                  value={cropFor(sel, selPhoto.photo.id)}
+                  onChange={(c) => {
+                    const id = selPhoto.photo?.id;
+                    if (id) setCropFor(sel, id, c);
+                  }}
+                  label={`Position photo in spot ${sel + 1}`}
+                  maxWidthPx={260}
+                />
+              </div>
+            ) : (
+              <FieldHint>
+                Cropping is available with &ldquo;Fill the slot&rdquo; (step 3). &ldquo;Show whole photo&rdquo; never trims anything.
+              </FieldHint>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="rounded-3xl bg-[#f5f5f7] p-2 sm:p-5 lg:p-6">
-      {/* Hidden picker used by "Add more" and by clicking an empty slot in the preview */}
+    <>
       <input
         ref={fileInputRef}
         type="file"
@@ -1007,7 +1750,6 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
         className="sr-only"
         tabIndex={-1}
       />
-      {/* Hidden picker for "Replace photo" in the slot panel */}
       <input
         ref={slotFileInputRef}
         type="file"
@@ -1018,577 +1760,17 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
         tabIndex={-1}
       />
 
-      {/* Main split workspace — preview first on phones, right-hand column on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-5 items-start">
-        {/* Controls */}
-        <div className="order-2 lg:order-1 lg:col-span-5 rounded-2xl bg-white p-4 sm:p-6 space-y-7">
-          {/* Step 1 — photos */}
-          <section aria-labelledby="pg-step-1">
-            <StepHeader
-              step={1}
-              id="pg-step-1"
-              title={preset.duplicateFirst ? "Add your photo" : "Add your photos"}
-              hint={
-                preset.duplicateFirst
-                  ? "Pick one photo — it's copied into every spot on the sheet."
-                  : "Pick the photos you want to print. You can choose several at once."
-              }
-            />
-            {!hasPhotos ? (
-              <UploadDropzone
-                onFiles={(files) => void addFiles(files)}
-                accept={ACCEPTED_TYPES}
-                multiple={!preset.duplicateFirst}
-                title={preset.duplicateFirst ? "Add your photo" : "Add your photos"}
-                buttonLabel={preset.duplicateFirst ? "Choose photo" : "Choose photos"}
-                secondaryAction={
-                  <button
-                    type="button"
-                    onClick={() => void handleLoadSamples()}
-                    className={secondaryButtonClass}
-                  >
-                    <Sparkles aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
-                    {preset.duplicateFirst ? "Load sample" : "Load samples"}
-                  </button>
-                }
-              />
-            ) : (
-              <div className="space-y-3">
-                <ul
-                  aria-label="Your photos (in sheet order)"
-                  className="flex flex-wrap gap-2"
-                  data-testid="pg-photo-strip"
-                >
-                  {photos.map((p, idx) => {
-                    const canReorder = !preset.duplicateFirst && photos.length > 1;
-                    const unused = !preset.duplicateFirst && !usedPhotoIds.has(p.id);
-                    return (
-                      <li
-                        key={p.id}
-                        draggable={canReorder}
-                        onDragStart={(e) => {
-                          setDragIndex(idx);
-                          e.dataTransfer.effectAllowed = "move";
-                          e.dataTransfer.setData("text/plain", String(idx));
-                        }}
-                        onDragOver={(e) => {
-                          if (dragIndex === null) return;
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = "move";
-                          if (dragOverIndex !== idx) setDragOverIndex(idx);
-                        }}
-                        onDragLeave={() => {
-                          if (dragOverIndex === idx) setDragOverIndex(null);
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          if (dragIndex !== null) movePhoto(dragIndex, idx);
-                          setDragIndex(null);
-                          setDragOverIndex(null);
-                        }}
-                        onDragEnd={() => {
-                          setDragIndex(null);
-                          setDragOverIndex(null);
-                        }}
-                        className={`relative h-16 w-16 overflow-hidden rounded-xl bg-[#f5f5f7] ${
-                          canReorder ? "cursor-grab active:cursor-grabbing" : ""
-                        } ${unused ? "opacity-40" : ""} ${
-                          dragIndex === idx ? "opacity-50" : ""
-                        } ${
-                          dragOverIndex === idx && dragIndex !== idx
-                            ? "ring-2 ring-[#4d7c0f] ring-offset-1"
-                            : ""
-                        }`}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={p.src}
-                          alt={`Uploaded photo ${idx + 1}${unused ? " (not on the sheet)" : ""}`}
-                          draggable={false}
-                          className="h-full w-full object-cover pointer-events-none"
-                        />
-                        <span
-                          aria-hidden="true"
-                          className="absolute top-0.5 left-0.5 rounded bg-zinc-950/75 px-1 text-[9px] font-bold text-white"
-                        >
-                          {idx + 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeImage(idx)}
-                          aria-label={`Remove photo ${idx + 1}`}
-                          className="absolute top-0.5 right-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-950/75 text-white hover:bg-zinc-950 cursor-pointer"
-                        >
-                          <X aria-hidden="true" className="h-3.5 w-3.5" />
-                        </button>
-                        {canReorder && (
-                          <div className="absolute bottom-0.5 inset-x-0.5 flex justify-between">
-                            <button
-                              type="button"
-                              onClick={() => movePhoto(idx, idx - 1)}
-                              disabled={idx === 0}
-                              aria-label={`Move photo ${idx + 1} earlier`}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-zinc-900 hover:bg-white cursor-pointer disabled:invisible"
-                            >
-                              <ChevronLeft aria-hidden="true" className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => movePhoto(idx, idx + 1)}
-                              disabled={idx === photos.length - 1}
-                              aria-label={`Move photo ${idx + 1} later`}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-zinc-900 hover:bg-white cursor-pointer disabled:invisible"
-                            >
-                              <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-                {!preset.duplicateFirst && photos.length > 1 && (
-                  <FieldHint>
-                    Drag photos (or use the arrows) to change the order they fill
-                    the sheet. Tap a spot in the preview to pick its photo or crop it.
-                  </FieldHint>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className={secondaryButtonClass}
-                  >
-                    <ImagePlus aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
-                    {preset.duplicateFirst ? "Change photo" : "Add more"}
-                  </button>
-                  {photos.length > 1 && !preset.duplicateFirst && (
-                    <button
-                      type="button"
-                      onClick={rotateImageList}
-                      aria-label="Shuffle photo order (move first photo to the end)"
-                      className={secondaryButtonClass}
-                    >
-                      <RotateCw aria-hidden="true" className="h-4 w-4" />
-                      Shuffle order
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={removeAll}
-                    className={secondaryButtonClass}
-                  >
-                    <Trash2 aria-hidden="true" className="h-4 w-4" />
-                    Remove all
-                  </button>
-                </div>
-                {unusedPhotoCount > 0 && (
-                  <FieldHint tone="warning">
-                    This layout holds {photosWord(slotCount)}, so{" "}
-                    {photosWord(unusedPhotoCount)} (faded) won&apos;t be printed.
-                    Remove some (×), tap a spot to swap one in, or pick a bigger
-                    layout in step 2.
-                  </FieldHint>
-                )}
-                {!preset.duplicateFirst && hasRepeats && (
-                  <FieldHint>
-                    {photosWord(photos.length)} for {slotCount} spots — your photos
-                    repeat to fill the sheet (marked &ldquo;copy&rdquo; in the
-                    preview). Add more to fill every spot.
-                  </FieldHint>
-                )}
-              </div>
-            )}
-            {status?.area === "upload" && (
-              <div className="mt-3">
-                <ToolStatus status={status.value} />
-              </div>
-            )}
-          </section>
-
-          {/* Step 2 — layout */}
-          <section aria-labelledby="pg-step-2">
-            <StepHeader
-              step={2}
-              id="pg-step-2"
-              title="Choose a layout"
-              hint="How many photos go on one page, and how they're arranged."
-            />
-            <div
-              role="group"
-              aria-labelledby="pg-step-2"
-              className="grid grid-cols-1 sm:grid-cols-2 gap-1.5"
-            >
-              {presets.map((p) => {
-                const active = p.id === preset.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => selectPreset(p)}
-                    className={`min-h-[42px] rounded-xl px-3.5 py-2 text-left text-xs font-semibold transition cursor-pointer ${
-                      active
-                        ? "bg-[#4d7c0f] text-white"
-                        : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced] hover:text-zinc-950"
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs font-semibold text-[#3f6212]">
-              {perPageText}
-            </p>
-          </section>
-
-          {/* Step 3 — paper & spacing */}
-          <section aria-labelledby="pg-step-3" className="space-y-4">
-            <StepHeader
-              step={3}
-              id="pg-step-3"
-              title="Paper & spacing"
-              hint="Match the paper in your printer. The defaults work for most people."
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  htmlFor="photo-paper-size"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Paper size
-                </label>
-                <select
-                  id="photo-paper-size"
-                  value={paper}
-                  onChange={(e) => {
-                    setPaper(e.target.value as PaperSizeId);
-                    clearStatus();
-                  }}
-                  className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-900"
-                >
-                  {Object.values(PAPER_SIZES).map((ps) => (
-                    <option key={ps.id} value={ps.id}>
-                      {ps.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="photo-orientation"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Page direction
-                </label>
-                <select
-                  id="photo-orientation"
-                  value={orientation}
-                  onChange={(e) => {
-                    setOrientation(e.target.value as "portrait" | "landscape");
-                    clearStatus();
-                  }}
-                  className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-900"
-                >
-                  <option value="portrait">Portrait (tall)</option>
-                  <option value="landscape">Landscape (wide)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="rounded-xl bg-[#f5f5f7] p-3">
-                <label
-                  htmlFor="photo-margin-mm"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Edge margin: {marginMm} mm
-                </label>
-                <input
-                  id="photo-margin-mm"
-                  type="range"
-                  min={PRINTER_SAFE_MARGIN_MM}
-                  max={20}
-                  value={marginMm}
-                  aria-describedby="photo-margin-hint"
-                  onChange={(e) => {
-                    setMarginMm(Number(e.target.value));
-                    clearStatus();
-                  }}
-                  className="w-full accent-[#4d7c0f]"
-                />
-                <FieldHint id="photo-margin-hint">
-                  Blank border round the page — printers can&apos;t print right
-                  to the edge.
-                </FieldHint>
-              </div>
-              <div className="rounded-xl bg-[#f5f5f7] p-3">
-                <label
-                  htmlFor="photo-spacing-mm"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Gap between photos: {gutterMm} mm
-                </label>
-                <input
-                  id="photo-spacing-mm"
-                  type="range"
-                  min={0}
-                  max={15}
-                  value={gutterMm}
-                  aria-describedby="photo-spacing-hint"
-                  onChange={(e) => {
-                    setGutterMm(Number(e.target.value));
-                    clearStatus();
-                  }}
-                  className="w-full accent-[#4d7c0f]"
-                />
-                <FieldHint id="photo-spacing-hint">
-                  Room to cut between photos.
-                </FieldHint>
-              </div>
-            </div>
-
-            <div>
-              <p
-                id="photo-fit-label"
-                className="text-xs font-semibold text-zinc-700 mb-1.5"
-              >
-                How photos fit their spot
-              </p>
-              <div
-                role="radiogroup"
-                aria-labelledby="photo-fit-label"
-                aria-describedby="photo-fit-hint"
-                className="grid grid-cols-2 gap-1.5"
-              >
-                {fitOptions.map((opt) => {
-                  const active = fitMode === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => {
-                        setFitMode(opt.id);
-                        clearStatus();
-                      }}
-                      className={`min-h-[44px] rounded-xl px-3 py-2 text-left text-xs transition cursor-pointer ring-1 ${
-                        active
-                          ? "bg-[#eef6e4] ring-[#4d7c0f] text-zinc-950"
-                          : "bg-[#f5f5f7] ring-transparent text-zinc-700 hover:bg-[#ebeced]"
-                      }`}
-                    >
-                      <span className="block font-semibold">{opt.title}</span>
-                      <span className="block text-zinc-600">({opt.hint})</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-1.5">
-                <FieldHint id="photo-fit-hint">
-                  {fitMode === "cover"
-                    ? "Photos fill their spot edge to edge; a little may be trimmed off the sides. Tap a photo in the preview to choose what's kept."
-                    : "Nothing is trimmed; you may see white bars beside or above the photo."}
-                </FieldHint>
-              </div>
-            </div>
-
-            <label className="min-h-[36px] flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showCutGuides}
-                onChange={(e) => {
-                  setShowCutGuides(e.target.checked);
-                  clearStatus();
-                }}
-                className="mt-0.5 h-4 w-4 rounded accent-[#4d7c0f]"
-              />
-              <span>
-                <span className="inline-flex items-center gap-1.5 font-semibold text-zinc-800">
-                  <Scissors aria-hidden="true" className="h-3.5 w-3.5 text-zinc-600" />
-                  Print cut marks
-                </span>
-                <span className="block text-zinc-600">
-                  Small lines at each corner showing where to cut.
-                </span>
-              </span>
-            </label>
-
-            {preset.captionArea && (
-              <div>
-                <label
-                  htmlFor="photo-caption-text"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Caption at the bottom (optional)
-                </label>
-                <input
-                  id="photo-caption-text"
-                  type="text"
-                  value={captionText}
-                  onChange={(e) => {
-                    setCaptionText(e.target.value);
-                    clearStatus();
-                  }}
-                  className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-900"
-                  placeholder="Add caption text..."
-                />
-              </div>
-            )}
-          </section>
-
-          {/* Step 4 — download */}
-          <section aria-labelledby="pg-step-4" className="space-y-3">
-            <StepHeader
-              step={4}
-              id="pg-step-4"
-              title="Download & print"
-              hint="You get a PDF that prints at the exact size. Nothing is uploaded — it's all made on your device."
-            />
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={isExporting || !hasPhotos}
-              aria-describedby={disabledReason ? "photo-download-hint" : undefined}
-              className={`${primaryButtonClass} w-full`}
-            >
-              <Download aria-hidden="true" className="h-4 w-4" />
-              {downloadLabel}
-            </button>
-            <DownloadPassBadge />
-            {disabledReason && (
-              <FieldHint id="photo-download-hint">{disabledReason}</FieldHint>
-            )}
-            <ToolStatus status={status?.area === "download" ? status.value : null} />
-            <PrintTipsPanel paperLabel={paperShort} open={hasDownloaded} />
-          </section>
-        </div>
-
-        {/* Live sheet preview — white paper, matches the PDF */}
-        <div
-          className={`order-1 lg:order-2 lg:col-span-7 ${
-            sel === null ? "lg:sticky lg:top-24" : ""
-          } rounded-2xl bg-white p-4 sm:p-8 flex flex-col items-center justify-center gap-3 lg:min-h-[420px]`}
-        >
-          <div
-            role="region"
-            aria-label={`Live preview: ${perPageText}`}
-            data-testid="pg-preview"
-            onKeyDown={(e) => {
-              if (e.key === "Escape" && sel !== null) {
-                e.preventDefault();
-                closeSlotPanel();
-              }
-            }}
-            className={`relative bg-white ring-1 ring-zinc-200 shadow-[0_2px_10px_rgba(0,0,0,0.08)] ${
-              orientation === "landscape"
-                ? "w-[min(100%,540px,calc(48vh*var(--paper-ar)))] lg:w-[min(100%,540px)]"
-                : "w-[min(100%,380px,calc(48vh*var(--paper-ar)))] lg:w-[min(100%,380px)]"
-            }`}
-            style={
-              {
-                aspectRatio: `${orientedPaper.widthMm} / ${orientedPaper.heightMm}`,
-                "--paper-ar": (orientedPaper.widthMm / orientedPaper.heightMm).toFixed(4),
-              } as React.CSSProperties
-            }
-          >
-            {computedSlots.map((slot, idx) => {
-              const leftPct = ((marginMm + slot.x) / orientedPaper.widthMm) * 100;
-              const topPct = ((marginMm + slot.y) / orientedPaper.heightMm) * 100;
-              const widthPct = (slot.w / orientedPaper.widthMm) * 100;
-              const heightPct = (slot.h / orientedPaper.heightMm) * 100;
-              const { photo, photoIndex, repeat } = slotPhotos[idx];
-              const selected = sel === idx;
-              const sizeText = `${Math.round(slot.w)}×${Math.round(slot.h)} mm`;
-              const box = {
-                left: `${leftPct}%`,
-                top: `${topPct}%`,
-                width: `${widthPct}%`,
-                height: `${heightPct}%`,
-              };
-              const selectedCls = selected
-                ? "z-10 outline outline-2 outline-offset-1 outline-[#4d7c0f]"
-                : "";
-
-              if (!photo) {
-                return (
-                  <button
-                    key={idx}
-                    ref={(el) => {
-                      slotButtonRefs.current[idx] = el;
-                    }}
-                    type="button"
-                    data-slot={idx}
-                    onClick={() =>
-                      hasPhotos ? openSlot(idx) : fileInputRef.current?.click()
-                    }
-                    aria-label={
-                      hasPhotos
-                        ? `Spot ${idx + 1} (${sizeText}) is empty — choose a photo`
-                        : `Add photo (slot ${idx + 1}, ${sizeText})`
-                    }
-                    aria-pressed={hasPhotos ? selected : undefined}
-                    className={`absolute flex flex-col items-center justify-center gap-0.5 border border-dashed border-zinc-300 bg-[#fafafa] text-zinc-600 hover:bg-[#eef6e4] hover:text-[#3f6212] cursor-pointer ${selectedCls}`}
-                    style={box}
-                  >
-                    <ImagePlus aria-hidden="true" className="h-4 w-4" />
-                    <span className="text-[10px] font-semibold">
-                      {hasPhotos ? "Empty" : "Add photo"}
-                    </span>
-                  </button>
-                );
-              }
-
-              const aspect = slot.w / Math.max(1, slot.h);
-              return (
-                <button
-                  key={idx}
-                  ref={(el) => {
-                    slotButtonRefs.current[idx] = el;
-                  }}
-                  type="button"
-                  data-slot={idx}
-                  onClick={() => openSlot(idx)}
-                  aria-pressed={selected}
-                  aria-label={`Spot ${idx + 1}: photo ${photoIndex + 1}${repeat ? " (copy)" : ""}. Change photo or crop`}
-                  className={`group absolute overflow-hidden flex items-center justify-center bg-white cursor-pointer ${selectedCls}`}
-                  style={box}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photo.src}
-                    alt={`Sheet slot ${idx + 1}: photo ${photoIndex + 1}${repeat ? " (copy)" : ""}`}
-                    draggable={false}
-                    className={
-                      fitMode === "cover" ? "pointer-events-none" : "h-full w-full object-contain"
-                    }
-                    style={
-                      fitMode === "cover"
-                        ? cropImageStyle(photo, aspect, cropFor(idx, photo.id))
-                        : undefined
-                    }
-                  />
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"
-                  />
-                  {repeat && (
-                    <span className="absolute top-1 right-1 rounded bg-zinc-950/75 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-white">
-                      copy
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-
-            {preset.captionArea && captionText.trim() && (
-              <div className="absolute bottom-2 inset-x-0 text-center text-xs font-bold text-zinc-900 px-3 truncate">
-                {captionText}
-              </div>
-            )}
-          </div>
+      <FullPageToolShell
+        open={open}
+        onClose={onClose}
+        toolTitle="Photo Sheet Maker"
+        toolSummary={perPageText}
+        steps={steps}
+        activeStep={activeStep}
+        onStepChange={setActiveStep}
+        headerCenter={headerCenter}
+        preview={previewNode}
+        previewFooter={
           <p className="text-xs text-zinc-600 text-center">
             <span className="font-semibold text-zinc-800">{perPageText}</span>
             {" · "}
@@ -1597,177 +1779,18 @@ export function PhotoGridTool({ pageId }: { pageId: PageId }) {
               ? sel === null && " · tap a photo to change or crop it"
               : " · tap a spot to add a photo"}
           </p>
-
-          {sel !== null && selSlot && selPhoto && (
-            <div
-              ref={slotPanelRef}
-              role="dialog"
-              aria-modal="false"
-              aria-labelledby="pg-slot-panel-title"
-              tabIndex={-1}
-              data-testid="pg-slot-panel"
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  closeSlotPanel();
-                }
-              }}
-              className="w-full max-w-[540px] rounded-2xl bg-[#f5f5f7] p-4 space-y-4 outline-none focus-visible:ring-2 focus-visible:ring-[#4d7c0f]"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3
-                    id="pg-slot-panel-title"
-                    className="text-sm font-bold text-zinc-950"
-                  >
-                    {preset.duplicateFirst
-                      ? "Your photo (every spot)"
-                      : `Spot ${sel + 1}`}
-                    <span className="ml-1.5 font-medium text-zinc-600">
-                      {Math.round(selSlot.w)} × {Math.round(selSlot.h)} mm
-                    </span>
-                  </h3>
-                  <p className="text-xs text-zinc-600">
-                    {selPhoto.photo
-                      ? preset.duplicateFirst
-                        ? "Changes apply to every copy on the sheet."
-                        : `Photo ${selPhoto.photoIndex + 1}${
-                            selPhoto.explicit ? " (your pick)" : " (automatic)"
-                          }`
-                      : "Empty — prints blank."}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeSlotPanel}
-                  aria-label="Close spot settings"
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-zinc-700 hover:bg-[#ebeced] cursor-pointer"
-                >
-                  <X aria-hidden="true" className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => slotFileInputRef.current?.click()}
-                  className={`${secondaryButtonClass} bg-white`}
-                >
-                  <ImagePlus aria-hidden="true" className="h-4 w-4 text-[#3f6212]" />
-                  Replace photo
-                </button>
-                {!preset.duplicateFirst && selPhoto.photo && (
-                  <button
-                    type="button"
-                    onClick={() => chooseForSlot(sel, null)}
-                    className={`${secondaryButtonClass} bg-white`}
-                  >
-                    <Eraser aria-hidden="true" className="h-4 w-4" />
-                    Clear slot
-                  </button>
-                )}
-                {!preset.duplicateFirst && selPhoto.explicit && (
-                  <button
-                    type="button"
-                    onClick={() => chooseForSlot(sel, undefined)}
-                    className={`${secondaryButtonClass} bg-white`}
-                  >
-                    <RotateCcw aria-hidden="true" className="h-4 w-4" />
-                    Back to automatic
-                  </button>
-                )}
-              </div>
-
-              {!preset.duplicateFirst && photos.length > 0 && (
-                <div>
-                  <p
-                    id="pg-slot-choose-label"
-                    className="text-xs font-semibold text-zinc-700 mb-1.5"
-                  >
-                    Choose from your photos
-                  </p>
-                  <div
-                    role="radiogroup"
-                    aria-labelledby="pg-slot-choose-label"
-                    className="flex flex-wrap gap-2"
-                  >
-                    {photos.map((p, pIdx) => {
-                      const active = selPhoto.photo?.id === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={active}
-                          aria-label={`Photo ${pIdx + 1}`}
-                          onClick={() => chooseForSlot(sel, p.id)}
-                          className={`relative h-12 w-12 overflow-hidden rounded-lg cursor-pointer ring-2 ${
-                            active ? "ring-[#4d7c0f]" : "ring-transparent hover:ring-zinc-300"
-                          }`}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={p.src}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                          {active && (
-                            <span className="absolute bottom-0.5 right-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#4d7c0f] text-white">
-                              <Check aria-hidden="true" className="h-3 w-3" />
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {selPhoto.photo &&
-                (fitMode === "cover" ? (
-                  <div>
-                    <p className="text-xs font-semibold text-zinc-700 mb-1.5">
-                      Crop: drag to move, zoom to trim more
-                    </p>
-                    <CropEditor
-                      key={`${cropKey(sel)}-${selPhoto.photo.id}`}
-                      src={selPhoto.photo.src}
-                      aspect={selSlot.w / Math.max(1, selSlot.h)}
-                      value={cropFor(sel, selPhoto.photo.id)}
-                      onChange={(c) => {
-                        const id = selPhoto.photo?.id;
-                        if (id) setCropFor(sel, id, c);
-                      }}
-                      label={`Position photo in spot ${sel + 1}`}
-                      maxWidthPx={260}
-                    />
-                  </div>
-                ) : (
-                  <FieldHint>
-                    Cropping is available with &ldquo;Fill the slot&rdquo; (step 3).
-                    &ldquo;Show whole photo&rdquo; never trims anything.
-                  </FieldHint>
-                ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <MobileActionBar
-        summary={`${hasPhotos ? photosWord(slotCount) : "No photos yet"} · ${paperShort}`}
-      >
-        <button
-          type="button"
-          onClick={handleDownloadPdf}
-          disabled={isExporting || !hasPhotos}
-          aria-describedby={disabledReason ? "photo-download-hint" : undefined}
-          className={primaryButtonClass}
-        >
-          <Download aria-hidden="true" className="h-4 w-4" />
-          {isExporting ? "Making PDF…" : "Download PDF"}
-        </button>
-      </MobileActionBar>
-    </div>
+        }
+        primaryAction={{
+          label: downloadLabel,
+          mobileLabel: isExporting ? "Making PDF…" : "Download PDF",
+          onClick: handleDownloadPdf,
+          disabled: isExporting || !hasPhotos,
+          loading: isExporting,
+          describedBy: disabledReason ? "photo-download-hint" : undefined,
+        }}
+        howTo={PHOTO_GRID_HOW_TO}
+        mobileSummary={`${hasPhotos ? photosWord(slotCount) : "No photos yet"} · ${paperShort}`}
+      />
+    </>
   );
 }

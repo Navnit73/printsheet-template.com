@@ -29,15 +29,15 @@ import {
 import { useNumberField } from "@/lib/use-number-field";
 import {
   FieldHint,
-  MobileActionBar,
   PrintTipsPanel,
-  StepHeader,
   ToolStatus,
   UploadDropzone,
   primaryButtonClass,
   secondaryButtonClass,
   type ToolStatusValue,
 } from "@/components/tools/ui/ToolUi";
+import { FullPageToolShell, type ToolStepDef } from "@/components/tools/ui/FullPageToolShell";
+import { BUSINESS_CARD_HOW_TO } from "@/components/tools/ui/tool-howto-guides";
 import {
   approxFit,
   drawCardElsPdf,
@@ -360,8 +360,19 @@ function SheetNumber({
   );
 }
 
-export function BusinessCardTool({ pageId }: { pageId: PageId }) {
+export function BusinessCardTool({
+  pageId,
+  open = true,
+  onClose = () => {},
+  headerCenter,
+}: {
+  pageId: PageId;
+  open?: boolean;
+  onClose?: () => void;
+  headerCenter?: React.ReactNode;
+}) {
   const init = getInitialConfig(pageId);
+  const [activeStep, setActiveStep] = useState(0);
   const [mode, setMode] = useState<"design" | "upload">(init.mode);
   const [sheetId, setSheetId] = useState<SheetChoice>(init.sheet);
   const [styleId, setStyleId] = useState<CardStyleId>(init.style);
@@ -1033,9 +1044,6 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
     );
   }
 
-  const sheetStep = mode === "design" ? 3 : 2;
-  const downloadStep = sheetStep + 1;
-
   /* ---- Preview pieces ---- */
   const cardFace = (which: "front" | "back") => {
     if (which === "back") {
@@ -1154,137 +1162,428 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
     </div>
   );
 
-  return (
-    <div
-      onChangeCapture={clearStatus}
-      className="rounded-3xl bg-[#f5f5f7] p-2 sm:p-5 lg:p-6 space-y-2 sm:space-y-5"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3.5">
-        <div role="group" aria-label="How do you want to make your card?" className="flex flex-wrap items-center gap-1.5">
-          {(
-            [
-              ["design", "Design my card here", Pencil],
-              ["upload", "I already have a design", ImagePlus],
-            ] as const
-          ).map(([id, label, Icon]) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={mode === id}
-              onClick={() => {
-                setMode(id);
-                clearStatus();
-              }}
-              className={`min-h-[42px] inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition cursor-pointer ${
-                mode === id ? "bg-[#4d7c0f] text-white" : "bg-[#f5f5f7] text-zinc-700 hover:bg-[#ebeced]"
+  const modeSwitcher = (
+    <div role="group" aria-label="How do you want to make your card?" className="grid grid-cols-2 gap-1.5 rounded-xl bg-[#f5f5f7] p-1">
+      {(
+        [
+          ["design", "Design my card", Pencil],
+          ["upload", "Upload a design", ImagePlus],
+        ] as const
+      ).map(([id, label, Icon]) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={mode === id}
+          onClick={() => {
+            setMode(id);
+            setActiveStep(0);
+            clearStatus();
+          }}
+          className={`min-h-[36px] inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+            mode === id ? "bg-white text-zinc-950 shadow-2xs" : "text-zinc-600 hover:text-zinc-950"
+          }`}
+        >
+          <Icon aria-hidden="true" className="h-3.5 w-3.5 text-[#4d7c0f]" />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const customBanner = hasCustomDesign ? (
+    <div className="flex flex-col gap-2 rounded-2xl border border-[#4d7c0f]/30 bg-[#eef6e4] px-3.5 py-3 text-xs text-[#365314]">
+      <div className="flex items-start gap-2 min-w-0">
+        <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0 text-[#4d7c0f] mt-0.5" />
+        <span className="font-semibold leading-relaxed">
+          Your Advanced Editor design is active. Edits below stay synced, or switch back to a simple preset.
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen(true)}
+          className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-[#4d7c0f] px-3 text-xs font-bold text-white hover:bg-[#3f6212] cursor-pointer"
+        >
+          <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+          Continue in Advanced
+        </button>
+        <button
+          type="button"
+          onClick={resetToSimplePreset}
+          className="inline-flex min-h-[34px] items-center gap-1 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 cursor-pointer"
+        >
+          <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
+          Simple preset
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  const sheetAndCutStepContent = (
+    <div onChangeCapture={clearStatus} className="space-y-5">
+      <fieldset className="space-y-2">
+        <legend className={labelClass}>Sheet layout</legend>
+        {Object.values(SHEET_PRESETS).map((s) => {
+          const active = s.id === sheetId;
+          return (
+            <label
+              key={s.id}
+              className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
+                active
+                  ? "bg-[#eef6e4] font-semibold text-[#365314] ring-2 ring-[#4d7c0f]"
+                  : "bg-[#f5f5f7] text-zinc-800 hover:bg-[#ebeced]"
               }`}
             >
-              <Icon aria-hidden="true" className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5 text-xs text-zinc-600">
-          <span>
-            {cardCount} cards per {paperShort} page · each {sheet.cardW} × {sheet.cardH} mm
-          </span>
-          {hydrated && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-semibold text-[#365314]">
-              <Check aria-hidden="true" className="h-3 w-3" />
-              {saveStatus === "saving" ? "Saving…" : "Auto-saved"}
-            </span>
+              <input
+                type="radio"
+                name={`${uid}-sheet`}
+                value={s.id}
+                checked={active}
+                onChange={() => setSheetId(s.id)}
+                className="h-4 w-4 shrink-0 accent-[#4d7c0f]"
+              />
+              {s.label}
+            </label>
+          );
+        })}
+        <label
+          className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
+            sheetId === "custom"
+              ? "bg-[#eef6e4] font-semibold text-[#365314] ring-2 ring-[#4d7c0f]"
+              : "bg-[#f5f5f7] text-zinc-800 hover:bg-[#ebeced]"
+          }`}
+        >
+          <input
+            type="radio"
+            name={`${uid}-sheet`}
+            value="custom"
+            checked={sheetId === "custom"}
+            onChange={() => {
+              if (sheetId !== "custom") {
+                const { paper: pp, cols, rows, cardW, cardH, gapX, gapY } = sheet;
+                setCustomSheet({ paper: pp, cols, rows, cardW, cardH, gapX, gapY });
+              }
+              setSheetId("custom");
+            }}
+            className="h-4 w-4 shrink-0 accent-[#4d7c0f]"
+          />
+          Custom — set the paper, card size and layout yourself
+        </label>
+        {sheetId !== "custom" && <FieldHint>{sheet.note}</FieldHint>}
+      </fieldset>
+
+      {sheetId === "custom" && (
+        <div className="space-y-3 rounded-2xl bg-[#f5f5f7] p-3.5">
+          <div>
+            <label htmlFor={`${uid}-paper`} className={labelClass}>
+              Paper
+            </label>
+            <select
+              id={`${uid}-paper`}
+              value={customSheet.paper}
+              onChange={(e) => setCustomSheet((c) => ({ ...c, paper: e.target.value as CustomSheet["paper"] }))}
+              className={`${inputClass} bg-white`}
+            >
+              {(["a4", "letter", "a3"] as const).map((id) => (
+                <option key={id} value={id}>
+                  {PAPER_SIZES[id].label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <SheetNumber label="Cards across" unit="" value={customSheet.cols} min={1} max={12} onChange={(cols) => setCustomSheet((c) => ({ ...c, cols: Math.round(cols) }))} />
+            <SheetNumber label="Cards down" unit="" value={customSheet.rows} min={1} max={20} onChange={(rows) => setCustomSheet((c) => ({ ...c, rows: Math.round(rows) }))} />
+            <SheetNumber label="Card width" value={customSheet.cardW} min={20} max={200} onChange={(cardW) => setCustomSheet((c) => ({ ...c, cardW }))} />
+            <SheetNumber label="Card height" value={customSheet.cardH} min={20} max={200} onChange={(cardH) => setCustomSheet((c) => ({ ...c, cardH }))} />
+            <SheetNumber label="Gap across" value={customSheet.gapX} min={0} max={50} onChange={(gapX) => setCustomSheet((c) => ({ ...c, gapX }))} />
+            <SheetNumber label="Gap down" value={customSheet.gapY} min={0} max={50} onChange={(gapY) => setCustomSheet((c) => ({ ...c, gapY }))} />
+          </div>
+          {gridBad ? (
+            <FieldHint tone="error">
+              That doesn&rsquo;t fit on {paperShort} (printers can&rsquo;t reach the last {PRINTER_SAFE_MARGIN_MM} mm of each edge). At most{" "}
+              {gridCheck.maxCols} across × {gridCheck.maxRows} down fit at this size. Make cards smaller or use fewer.
+            </FieldHint>
+          ) : (
+            <FieldHint>
+              {cardCount} cards, each {sheet.cardW} × {sheet.cardH} mm, centred on the page.
+            </FieldHint>
           )}
         </div>
+      )}
+
+      <details className="rounded-xl bg-[#f5f5f7] px-3.5 py-2.5">
+        <summary className="cursor-pointer text-sm font-medium text-zinc-900">Fine-tune print alignment</summary>
+        <div className="mt-3 space-y-2.5">
+          <FieldHint>
+            If your printer prints a little off-centre, nudge the whole grid. Use a negative number to move left or up. The back page is mirrored automatically for flip-over printing.
+          </FieldHint>
+          <div className="grid grid-cols-2 gap-2.5">
+            <SheetNumber label="Shift right (mm)" value={offsetX} min={-10} max={10} onChange={setOffsetX} />
+            <SheetNumber label="Shift down (mm)" value={offsetY} min={-10} max={10} onChange={setOffsetY} />
+          </div>
+          {(offsetX !== 0 || offsetY !== 0) && (
+            <button
+              type="button"
+              onClick={() => {
+                setOffsetX(0);
+                setOffsetY(0);
+              }}
+              className={`${secondaryButtonClass} bg-white`}
+            >
+              Reset to centred
+            </button>
+          )}
+        </div>
+      </details>
+
+      <div className="space-y-2.5">
+        <fieldset className="space-y-1.5">
+          <legend className={labelClass}>Cutting guides</legend>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(
+              [
+                ["dashed-grid", "Easy cut lines", "Full dashed lines — best for scissors & ruler"],
+                ["card-outline", "Card outlines", "Dashed border around every card"],
+                ["crop-marks", "Corner marks", "Pro ticks for paper trimmers"],
+                ["none", "No guides", "For pre-cut perforated paper"],
+              ] as const
+            ).map(([id, title, desc]) => {
+              const active = cutGuideStyle === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setCutGuideStyle(id)}
+                  className={`rounded-xl px-3 py-2 text-left transition cursor-pointer ${
+                    active
+                      ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]"
+                      : "bg-[#f5f5f7] hover:bg-[#ebeced]"
+                  }`}
+                >
+                  <span className={`flex items-center gap-1.5 text-xs font-bold ${active ? "text-[#365314]" : "text-zinc-900"}`}>
+                    <Scissors aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                    {title}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-snug text-zinc-600">{desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        {sheetId !== "custom" && (
+          <div className="space-y-1">
+            <label className={checkRowClass}>
+              <input
+                type="checkbox"
+                checked={singleCut}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  setSingleCut(on);
+                  if (on && includeBleed) setIncludeBleed(false);
+                }}
+                className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
+              />
+              <Scissors aria-hidden="true" className="h-4 w-4 text-[#4d7c0f]" />
+              <span>
+                Single-cut layout <span className="text-xs font-normal text-zinc-600">(fewer cuts, no thin strips)</span>
+              </span>
+            </label>
+            <FieldHint>
+              Cards touch edge-to-edge so one straight cut separates two cards (9 cuts instead of 14). Great for white-background cards!
+            </FieldHint>
+          </div>
+        )}
+
+        <label className={checkRowClass}>
+          <input
+            type="checkbox"
+            checked={includeBleed}
+            onChange={(e) => {
+              const on = e.target.checked;
+              setIncludeBleed(on);
+              if (on && singleCut) setSingleCut(false);
+            }}
+            className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
+          />
+          <SlidersHorizontal aria-hidden="true" className="h-4 w-4 text-zinc-600" />
+          Add edge bleed (3 mm)
+        </label>
+        {isDarkDesign && (
+          <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+            <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <span>
+              <strong>Dark / edge-to-edge card:</strong> Keep cut guides and bleed enabled (with Single-cut off) so trimming won&rsquo;t leave thin white borders.
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-5 items-start">
-        {/* ---------------- Controls (Simple Mode) ---------------- */}
-        <div className="order-2 lg:order-1 lg:col-span-5 rounded-2xl bg-white p-4 sm:p-6 space-y-7">
-          {mode === "upload" ? (
-            <section aria-labelledby={`${uid}-s1`}>
-              <StepHeader
-                id={`${uid}-s1`}
-                step={1}
-                title="Upload your card design"
-                hint="Use a finished card picture, e.g. exported from Canva or Photoshop. We repeat it across the page."
-              />
-              {uploadedFront ? (
-                <LoadedFileRow
-                  src={uploadedFront}
-                  name={uploadedName}
-                  fallbackName="Your card design"
-                  accept="image/jpeg,image/png,image/webp"
-                  replaceLabel="Replace card design image"
-                  onReplace={(f) => void acceptCardFile(f)}
-                  onRemove={() => {
-                    setUploadedFront(null);
-                    setUploadedName("");
-                    clearStatus();
-                  }}
-                  thumbAspect={`${sheet.cardW} / ${sheet.cardH}`}
-                />
-              ) : (
-                <UploadDropzone
-                  title="Choose your card design"
-                  buttonLabel="Choose image"
-                  inputLabel="Upload business card design"
-                  hint={sizeHint}
-                  onFiles={(files) => void acceptCardFile(files[0])}
-                />
-              )}
-              <div className="mt-4 rounded-2xl border border-dashed border-[#4d7c0f]/50 bg-[#f7fbf1] p-3.5">
-                <p className="text-sm font-bold text-zinc-950">No design yet? Build one in the Advanced Editor</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-zinc-600">
-                  Design your card from scratch with drag-and-drop text, shapes, icons, logos, gradients, QR codes, and front &amp; back layouts.
-                </p>
-                <button
-                  type="button"
-                  onClick={openAdvancedEditor}
-                  className="mt-2.5 inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-4 py-2 text-xs font-bold text-white hover:bg-[#3f6212] transition cursor-pointer"
-                >
-                  <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
-                  Open Advanced Editor
-                </button>
-              </div>
-            </section>
-          ) : (
-            <>
-              {hasCustomDesign && (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#4d7c0f]/30 bg-[#eef6e4] px-3.5 py-3 text-xs text-[#365314]">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0 text-[#4d7c0f]" />
-                    <span className="font-semibold">
-                      Your Advanced Editor design is active. Form edits below stay synced, or pick a style to switch back to a simple preset.
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setAdvancedOpen(true)}
-                      className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-[#4d7c0f] px-3 text-xs font-bold text-white hover:bg-[#3f6212] cursor-pointer"
-                    >
-                      <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
-                      Continue editing
-                    </button>
-                    <button
-                      type="button"
-                      onClick={resetToSimplePreset}
-                      className="inline-flex min-h-[34px] items-center gap-1 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 cursor-pointer"
-                    >
-                      <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
-                      Simple preset
-                    </button>
-                  </div>
-                </div>
-              )}
+      {canBack && (
+        <div className="space-y-1.5">
+          <label className={checkRowClass}>
+            <input
+              type="checkbox"
+              checked={includeBack}
+              onChange={(e) => {
+                setIncludeBack(e.target.checked);
+                setPreviewSide(e.target.checked ? "back" : "front");
+              }}
+              className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
+            />
+            Also print the back (for double-sided printing)
+          </label>
+          <FieldHint>Print page 1, flip the paper, then print page 2.</FieldHint>
+        </div>
+      )}
 
-              <section aria-labelledby={`${uid}-s1`}>
-                <StepHeader
-                  id={`${uid}-s1`}
-                  step={1}
-                  title="Your details"
-                  hint="Type what should appear on the card. Leave a box empty to hide that line."
-                />
+      {backOn && !hasCustomDesign && (
+        <div className="grid grid-cols-1 gap-3 rounded-2xl bg-[#f5f5f7] p-3.5">
+          <fieldset>
+            <legend className={labelClass}>Back design</legend>
+            <div className="grid grid-cols-1 gap-2">
+              {BACK_OPTIONS.map((bo) => {
+                const active = backStyle === bo.id;
+                return (
+                  <label
+                    key={bo.id}
+                    className={`flex min-h-[44px] cursor-pointer items-start gap-2.5 rounded-xl px-3 py-2.5 text-sm transition ${
+                      active ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]" : "bg-white hover:bg-[#ebeced]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`${uid}-back`}
+                      value={bo.id}
+                      checked={active}
+                      onChange={() => {
+                        setBackStyle(bo.id);
+                        setPreviewSide("back");
+                      }}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#4d7c0f]"
+                    />
+                    <span>
+                      <span className={`block font-semibold ${active ? "text-[#365314]" : "text-zinc-900"}`}>{bo.label}</span>
+                      <span className="block text-[11px] leading-snug text-zinc-600">{bo.hint}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+          <div>
+            <label htmlFor="card-back-tagline" className={labelClass}>
+              Tagline (optional)
+            </label>
+            <input
+              id="card-back-tagline"
+              type="text"
+              value={tagline}
+              onChange={(e) => updateSimpleField("tagline", e.target.value, setTagline)}
+              placeholder="e.g. what you do, in a few words"
+              className={`${inputClass} bg-white`}
+            />
+          </div>
+          {backStyle === "logo" && !logo && (
+            <FieldHint>No logo added, so your initials are shown. Add a logo in step 1 to use it here.</FieldHint>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const exportStepContent = (
+    <div className="space-y-3">
+      {downloadButton("w-full")}
+      <DownloadPassBadge />
+      {needsUpload && (
+        <FieldHint id={downloadHintId}>Upload your card design in step 1 to turn on the download.</FieldHint>
+      )}
+      <ToolStatus status={status} />
+      <PrintTipsPanel
+        paperLabel={paperShort}
+        open={tipsOpen}
+        extraSteps={extraSteps}
+        cutStep={
+          cutGuideStyle === "dashed-grid"
+            ? "Follow the dashed cut lines straight across with scissors or a ruler & craft knife — cut right on the dashed line so it disappears cleanly."
+            : cutGuideStyle === "card-outline"
+              ? "Cut directly along the dashed border around each card using scissors or a paper trimmer."
+              : "Line your ruler or paper trimmer up with the corner marks to cut straight edges."
+        }
+      />
+    </div>
+  );
+
+  const steps: ToolStepDef[] =
+    mode === "upload"
+      ? [
+          {
+            id: "upload",
+            number: 1,
+            label: "Upload",
+            title: "Upload your card design",
+            hint: "Use a finished card picture, e.g. exported from Canva or Photoshop. We repeat it across the page.",
+            content: (
+              <div onChangeCapture={clearStatus} className="space-y-4">
+                {modeSwitcher}
+                {uploadedFront ? (
+                  <LoadedFileRow
+                    src={uploadedFront}
+                    name={uploadedName}
+                    fallbackName="Your card design"
+                    accept="image/jpeg,image/png,image/webp"
+                    replaceLabel="Replace card design image"
+                    onReplace={(f) => void acceptCardFile(f)}
+                    onRemove={() => {
+                      setUploadedFront(null);
+                      setUploadedName("");
+                      clearStatus();
+                    }}
+                    thumbAspect={`${sheet.cardW} / ${sheet.cardH}`}
+                  />
+                ) : (
+                  <UploadDropzone
+                    title="Choose your card design"
+                    buttonLabel="Choose image"
+                    inputLabel="Upload business card design"
+                    hint={sizeHint}
+                    onFiles={(files) => void acceptCardFile(files[0])}
+                  />
+                )}
+              </div>
+            ),
+          },
+          {
+            id: "sheet",
+            number: 2,
+            label: "Sheet",
+            title: "Sheet & paper",
+            hint: "Choose the paper you'll print on and how many cards fit on it.",
+            content: sheetAndCutStepContent,
+          },
+          {
+            id: "export",
+            number: 3,
+            label: "Export",
+            title: "Download & print",
+            hint: `You'll get a PDF with ${cardCount} cards on one ${paperShort} page.`,
+            content: exportStepContent,
+          },
+        ]
+      : [
+          {
+            id: "details",
+            number: 1,
+            label: "Details",
+            title: "Your details",
+            hint: "Type what should appear on the card. Leave a box empty to hide that line.",
+            content: (
+              <div onChangeCapture={clearStatus} className="space-y-4">
+                {modeSwitcher}
+                {customBanner}
                 {blankView ? (
                   <div className="space-y-3 rounded-2xl bg-[#f5f5f7] p-4">
                     <FieldHint>
@@ -1305,7 +1604,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                         className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#4d7c0f] px-4 py-2 text-sm font-bold text-white hover:bg-[#3f6212] transition cursor-pointer"
                       >
                         <Maximize2 aria-hidden="true" className="h-4 w-4" />
-                        Design from scratch
+                        Advanced Editor
                       </button>
                     </div>
                   </div>
@@ -1359,22 +1658,25 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                           buttonLabel="Choose logo"
                           inputLabel="Upload company logo image"
                           accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                          hint="PNG with a see-through background looks best (or remove the background inside Advanced Editor)"
+                          hint="PNG with a transparent background looks best"
                           onFiles={(files) => void acceptLogoFile(files[0])}
                         />
                       )}
                     </div>
                   </div>
                 )}
-              </section>
-
-              <section aria-labelledby={`${uid}-s2`}>
-                <StepHeader
-                  id={`${uid}-s2`}
-                  step={2}
-                  title="Pick a style"
-                  hint="Tap a design. You can change it any time — your details stay."
-                />
+              </div>
+            ),
+          },
+          {
+            id: "style",
+            number: 2,
+            label: "Style",
+            title: "Pick a style",
+            hint: "Tap a design. You can change it any time — your details stay.",
+            content: (
+              <div onChangeCapture={clearStatus} className="space-y-4">
+                {customBanner}
                 <div role="group" aria-label="Card style" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {STYLE_OPTIONS.map((st) => {
                     const active = !hasCustomDesign && styleId === st.id;
@@ -1397,11 +1699,11 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                       >
                         <StyleThumb id={st.id} accent={accentHex} />
                         <span className="px-0.5">
-                          <span className="flex items-center gap-1 text-sm font-bold text-zinc-950">
+                          <span className="flex items-center gap-1 text-xs font-bold text-zinc-950">
                             {st.label}
                             {active && <Check aria-hidden="true" className="h-3.5 w-3.5 text-[#4d7c0f]" />}
                           </span>
-                          <span className="block text-[11px] leading-snug text-zinc-600">{st.hint}</span>
+                          <span className="block text-[10px] leading-snug text-zinc-600">{st.hint}</span>
                         </span>
                       </button>
                     );
@@ -1409,17 +1711,17 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                 </div>
 
                 {!blankView && (
-                  <div className="mt-4 space-y-4">
+                  <div className="space-y-4">
                     {styleId === "dark" && !hasCustomDesign && (
                       <FieldHint>
-                        Dark cards print ink right to the edge — turn on <strong>Edge bleed (3 mm)</strong> below and cut cleanly along the guides.
+                        Dark cards print ink right to the edge — turn on <strong>Edge bleed (3 mm)</strong> in step 3 and cut cleanly along the guides.
                       </FieldHint>
                     )}
                     <div role="group" aria-labelledby={`${uid}-font-label`}>
                       <p id={`${uid}-font-label`} className={labelClass}>
                         Font
                       </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {FONT_OPTIONS.map((f) => {
                           const p = FONT_PAIRS[f.id];
                           const active = fontPairId === f.id;
@@ -1471,7 +1773,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                                   setAccentHex(cp.hex);
                                   if (hasCustomDesign) setHasCustomDesign(false);
                                 }}
-                                className={`grid h-10 w-10 place-items-center rounded-full transition cursor-pointer ${
+                                className={`grid h-9 w-9 place-items-center rounded-full transition cursor-pointer ${
                                   active ? "ring-2 ring-[#4d7c0f] ring-offset-2" : "ring-1 ring-black/10 hover:scale-105"
                                 }`}
                                 style={{ backgroundColor: cp.hex }}
@@ -1483,7 +1785,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                         </div>
                         <label
                           htmlFor="card-accent-color"
-                          className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl bg-[#f5f5f7] px-3 text-xs font-medium text-zinc-700 hover:bg-[#ebeced]"
+                          className="inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-xl bg-[#f5f5f7] px-3 text-xs font-medium text-zinc-700 hover:bg-[#ebeced]"
                         >
                           Custom
                           <span className="font-mono text-zinc-600">{accentHex.toUpperCase()}</span>
@@ -1495,11 +1797,12 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                               setAccentHex(e.target.value);
                               if (hasCustomDesign) setHasCustomDesign(false);
                             }}
-                            className="h-8 w-10 cursor-pointer rounded-md bg-white"
+                            className="h-7 w-9 cursor-pointer rounded-md bg-white"
                           />
                         </label>
                       </div>
                     </div>
+
                     <div className="space-y-1.5">
                       <label className={checkRowClass}>
                         <input
@@ -1522,437 +1825,143 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                             : "Add a website, email or phone number in step 1 so the QR code has somewhere to go."}
                       </FieldHint>
                     </div>
-                    <div className="rounded-2xl border border-dashed border-[#4d7c0f]/50 bg-[#f7fbf1] p-3.5">
-                      <p className="text-sm font-bold text-zinc-950">Want full studio control?</p>
-                      <p className="mt-0.5 text-xs leading-relaxed text-zinc-600">
-                        Open the full-screen editor to drag, resize, rotate, pick custom fonts &amp; gradients, remove logo backgrounds, add icons, and export PDF, PNG or SVG.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={openAdvancedEditor}
-                        className="mt-2.5 inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-4 py-2 text-xs font-bold text-white hover:bg-[#3f6212] transition cursor-pointer"
-                      >
-                        <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
-                        Open Advanced Editor
-                      </button>
-                    </div>
                   </div>
                 )}
-              </section>
-            </>
-          )}
+              </div>
+            ),
+          },
+          {
+            id: "sheet",
+            number: 3,
+            label: "Sheet",
+            title: "Sheet & paper",
+            hint: "Choose the paper you'll print on, cut guides, and optional back side.",
+            content: sheetAndCutStepContent,
+          },
+          {
+            id: "export",
+            number: 4,
+            label: "Export",
+            title: "Download & print",
+            hint: backOn
+              ? `You'll get a 2-page PDF: fronts on page 1, backs on page 2 (${paperShort}).`
+              : `You'll get a PDF with ${cardCount} cards on one ${paperShort} page.`,
+            content: exportStepContent,
+          },
+        ];
 
-          <section aria-labelledby={`${uid}-s3`}>
-            <StepHeader
-              id={`${uid}-s3`}
-              step={sheetStep}
-              title="Sheet & paper"
-              hint="Choose the paper you'll print on and how many cards fit on it."
-            />
-            <fieldset className="space-y-2">
-              <legend className={labelClass}>Sheet layout</legend>
-              {Object.values(SHEET_PRESETS).map((s) => {
-                const active = s.id === sheetId;
-                return (
-                  <label
-                    key={s.id}
-                    className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
-                      active
-                        ? "bg-[#eef6e4] font-semibold text-[#365314] ring-2 ring-[#4d7c0f]"
-                        : "bg-[#f5f5f7] text-zinc-800 hover:bg-[#ebeced]"
+  const previewNode = (
+    <div
+      id={`${uid}-panel`}
+      {...(backOn ? { role: "tabpanel", "aria-labelledby": `${uid}-tab-${side}` } : {})}
+      className="w-full flex flex-col sm:flex-row items-center sm:items-start justify-center gap-6 sm:gap-8"
+    >
+      {/* Close-up of one card */}
+      <figure className="w-full max-w-[380px] sm:flex-1">
+        {needsUpload ? (
+          <div
+            className="flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-zinc-300 bg-white px-4 text-center"
+            style={{ aspectRatio: `${sheet.cardW} / ${sheet.cardH}` }}
+          >
+            <ImagePlus aria-hidden="true" className="h-6 w-6 text-[#3f6212]" />
+            <span className="text-sm font-semibold text-zinc-900">Your card will appear here</span>
+            <span className="text-xs text-zinc-600">Upload your design in step 1</span>
+          </div>
+        ) : (
+          <div
+            role="region"
+            aria-label={`One business card, ${side}`}
+            className="relative overflow-hidden rounded-md bg-white shadow-md ring-1 ring-zinc-300"
+            style={{ aspectRatio: `${sheet.cardW} / ${sheet.cardH}`, containerType: "inline-size" }}
+          >
+            {side === "front" && blankView ? (
+              <div className="h-full w-full flex items-center justify-center text-xs text-zinc-600">
+                Blank card outline
+              </div>
+            ) : (
+              cardFace(side)
+            )}
+          </div>
+        )}
+        <figcaption className="mt-2.5 text-center text-xs text-zinc-600">
+          One card, actual shape · {sheet.cardW} × {sheet.cardH} mm
+          {backOn && (side === "front" ? " · page 1" : " · page 2")}
+        </figcaption>
+      </figure>
+
+      {/* Whole sheet at scale */}
+      <figure className="w-[180px] sm:w-[200px] shrink-0">
+        <div className="rounded-2xl bg-white p-3 ring-1 ring-zinc-200 shadow-xs">{sheetThumb}</div>
+        <figcaption className="mt-2.5 text-center text-xs text-zinc-600">
+          Whole page · {paperShort} · {cardCount} cards
+        </figcaption>
+      </figure>
+    </div>
+  );
+
+  return (
+    <>
+      <FullPageToolShell
+        open={open}
+        onClose={onClose}
+        toolTitle="Business Card Sheet"
+        toolSummary={`${cardCount} cards · ${paperShort} · ${sheet.cardW} × ${sheet.cardH} mm`}
+        steps={steps}
+        activeStep={activeStep}
+        onStepChange={setActiveStep}
+        headerCenter={headerCenter}
+        previewToolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            {hasCustomDesign && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">
+                Custom layout
+              </span>
+            )}
+            {hydrated && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-semibold text-[#365314]">
+                <Check aria-hidden="true" className="h-3 w-3" />
+                {saveStatus === "saving" ? "Saving…" : "Auto-saved"}
+              </span>
+            )}
+            {backOn && (
+              <div role="tablist" aria-label="Card side" className="inline-flex rounded-xl bg-[#f5f5f7] p-0.5">
+                {(["front", "back"] as const).map((s) => (
+                  <button
+                    key={s}
+                    id={`${uid}-tab-${s}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={side === s}
+                    aria-controls={`${uid}-panel`}
+                    onClick={() => setPreviewSide(s)}
+                    className={`min-h-[30px] rounded-lg px-3 text-xs font-semibold transition cursor-pointer ${
+                      side === s ? "bg-white text-zinc-950 shadow-xs" : "text-zinc-600 hover:text-zinc-900"
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name={`${uid}-sheet`}
-                      value={s.id}
-                      checked={active}
-                      onChange={() => setSheetId(s.id)}
-                      className="h-4 w-4 shrink-0 accent-[#4d7c0f]"
-                    />
-                    {s.label}
-                  </label>
-                );
-              })}
-              <label
-                className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
-                  sheetId === "custom"
-                    ? "bg-[#eef6e4] font-semibold text-[#365314] ring-2 ring-[#4d7c0f]"
-                    : "bg-[#f5f5f7] text-zinc-800 hover:bg-[#ebeced]"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={`${uid}-sheet`}
-                  value="custom"
-                  checked={sheetId === "custom"}
-                  onChange={() => {
-                    if (sheetId !== "custom") {
-                      const { paper: pp, cols, rows, cardW, cardH, gapX, gapY } = sheet;
-                      setCustomSheet({ paper: pp, cols, rows, cardW, cardH, gapX, gapY });
-                    }
-                    setSheetId("custom");
-                  }}
-                  className="h-4 w-4 shrink-0 accent-[#4d7c0f]"
-                />
-                Custom — set the paper, card size and layout yourself
-              </label>
-              {sheetId !== "custom" && <FieldHint>{sheet.note}</FieldHint>}
-            </fieldset>
-
-            {sheetId === "custom" && (
-              <div className="mt-3 space-y-3 rounded-2xl bg-[#f5f5f7] p-3.5">
-                <div>
-                  <label htmlFor={`${uid}-paper`} className={labelClass}>
-                    Paper
-                  </label>
-                  <select
-                    id={`${uid}-paper`}
-                    value={customSheet.paper}
-                    onChange={(e) => setCustomSheet((c) => ({ ...c, paper: e.target.value as CustomSheet["paper"] }))}
-                    className={`${inputClass} bg-white`}
-                  >
-                    {(["a4", "letter", "a3"] as const).map((id) => (
-                      <option key={id} value={id}>
-                        {PAPER_SIZES[id].label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                  <SheetNumber label="Cards across" unit="" value={customSheet.cols} min={1} max={12} onChange={(cols) => setCustomSheet((c) => ({ ...c, cols: Math.round(cols) }))} />
-                  <SheetNumber label="Cards down" unit="" value={customSheet.rows} min={1} max={20} onChange={(rows) => setCustomSheet((c) => ({ ...c, rows: Math.round(rows) }))} />
-                  <SheetNumber label="Card width" value={customSheet.cardW} min={20} max={200} onChange={(cardW) => setCustomSheet((c) => ({ ...c, cardW }))} />
-                  <SheetNumber label="Card height" value={customSheet.cardH} min={20} max={200} onChange={(cardH) => setCustomSheet((c) => ({ ...c, cardH }))} />
-                  <SheetNumber label="Gap across" value={customSheet.gapX} min={0} max={50} onChange={(gapX) => setCustomSheet((c) => ({ ...c, gapX }))} />
-                  <SheetNumber label="Gap down" value={customSheet.gapY} min={0} max={50} onChange={(gapY) => setCustomSheet((c) => ({ ...c, gapY }))} />
-                </div>
-                {gridBad ? (
-                  <FieldHint tone="error">
-                    That doesn&rsquo;t fit on {paperShort} (printers can&rsquo;t reach the last {PRINTER_SAFE_MARGIN_MM} mm of each edge). At most{" "}
-                    {gridCheck.maxCols} across × {gridCheck.maxRows} down fit at this size. Make cards smaller or use fewer.
-                  </FieldHint>
-                ) : (
-                  <FieldHint>
-                    {cardCount} cards, each {sheet.cardW} × {sheet.cardH} mm, centred on the page.
-                  </FieldHint>
-                )}
-              </div>
-            )}
-
-            <details className="mt-4 rounded-xl bg-[#f5f5f7] px-3.5 py-2.5">
-              <summary className="cursor-pointer text-sm font-medium text-zinc-900">Fine-tune print alignment</summary>
-              <div className="mt-3 space-y-2.5">
-                <FieldHint>
-                  If your printer prints a little off-centre, nudge the whole grid. Use a negative number to move left or up. The back page is mirrored automatically for flip-over printing.
-                </FieldHint>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <SheetNumber label="Shift right (mm)" value={offsetX} min={-10} max={10} onChange={setOffsetX} />
-                  <SheetNumber label="Shift down (mm)" value={offsetY} min={-10} max={10} onChange={setOffsetY} />
-                </div>
-                {(offsetX !== 0 || offsetY !== 0) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOffsetX(0);
-                      setOffsetY(0);
-                    }}
-                    className={`${secondaryButtonClass} bg-white`}
-                  >
-                    Reset to centred
+                    {s === "front" ? "Front" : "Back"}
                   </button>
-                )}
-              </div>
-            </details>
-
-            <div className="mt-4 space-y-2.5">
-              <fieldset className="space-y-1.5">
-                <legend className={labelClass}>Cutting guides</legend>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(
-                    [
-                      ["dashed-grid", "Easy cut lines", "Full dashed lines — best for scissors & ruler"],
-                      ["card-outline", "Card outlines", "Dashed border around every card"],
-                      ["crop-marks", "Corner marks", "Pro ticks for paper trimmers"],
-                      ["none", "No guides", "For pre-cut perforated paper"],
-                    ] as const
-                  ).map(([id, title, desc]) => {
-                    const active = cutGuideStyle === id;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() => setCutGuideStyle(id)}
-                        className={`rounded-xl px-3 py-2 text-left transition cursor-pointer ${
-                          active
-                            ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]"
-                            : "bg-[#f5f5f7] hover:bg-[#ebeced]"
-                        }`}
-                      >
-                        <span className={`flex items-center gap-1.5 text-xs font-bold ${active ? "text-[#365314]" : "text-zinc-900"}`}>
-                          <Scissors aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                          {title}
-                        </span>
-                        <span className="mt-0.5 block text-[11px] leading-snug text-zinc-600">{desc}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-
-              {sheetId !== "custom" && (
-                <div className="space-y-1">
-                  <label className={checkRowClass}>
-                    <input
-                      type="checkbox"
-                      checked={singleCut}
-                      onChange={(e) => {
-                        const on = e.target.checked;
-                        setSingleCut(on);
-                        if (on && includeBleed) setIncludeBleed(false);
-                      }}
-                      className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
-                    />
-                    <Scissors aria-hidden="true" className="h-4 w-4 text-[#4d7c0f]" />
-                    <span>
-                      Single-cut layout <span className="text-xs font-normal text-zinc-600">(fewer cuts, no thin strips)</span>
-                    </span>
-                  </label>
-                  <FieldHint>
-                    Cards touch edge-to-edge so one straight cut separates two cards (9 cuts instead of 14). Great for white-background cards!
-                  </FieldHint>
-                </div>
-              )}
-
-              <label className={checkRowClass}>
-                <input
-                  type="checkbox"
-                  checked={includeBleed}
-                  onChange={(e) => {
-                    const on = e.target.checked;
-                    setIncludeBleed(on);
-                    if (on && singleCut) setSingleCut(false);
-                  }}
-                  className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
-                />
-                <SlidersHorizontal aria-hidden="true" className="h-4 w-4 text-zinc-600" />
-                Add edge bleed (3 mm)
-              </label>
-              {isDarkDesign && (
-                <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
-                  <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-                  <span>
-                    <strong>Dark / edge-to-edge card:</strong> Keep cut guides and bleed enabled (with Single-cut off) so trimming won&rsquo;t leave thin white borders.
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {canBack && (
-              <div className="mt-4 space-y-1.5">
-                <label className={checkRowClass}>
-                  <input
-                    type="checkbox"
-                    checked={includeBack}
-                    onChange={(e) => {
-                      setIncludeBack(e.target.checked);
-                      setPreviewSide(e.target.checked ? "back" : "front");
-                    }}
-                    className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
-                  />
-                  Also print the back (for double-sided printing)
-                </label>
-                <FieldHint>Print page 1, flip the paper, then print page 2.</FieldHint>
+                ))}
               </div>
             )}
-
-            {backOn && !hasCustomDesign && (
-              <div className="mt-3 grid grid-cols-1 gap-3 rounded-2xl bg-[#f5f5f7] p-3.5">
-                <fieldset>
-                  <legend className={labelClass}>Back design</legend>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {BACK_OPTIONS.map((bo) => {
-                      const active = backStyle === bo.id;
-                      return (
-                        <label
-                          key={bo.id}
-                          className={`flex min-h-[44px] cursor-pointer items-start gap-2.5 rounded-xl px-3 py-2.5 text-sm transition ${
-                            active ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]" : "bg-white hover:bg-[#ebeced]"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={`${uid}-back`}
-                            value={bo.id}
-                            checked={active}
-                            onChange={() => {
-                              setBackStyle(bo.id);
-                              setPreviewSide("back");
-                            }}
-                            className="mt-0.5 h-4 w-4 shrink-0 accent-[#4d7c0f]"
-                          />
-                          <span>
-                            <span className={`block font-semibold ${active ? "text-[#365314]" : "text-zinc-900"}`}>{bo.label}</span>
-                            <span className="block text-[11px] leading-snug text-zinc-600">{bo.hint}</span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-                <div>
-                  <label htmlFor="card-back-tagline" className={labelClass}>
-                    Tagline (optional)
-                  </label>
-                  <input
-                    id="card-back-tagline"
-                    type="text"
-                    value={tagline}
-                    onChange={(e) => updateSimpleField("tagline", e.target.value, setTagline)}
-                    placeholder="e.g. what you do, in a few words"
-                    className={`${inputClass} bg-white`}
-                  />
-                </div>
-                {backStyle === "logo" && !logo && (
-                  <FieldHint>No logo added, so your initials are shown. Add a logo in step 1 to use it here.</FieldHint>
-                )}
-              </div>
-            )}
-          </section>
-
-          <section aria-labelledby={`${uid}-s4`} className="space-y-3">
-            <StepHeader
-              id={`${uid}-s4`}
-              step={downloadStep}
-              title="Download & print"
-              hint={
-                backOn
-                  ? `You'll get a 2-page PDF: fronts on page 1, backs on page 2 (${paperShort}).`
-                  : `You'll get a PDF with ${cardCount} cards on one ${paperShort} page.`
-              }
-            />
-            {downloadButton("w-full")}
-            <DownloadPassBadge />
-            {needsUpload && (
-              <FieldHint id={downloadHintId}>Upload your card design in step 1 to turn on the download.</FieldHint>
-            )}
-            <ToolStatus status={status} />
-            <PrintTipsPanel
-              paperLabel={paperShort}
-              open={tipsOpen}
-              extraSteps={extraSteps}
-              cutStep={
-                cutGuideStyle === "dashed-grid"
-                  ? "Follow the dashed cut lines straight across with scissors or a ruler & craft knife — cut right on the dashed line so it disappears cleanly."
-                  : cutGuideStyle === "card-outline"
-                    ? "Cut directly along the dashed border around each card using scissors or a paper trimmer."
-                    : "Line your ruler or paper trimmer up with the corner marks to cut straight edges."
-              }
-            />
-          </section>
-        </div>
-
-        {/* ---------------- Preview ---------------- */}
-        <div className="order-1 lg:order-2 lg:col-span-7 lg:sticky lg:top-24 rounded-2xl bg-white p-4 sm:p-6 lg:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2.5">
-              <h3 className="text-sm font-bold tracking-tight text-zinc-950">Preview</h3>
-              {hasCustomDesign && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">
-                  Custom layout
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {backOn && (
-                <div role="tablist" aria-label="Card side" className="inline-flex rounded-xl bg-[#f5f5f7] p-1">
-                  {(["front", "back"] as const).map((s) => (
-                    <button
-                      key={s}
-                      id={`${uid}-tab-${s}`}
-                      type="button"
-                      role="tab"
-                      aria-selected={side === s}
-                      aria-controls={`${uid}-panel`}
-                      onClick={() => setPreviewSide(s)}
-                      className={`min-h-[34px] rounded-lg px-3.5 text-xs font-semibold transition cursor-pointer ${
-                        side === s ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-600 hover:text-zinc-900"
-                      }`}
-                    >
-                      {s === "front" ? "Front" : "Back"}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Primary Entry Point: Open Advanced Editor */}
-              {mode === "design" && (
-                <button
-                  type="button"
-                  onClick={openAdvancedEditor}
-                  className="inline-flex min-h-[38px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#3f6212] transition cursor-pointer"
-                >
-                  <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
-                  Open Advanced Editor
-                </button>
-              )}
-            </div>
           </div>
-
-          <div
-            id={`${uid}-panel`}
-            {...(backOn ? { role: "tabpanel", "aria-labelledby": `${uid}-tab-${side}` } : {})}
-            className="flex flex-col sm:flex-row items-center sm:items-start justify-center gap-6 sm:gap-8"
-          >
-            {/* Close-up of one card */}
-            <figure className="w-full max-w-[360px] sm:flex-1">
-              {needsUpload ? (
-                <div
-                  className="flex flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-zinc-300 bg-[#fafafa] px-4 text-center"
-                  style={{ aspectRatio: `${sheet.cardW} / ${sheet.cardH}` }}
-                >
-                  <ImagePlus aria-hidden="true" className="h-6 w-6 text-[#3f6212]" />
-                  <span className="text-sm font-semibold text-zinc-900">Your card will appear here</span>
-                  <span className="text-xs text-zinc-600">Upload your design in step 1</span>
-                </div>
-              ) : (
-                <div
-                  role="region"
-                  aria-label={`One business card, ${side}`}
-                  className="relative overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-zinc-300"
-                  style={{ aspectRatio: `${sheet.cardW} / ${sheet.cardH}`, containerType: "inline-size" }}
-                >
-                  {side === "front" && blankView ? (
-                    <div className="h-full w-full flex items-center justify-center text-xs text-zinc-600">
-                      Blank card outline
-                    </div>
-                  ) : (
-                    cardFace(side)
-                  )}
-                </div>
-              )}
-              <figcaption className="mt-2 text-center text-xs text-zinc-600">
-                One card, actual shape · {sheet.cardW} × {sheet.cardH} mm
-                {backOn && (side === "front" ? " · page 1" : " · page 2")}
-              </figcaption>
-            </figure>
-
-            {/* Whole sheet at scale */}
-            <figure className="w-[170px] sm:w-[190px] shrink-0">
-              <div className="rounded-xl bg-[#f5f5f7] p-3">{sheetThumb}</div>
-              <figcaption className="mt-2 text-center text-xs text-zinc-600">
-                Whole page · {paperShort} · {cardCount} cards
-              </figcaption>
-            </figure>
-          </div>
-        </div>
-      </div>
-
-      <MobileActionBar summary={`${cardCount} cards · ${paperShort}${backOn ? " · 2 pages" : ""}`}>
-        {downloadButton("px-4")}
-      </MobileActionBar>
+        }
+        preview={previewNode}
+        primaryAction={{
+          label: downloadLabel,
+          mobileLabel: isExporting ? "Making PDF…" : "Download PDF",
+          onClick: handleDownloadPdf,
+          disabled: isExporting || needsUpload || gridBad,
+          loading: isExporting,
+          describedBy: needsUpload ? downloadHintId : undefined,
+        }}
+        advancedAction={{
+          label: "Open Advanced Editor",
+          onClick: openAdvancedEditor,
+          title: "Drag, resize, rotate, add shapes/icons & export PNG/SVG",
+        }}
+        howTo={BUSINESS_CARD_HOW_TO}
+        mobileSummary={`${cardCount} cards · ${paperShort}${backOn ? " · 2 pages" : ""}`}
+      />
 
       {/* ==================== FULL-SCREEN ADVANCED EDITOR ==================== */}
       <AdvancedCardEditor
@@ -2010,6 +2019,6 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
         onLoadPayload={applyPersistedPayload}
         onClose={closeAdvancedEditor}
       />
-    </div>
+    </>
   );
 }

@@ -21,6 +21,7 @@ import {
 } from "@/data/page-media-ctas";
 import { ToolWorkspace } from "@/components/tools/ToolWorkspace";
 import { HomeQuickStudio } from "@/components/tools/HomeQuickStudio";
+import { StudioActionLink } from "@/components/tools/ui/StudioTrigger";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { assignHeadingIds } from "@/lib/headings";
 
@@ -67,13 +68,13 @@ function EditorialFigure({
               <span>{image.badge}</span>
             </span>
             {ctaHref && ctaLabel && (
-              <Link
+              <StudioActionLink
                 href={ctaHref}
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#3f6212] hover:text-[#365314] transition"
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#3f6212] hover:text-[#365314] transition cursor-pointer"
               >
                 <span>{ctaLabel}</span>
                 <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
+              </StudioActionLink>
             )}
           </div>
 
@@ -109,7 +110,7 @@ function MidContentCtaBanner({
   midBanner: PageCtaConfig["midBanner"];
 }) {
   return (
-    <div className="mt-14 rounded-3xl bg-[#eef6e4] p-7 sm:p-10">
+    <div className="mt-12 rounded-3xl bg-[#eef6e4] p-6 sm:p-8">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-2.5 max-w-2xl">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#3f6212]">
@@ -121,11 +122,11 @@ function MidContentCtaBanner({
           <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed">
             {midBanner.body}
           </p>
-          <div className="pt-1 flex flex-wrap items-center gap-3 text-xs font-semibold text-[#365314]">
+          <div className="pt-1 flex flex-wrap items-center gap-2.5 text-xs font-semibold text-[#365314]">
             {midBanner.trustPoints.map((pt, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-white/80 px-3 py-1"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/85 px-3 py-1"
               >
                 <CheckCircle2 className="h-3.5 w-3.5 text-[#4d7c0f] shrink-0" />
                 <span>{pt}</span>
@@ -135,21 +136,21 @@ function MidContentCtaBanner({
         </div>
 
         <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
-          <Link
+          <StudioActionLink
             href={midBanner.primary.href}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition cursor-pointer"
           >
             <Printer className="h-4 w-4 shrink-0" />
             <span>{midBanner.primary.label}</span>
             <ArrowRight className="h-4 w-4 shrink-0" />
-          </Link>
-          <Link
+          </StudioActionLink>
+          <StudioActionLink
             href={midBanner.secondary.href}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white hover:bg-zinc-50 px-4 py-2.5 text-xs font-bold text-zinc-900 transition"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white hover:bg-zinc-50 px-4 py-2.5 text-xs font-bold text-zinc-900 transition cursor-pointer"
           >
             <span>{midBanner.secondary.label}</span>
             <ArrowUpRight className="h-3.5 w-3.5 text-[#4d7c0f] shrink-0" />
-          </Link>
+          </StudioActionLink>
         </div>
       </div>
     </div>
@@ -280,14 +281,14 @@ function renderHeadingBlock(
         <div
           key={`${id}-${idx}`}
           id={id}
-          className="rounded-3xl bg-[#f5f5f7] p-6 sm:p-7 flex flex-col justify-between transition hover:bg-[#efeff2]"
+          className="rounded-2xl bg-[#f5f5f7] p-6 flex flex-col justify-between transition hover:bg-[#eef6e4]/55"
         >
           <div>
-            <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-[#4d7c0f] mb-4">
+            <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center text-[#4d7c0f] mb-3.5">
               {targetMeta ? (
-                <Layers className="h-5 w-5" strokeWidth={1.75} />
+                <Layers className="h-4 w-4" strokeWidth={1.75} />
               ) : (
-                <Sparkles className="h-5 w-5" strokeWidth={1.75} />
+                <Sparkles className="h-4 w-4" strokeWidth={1.75} />
               )}
             </div>
 
@@ -321,16 +322,16 @@ function renderHeadingBlock(
           (node.link && targetMeta && !sameAnchorAsText) ||
           (node.inlineLinks && node.inlineLinks.length > 0) ||
           (node.link && targetMeta && sameAnchorAsText) ? (
-            <div className="mt-5 rounded-2xl bg-white p-3.5 space-y-2.5">
+            <div className="mt-4 pt-3.5 border-t border-[#e4e4e7]/80 space-y-2.5">
               {node.bullets && node.bullets.length > 0 && (
-                <ul className="space-y-2 text-xs font-medium text-zinc-800">
+                <ul className="space-y-1.5 text-xs font-medium text-zinc-800">
                   {node.bullets.map((b, bIdx) => (
                     <li
                       key={bIdx}
-                      className="flex items-start gap-2.5 pt-2 first:pt-0"
+                      className="flex items-start gap-2 pt-1 first:pt-0"
                     >
                       <CheckCircle2
-                        className="h-4 w-4 text-[#4d7c0f] shrink-0 mt-0.5"
+                        className="h-3.5 w-3.5 text-[#4d7c0f] shrink-0 mt-0.5"
                         strokeWidth={1.75}
                       />
                       <span>{b}</span>
@@ -359,7 +360,7 @@ function renderHeadingBlock(
                     <Link
                       key={`${lnk.targetId}-${lnk.anchor}`}
                       href={target.url}
-                      className="inline-flex items-center gap-1 rounded-xl bg-[#f5f5f7] px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-[#ebeced] hover:text-[#4d7c0f] transition"
+                      className="inline-flex items-center gap-1 rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-[#eef6e4] hover:text-[#365314] transition"
                     >
                       <span>{lnk.anchor}</span>
                       <ArrowUpRight className="h-3.5 w-3.5 text-[#4d7c0f]" />
@@ -661,129 +662,56 @@ export function PageShell({
             </nav>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-12 gap-y-8 lg:items-end">
-          <div className={hasNotices ? "lg:col-span-8" : "lg:col-span-12"}>
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#4d7c0f]">
-              — {isHome ? "ONLINE STUDIO" : meta.type} —
-            </span>
-            <span className="inline-flex items-center rounded-full bg-[#f5f5f7] px-3 py-1 text-[11px] font-medium text-zinc-600">
-              Free · No Sign-Up · Print-Ready PDF
-            </span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-zinc-950 max-w-4xl leading-[1.1] text-balance">
-            {meta.h1}
-          </h1>
-
-          {!isHome && (
-            <p className="mt-4 text-base sm:text-lg font-medium text-zinc-700 max-w-3xl leading-relaxed">
-              {content.subtitle}
-            </p>
-          )}
-
-          <div className="mt-4 space-y-3 max-w-3xl text-sm sm:text-base text-zinc-600 leading-relaxed">
-            {topIntroParagraphs.map((para, idx) => (
-              <p key={idx}>{para}</p>
-            ))}
-          </div>
-
-          {/* Hero Action CTA Bar */}
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href={ctas.heroPrimary.href}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition"
-            >
-              <Printer className="h-4 w-4 shrink-0" />
-              <span>{ctas.heroPrimary.label}</span>
-              {ctas.heroPrimary.sublabel && (
-                <span className="hidden sm:inline-flex rounded-md bg-zinc-950/10 px-2 py-0.5 text-[10px] font-semibold text-zinc-950">
-                  {ctas.heroPrimary.sublabel}
-                </span>
-              )}
-              <ArrowRight className="h-4 w-4 shrink-0" />
-            </Link>
-
-            <Link
-              href={ctas.heroSecondary.href}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] px-4 py-3 text-xs sm:text-sm font-semibold text-zinc-800 hover:text-zinc-950 transition"
-            >
-              <span>{ctas.heroSecondary.label}</span>
-              <ArrowUpRight className="h-4 w-4 text-[#4d7c0f] shrink-0" />
-            </Link>
-          </div>
-          </div>
-
-          {/* Mandatory safety / compliance / scaffold notices */}
-          {hasNotices && (
-            <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
-              {meta.requiresLocalRulesNote && (
-                <div className="rounded-2xl bg-[#f5f5f7] p-4 text-xs text-zinc-600 flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center shrink-0">
-                    <AlertTriangle
-                      className="h-4 w-4 text-amber-600"
-                      strokeWidth={1.75}
-                    />
-                  </div>
-                  <div>
-                    <span className="font-bold text-zinc-950 block mb-0.5">
-                      Check local rules
-                    </span>
-                    <span className="leading-relaxed">
-                      Always verify current local government, postal, food,
-                      candle, or cosmetic packaging regulations (photo
-                      dimensions, allergen declarations, net weights, burn
-                      warnings) before final printing.
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {meta.requiresBrandNonAffiliationNote && (
-                <div className="rounded-2xl bg-[#f5f5f7] p-4 text-xs text-zinc-600 flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center shrink-0">
-                    <Info
-                      className="h-4 w-4 text-[#4d7c0f]"
-                      strokeWidth={1.75}
-                    />
-                  </div>
-                  <div>
-                    <span className="font-bold text-zinc-950 block mb-0.5">
-                      Independent compatibility note
-                    </span>
-                    <span className="leading-relaxed">
-                      Print Sheet Maker is not affiliated with, endorsed by, or
-                      sponsored by Avery, Canva, Cricut, Epson, Adobe
-                      (Photoshop, Lightroom, InDesign), Microsoft Word, Kodak,
-                      or Officeworks. Product sizes and workflows are described
-                      purely for compatible sheet layouts.
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {meta.isCaseStudyScaffold && (
-                <div className="rounded-2xl bg-[#f5f5f7] p-4 text-xs text-zinc-600 flex items-start gap-3 md:col-span-2 lg:col-span-1">
-                  <div className="h-8 w-8 rounded-xl bg-white flex items-center justify-center shrink-0">
-                    <Info
-                      className="h-4 w-4 text-[#4d7c0f]"
-                      strokeWidth={1.75}
-                    />
-                  </div>
-                  <div>
-                    <span className="font-bold text-zinc-950 block mb-0.5">
-                      [REAL DATA NEEDED] Case Study Scaffold
-                    </span>
-                    <span className="leading-relaxed">
-                      This workflow case study preserves explicit [REAL DATA
-                      NEEDED] placeholders under Results and Lessons so only
-                      verified metrics and user feedback are published.
-                    </span>
-                  </div>
-                </div>
-              )}
+          <div className="max-w-4xl">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#4d7c0f]">
+                — {isHome ? "ONLINE STUDIO" : meta.type} —
+              </span>
+              <span className="inline-flex items-center rounded-full bg-[#f5f5f7] px-3 py-1 text-[11px] font-medium text-zinc-600">
+                Free · No Sign-Up · Print-Ready PDF
+              </span>
             </div>
-          )}
+
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-zinc-950 leading-[1.1] text-balance">
+              {meta.h1}
+            </h1>
+
+            {!isHome && (
+              <p className="mt-4 text-base sm:text-lg font-medium text-zinc-700 max-w-3xl leading-relaxed">
+                {content.subtitle}
+              </p>
+            )}
+
+            <div className="mt-4 space-y-3 max-w-3xl text-sm sm:text-base text-zinc-600 leading-relaxed">
+              {topIntroParagraphs.map((para, idx) => (
+                <p key={idx}>{para}</p>
+              ))}
+            </div>
+
+            {/* Hero Action CTA Bar */}
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <StudioActionLink
+                href={ctas.heroPrimary.href}
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition cursor-pointer"
+              >
+                <Printer className="h-4 w-4 shrink-0" />
+                <span>{ctas.heroPrimary.label}</span>
+                {ctas.heroPrimary.sublabel && (
+                  <span className="hidden sm:inline-flex rounded-md bg-zinc-950/10 px-2 py-0.5 text-[10px] font-semibold text-zinc-950">
+                    {ctas.heroPrimary.sublabel}
+                  </span>
+                )}
+                <ArrowRight className="h-4 w-4 shrink-0" />
+              </StudioActionLink>
+
+              <StudioActionLink
+                href={ctas.heroSecondary.href}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#f5f5f7] hover:bg-[#ebeced] px-4 py-3 text-xs sm:text-sm font-semibold text-zinc-800 hover:text-zinc-950 transition cursor-pointer"
+              >
+                <span>{ctas.heroSecondary.label}</span>
+                <ArrowUpRight className="h-4 w-4 text-[#4d7c0f] shrink-0" />
+              </StudioActionLink>
+            </div>
           </div>
         </div>
       </div>
@@ -802,6 +730,82 @@ export function PageShell({
               <ToolWorkspace pageId={meta.id} engine={meta.toolEngine} />
             )
           )}
+        </section>
+      )}
+
+      {/* Mandatory safety / compliance / scaffold notices (calm strip below workspace) */}
+      {hasNotices && (
+        <section
+          aria-label="Important compliance and compatibility notices"
+          className="page-container pt-6"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {meta.requiresLocalRulesNote && (
+              <div className="rounded-2xl bg-[#f5f5f7] px-4 py-3.5 text-xs text-zinc-600 flex items-start gap-3">
+                <div className="h-7 w-7 rounded-lg bg-white flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertTriangle
+                    className="h-3.5 w-3.5 text-amber-600"
+                    strokeWidth={1.75}
+                  />
+                </div>
+                <div>
+                  <span className="font-bold text-zinc-950 block mb-0.5">
+                    Check local rules
+                  </span>
+                  <span className="leading-relaxed">
+                    Always verify current local government, postal, food,
+                    candle, or cosmetic packaging regulations (photo dimensions,
+                    allergen declarations, net weights, burn warnings) before
+                    final printing.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {meta.requiresBrandNonAffiliationNote && (
+              <div className="rounded-2xl bg-[#f5f5f7] px-4 py-3.5 text-xs text-zinc-600 flex items-start gap-3">
+                <div className="h-7 w-7 rounded-lg bg-white flex items-center justify-center shrink-0 mt-0.5">
+                  <Info
+                    className="h-3.5 w-3.5 text-[#4d7c0f]"
+                    strokeWidth={1.75}
+                  />
+                </div>
+                <div>
+                  <span className="font-bold text-zinc-950 block mb-0.5">
+                    Independent compatibility note
+                  </span>
+                  <span className="leading-relaxed">
+                    Print Sheet Maker is not affiliated with, endorsed by, or
+                    sponsored by Avery, Canva, Cricut, Epson, Adobe (Photoshop,
+                    Lightroom, InDesign), Microsoft Word, Kodak, or Officeworks.
+                    Product sizes and workflows are described purely for
+                    compatible sheet layouts.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {meta.isCaseStudyScaffold && (
+              <div className="rounded-2xl bg-[#f5f5f7] px-4 py-3.5 text-xs text-zinc-600 flex items-start gap-3">
+                <div className="h-7 w-7 rounded-lg bg-white flex items-center justify-center shrink-0 mt-0.5">
+                  <Info
+                    className="h-3.5 w-3.5 text-[#4d7c0f]"
+                    strokeWidth={1.75}
+                  />
+                </div>
+                <div>
+                  <span className="font-bold text-zinc-950 block mb-0.5">
+                    [REAL DATA NEEDED] Case Study Scaffold
+                  </span>
+                  <span className="leading-relaxed">
+                    This workflow case study preserves explicit [REAL DATA
+                    NEEDED] placeholders under Results and Lessons so only
+                    verified metrics and user feedback are published.
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </section>
       )}
 
@@ -842,7 +846,7 @@ export function PageShell({
               return (
                 <div
                   key={`section-wrap-${idx}`}
-                  className="mt-16 first:mt-0 sm:mt-20 sm:first:mt-0"
+                  className="mt-12 pt-10 border-t border-[#ebeced] first:mt-0 first:pt-0 first:border-t-0 sm:mt-16 sm:pt-12 sm:first:mt-0 sm:first:pt-0"
                 >
                   {renderHeadingBlock(
                     section,
@@ -898,13 +902,13 @@ export function PageShell({
                       Print Verification, Trimming &amp; Spec Reference
                     </h2>
                   </div>
-                  <Link
+                  <StudioActionLink
                     href={ctas.heroPrimary.href}
-                    className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-3.5 py-2 text-xs font-bold text-zinc-950 transition"
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-3.5 py-2 text-xs font-bold text-zinc-950 transition cursor-pointer"
                   >
                     <span>{ctas.heroPrimary.label}</span>
                     <ArrowUpRight className="h-3.5 w-3.5 text-zinc-950" />
-                  </Link>
+                  </StudioActionLink>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -924,7 +928,7 @@ export function PageShell({
             {/* Bottom Conversion CTA Card */}
             <section
               aria-label="Start Your Print Sheet"
-              className="mt-20 rounded-3xl bg-zinc-950 text-white p-7 sm:p-10"
+              className="mt-16 rounded-3xl bg-zinc-950 text-white p-7 sm:p-10"
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-2.5 max-w-2xl">
@@ -940,21 +944,21 @@ export function PageShell({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 shrink-0">
-                  <Link
+                  <StudioActionLink
                     href={ctas.bottomCard.primary.href}
-                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition"
+                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-950 transition cursor-pointer"
                   >
                     <Printer className="h-4 w-4 shrink-0" />
                     <span>{ctas.bottomCard.primary.label}</span>
                     <ArrowRight className="h-4 w-4 shrink-0" />
-                  </Link>
-                  <Link
+                  </StudioActionLink>
+                  <StudioActionLink
                     href={ctas.bottomCard.secondary.href}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 px-4 py-3 text-xs sm:text-sm font-semibold text-zinc-100 transition"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 px-4 py-3 text-xs sm:text-sm font-semibold text-zinc-100 transition cursor-pointer"
                   >
                     <span>{ctas.bottomCard.secondary.label}</span>
                     <ArrowUpRight className="h-4 w-4 text-[#a3e635] shrink-0" />
-                  </Link>
+                  </StudioActionLink>
                 </div>
               </div>
             </section>
@@ -962,7 +966,7 @@ export function PageShell({
 
           {/* Sticky Table of Contents, Quick-Launch CTA & Hub Navigation */}
           <aside className="lg:col-span-4 xl:col-span-3 hidden lg:block">
-            <div className="sticky top-24 space-y-5">
+            <div className="sticky top-24 space-y-4">
               {/* Sidebar Quick-Launch CTA Card */}
               <div className="rounded-3xl bg-[#eef6e4] p-5 space-y-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#3f6212]">
@@ -974,13 +978,13 @@ export function PageShell({
                 <p className="text-xs text-zinc-700 leading-relaxed">
                   {ctas.sidebarCard.body}
                 </p>
-                <Link
+                <StudioActionLink
                   href={ctas.sidebarCard.button.href}
-                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-3.5 py-2.5 text-xs font-bold text-zinc-950 transition"
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-3.5 py-2.5 text-xs font-bold text-zinc-950 transition cursor-pointer"
                 >
                   <span>{ctas.sidebarCard.button.label}</span>
                   <ArrowRight className="h-3.5 w-3.5 shrink-0" />
-                </Link>
+                </StudioActionLink>
                 <Link
                   href={ctas.sidebarCard.secondaryLink.href}
                   className="w-full inline-flex items-center justify-center gap-1 rounded-xl bg-white hover:bg-zinc-50 px-3 py-2 text-[11px] font-bold text-zinc-800 transition"
@@ -990,43 +994,43 @@ export function PageShell({
                 </Link>
               </div>
 
-              <div className="rounded-3xl bg-[#f5f5f7] p-5">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d7c0f] mb-3">
-                  On This Page
-                </p>
-                <ul className="space-y-1.5 text-xs">
-                  {content.sections.map((s) => {
-                    const anchor = headingIds.get(s) || "section";
-                    return (
-                      <li key={anchor}>
+              <div className="rounded-3xl bg-[#f5f5f7] p-5 space-y-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d7c0f] mb-2.5">
+                    On This Page
+                  </p>
+                  <ul className="space-y-1 text-xs">
+                    {content.sections.map((s) => {
+                      const anchor = headingIds.get(s) || "section";
+                      return (
+                        <li key={anchor}>
+                          <a
+                            href={`#${anchor}`}
+                            className="rounded-xl px-2.5 py-1.5 text-zinc-600 hover:bg-white hover:text-zinc-950 font-medium leading-snug block transition"
+                          >
+                            {s.text}
+                          </a>
+                        </li>
+                      );
+                    })}
+                    {pageImages.length >= 10 && (
+                      <li>
                         <a
-                          href={`#${anchor}`}
+                          href="#visual-print-calibration-gallery"
                           className="rounded-xl px-2.5 py-1.5 text-zinc-600 hover:bg-white hover:text-zinc-950 font-medium leading-snug block transition"
                         >
-                          {s.text}
+                          Print Verification &amp; Spec Reference
                         </a>
                       </li>
-                    );
-                  })}
-                  {pageImages.length >= 10 && (
-                    <li>
-                      <a
-                        href="#visual-print-calibration-gallery"
-                        className="rounded-xl px-2.5 py-1.5 text-zinc-600 hover:bg-white hover:text-zinc-950 font-medium leading-snug block transition"
-                      >
-                        Print Verification &amp; Spec Reference
-                      </a>
-                    </li>
-                  )}
-                </ul>
-              </div>
+                    )}
+                  </ul>
+                </div>
 
-              {parentHub && (
-                <div className="rounded-3xl bg-[#f5f5f7] p-5 space-y-2">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-600">
-                    Category Hub
-                  </p>
-                  <div className="rounded-2xl bg-white p-3.5 space-y-1.5">
+                {parentHub && (
+                  <div className="pt-4 border-t border-[#e4e4e7] space-y-1.5">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-600">
+                      Category Hub
+                    </p>
                     <Link
                       href={parentHub.url}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-950 hover:text-[#4d7c0f] transition"
@@ -1039,8 +1043,8 @@ export function PageShell({
                       collection.
                     </p>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </aside>
         </div>

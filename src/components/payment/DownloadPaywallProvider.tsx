@@ -92,10 +92,9 @@ export function DownloadPassBadge({ className = "" }: { className?: string }) {
 }
 
 const BENEFITS = [
-  "Instant 300 DPI print-ready PDF, PNG, JPEG & SVG — no watermarks",
-  "24-hour all-access pass — edit & re-download across every tool for free",
-  "Download begins automatically the moment checkout completes",
-  "Pay securely with Debit/Credit Card or PayPal (no account needed)",
+  "300 DPI PDF, PNG, JPEG & SVG — zero watermarks",
+  "Unlimited edits & re-downloads across all tools (24h)",
+  "Instant automatic download · No account needed",
 ];
 
 export function DownloadPaywallProvider({
@@ -251,7 +250,9 @@ export function DownloadPaywallProvider({
         typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed inset-0 z-[80] flex items-center justify-center bg-zinc-950/65 p-3 sm:p-4 backdrop-blur-xs"
+            data-studio-overlay="true"
+            data-paywall-overlay="true"
+            className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-zinc-950/65 p-0 sm:p-4 backdrop-blur-xs"
             role="dialog"
             aria-modal="true"
             aria-labelledby="paywall-modal-title"
@@ -261,22 +262,22 @@ export function DownloadPaywallProvider({
               }
             }}
           >
-            <div className="flex max-h-[94vh] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-zinc-200">
+            <div className="flex w-full sm:max-w-md max-h-[92dvh] sm:max-h-[90vh] flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl ring-1 ring-zinc-200">
               {/* Top header */}
-              <div className="flex items-start justify-between gap-3 border-b border-[#dbe9c6] bg-[#f7fbf1] px-5 py-4">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#4d7c0f] text-white shadow-xs">
-                    <Download aria-hidden="true" className="h-5 w-5" />
+              <div className="shrink-0 flex items-center justify-between gap-3 border-b border-[#dbe9c6] bg-[#f7fbf1] px-4 py-3.5 sm:px-5 sm:py-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl sm:rounded-2xl bg-[#4d7c0f] text-white shadow-xs">
+                    <Download aria-hidden="true" className="h-4 w-4 sm:h-5 sm:w-5" />
                   </span>
-                  <div>
+                  <div className="min-w-0">
                     <h2
                       id="paywall-modal-title"
-                      className="text-base font-bold tracking-tight text-zinc-950"
+                      className="text-sm sm:text-base font-bold tracking-tight text-zinc-950 truncate"
                     >
-                      Download your print-ready file
+                      Unlock print-ready download
                     </h2>
-                    <p className="mt-0.5 text-xs text-zinc-600">
-                      One-time 24-hour pass · unlock all tools &amp; re-downloads
+                    <p className="text-[11px] sm:text-xs text-zinc-600 truncate">
+                      24-hour all-tools pass · One-time payment
                     </p>
                   </div>
                 </div>
@@ -292,47 +293,49 @@ export function DownloadPaywallProvider({
               </div>
 
               {/* Scrollable content */}
-              <div className="overflow-y-auto px-5 py-4 space-y-4">
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5 sm:px-5 sm:py-4 space-y-3 sm:space-y-3.5">
                 {/* Price + detected region */}
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold tracking-tight text-zinc-950">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950">
                       {pricing.priceLabel}
                     </span>
-                    <span className="text-xs font-medium text-zinc-500">
+                    <span className="text-xs font-medium text-zinc-500 whitespace-nowrap">
                       one-time · no subscription
                     </span>
                   </div>
                   <span
-                    className="inline-flex items-center gap-1 rounded-full bg-[#f5f5f7] px-2.5 py-1 text-[11px] font-semibold text-zinc-700 ring-1 ring-zinc-200/80"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f7] px-2.5 py-1 text-[11px] font-semibold text-zinc-700 ring-1 ring-zinc-200/80 whitespace-nowrap"
                     title="Currency detected automatically for your region"
                   >
-                    <Globe aria-hidden="true" className="h-3 w-3 text-[#4d7c0f]" />
-                    {pricing.region === "INTL"
-                      ? pricing.currency
-                      : `${pricing.region} · ${pricing.currency}`}
+                    <Globe aria-hidden="true" className="h-3 w-3 shrink-0 text-[#4d7c0f]" />
+                    <span>
+                      {pricing.region === "INTL"
+                        ? pricing.currency
+                        : `${pricing.region} · ${pricing.currency}`}
+                    </span>
                   </span>
                 </div>
 
                 {/* Queued file summary */}
-                <div className="rounded-2xl border border-zinc-200/90 bg-[#f5f5f7] px-3.5 py-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                <div className="rounded-2xl border border-zinc-200/80 bg-[#f5f5f7] px-3.5 py-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                     Ready to download
                   </p>
-                  <p className="mt-0.5 text-sm font-bold text-zinc-950">
+                  <p className="mt-0.5 text-sm font-bold text-zinc-950 leading-snug">
                     {pending.itemTitle}
                   </p>
                   {pending.itemSummary && (
-                    <p className="mt-0.5 text-xs text-zinc-600">
+                    <p className="mt-0.5 text-xs text-zinc-600 leading-snug">
                       {pending.itemSummary}
                     </p>
                   )}
                 </div>
 
-                {/* Benefits checklist (modeled on deedpool.uk) */}
+                {/* Concise value proposition */}
                 <ul className="space-y-1.5 text-xs text-zinc-800">
                   {BENEFITS.map((benefit) => (
-                    <li key={benefit} className="flex items-start gap-2">
+                    <li key={benefit} className="flex items-start gap-2 leading-snug">
                       <Check
                         aria-hidden="true"
                         className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#4d7c0f] stroke-[3]"
@@ -342,22 +345,19 @@ export function DownloadPaywallProvider({
                   ))}
                 </ul>
 
-                {/* 100% Satisfaction & Refund Guarantee (modeled on deedpool.uk) */}
+                {/* Compact Satisfaction Guarantee */}
                 <div
-                  className="flex items-start gap-3 rounded-2xl border border-[#4d7c0f]/35 bg-[#eef6e4] p-3"
+                  className="flex items-center gap-2.5 rounded-xl border border-[#4d7c0f]/30 bg-[#eef6e4] px-3 py-2.5"
                   role="note"
                 >
                   <ShieldCheck
                     aria-hidden="true"
-                    className="mt-0.5 h-5 w-5 shrink-0 text-[#3f6212]"
+                    className="h-4 w-4 shrink-0 text-[#3f6212]"
                   />
-                  <div className="text-xs leading-relaxed text-zinc-900">
-                    <strong className="block text-[13px] font-bold text-[#365314]">
-                      100% Satisfaction &amp; Refund Guarantee
-                    </strong>
-                    If your file has any layout issue or doesn&apos;t print as
-                    previewed, we&apos;ll fix it or refund you in full.
-                  </div>
+                  <p className="text-xs leading-snug text-zinc-800">
+                    <strong className="font-bold text-[#365314]">100% Guarantee:</strong>{" "}
+                    Print issue? We&apos;ll fix it or refund you in full.
+                  </p>
                 </div>
 
                 {/* PayPal Checkout */}
@@ -375,33 +375,18 @@ export function DownloadPaywallProvider({
                       <div className="h-11 w-full animate-pulse rounded-xl bg-zinc-100" />
                       <div className="h-11 w-full animate-pulse rounded-xl bg-zinc-100" />
                       <p className="text-center text-[11px] text-zinc-500">
-                        Preparing checkout 
+                        Preparing checkout…
                       </p>
                     </div>
                   )}
                 </div>
 
-                {/* Security & policy details */}
-                <div className="space-y-2 border-t border-zinc-100 pt-3">
-                  <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-zinc-500">
-                    <Lock aria-hidden="true" className="h-3 w-3 text-[#4d7c0f]" />
-                    Encrypted PayPal checkout · Your designs stay private on your device
+                {/* Security note */}
+                <div className="border-t border-zinc-100 pt-2.5 pb-1">
+                  <p className="flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-zinc-500 leading-snug">
+                    <Lock aria-hidden="true" className="h-3 w-3 shrink-0 text-[#4d7c0f]" />
+                    <span>Encrypted checkout · Designs stay private on your device</span>
                   </p>
-
-                  <details className="rounded-xl bg-[#fafafa] px-3 py-2 text-xs text-zinc-600">
-                    <summary className="cursor-pointer font-semibold text-[#365314]">
-                      24-hour pass &amp; refund policy details
-                    </summary>
-                    <p className="mt-2 leading-relaxed">
-                      Your one-time payment unlocks unlimited downloads across
-                      Business Cards, Labels &amp; Stickers, Passport Photos,
-                      Photo Sheets, Posters, and Jar &amp; Bottle Labels in this
-                      browser for 24 hours so you can adjust layouts and
-                      re-download freely. Keep your PayPal order reference in
-                      case you ever need a fix or refund under our 100%
-                      satisfaction guarantee.
-                    </p>
-                  </details>
                 </div>
               </div>
             </div>

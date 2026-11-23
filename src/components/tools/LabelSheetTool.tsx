@@ -20,15 +20,15 @@ import {
 import { useNumberField } from "@/lib/use-number-field";
 import {
   FieldHint,
-  MobileActionBar,
   UploadDropzone,
   PrintTipsPanel,
   primaryButtonClass,
   secondaryButtonClass,
-  StepHeader,
   ToolStatus,
   type ToolStatusValue,
 } from "@/components/tools/ui/ToolUi";
+import { FullPageToolShell, type ToolStepDef } from "@/components/tools/ui/FullPageToolShell";
+import { LABEL_SHEET_HOW_TO } from "@/components/tools/ui/tool-howto-guides";
 import {
   buildLabelScene,
   ColourSwatchPicker,
@@ -462,7 +462,6 @@ const fieldCls = "w-full min-h-[38px] rounded-xl bg-[#f5f5f7] px-2.5 py-1.5 text
 const smallLabelCls = "block text-[11px] font-semibold text-zinc-600 mb-1";
 const labelCls = "block text-xs font-semibold text-zinc-800 mb-1";
 const textFieldCls = "w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-sm text-zinc-950";
-const sectionCls = "pt-6 first:pt-0 border-t border-[#ebeced] first:border-t-0";
 
 const MODE_COPY: Record<
   LabelMode,
@@ -528,8 +527,19 @@ function NumberInput({
   );
 }
 
-export function LabelSheetTool({ pageId }: { pageId: PageId }) {
+export function LabelSheetTool({
+  pageId,
+  open = true,
+  onClose = () => {},
+  headerCenter,
+}: {
+  pageId: PageId;
+  open?: boolean;
+  onClose?: () => void;
+  headerCenter?: React.ReactNode;
+}) {
   const { requirePayment } = useDownloadGate();
+  const [activeStep, setActiveStep] = useState(0);
   const mode = getMode(pageId);
   const presets = useMemo(() => getPresets(pageId), [pageId]);
   const [grid, setGrid] = useState<GridConfig>(() => {
@@ -1517,644 +1527,633 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
         : "bg-white ring-zinc-200 hover:ring-zinc-300 hover:bg-[#fafafa]"
     }`;
 
-  return (
-    <div className="rounded-3xl bg-[#f5f5f7] p-2 sm:p-5 lg:p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-5 items-start">
-        {/* Controls */}
-        <div className="order-2 lg:order-1 lg:col-span-5 rounded-2xl bg-white p-4 sm:p-6 space-y-6">
-          {hasCustomDesign && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#4d7c0f]/30 bg-[#eef6e4] px-3.5 py-3 text-xs text-[#365314]">
-              <div className="flex items-center gap-2 min-w-0">
-                <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0 text-[#4d7c0f]" />
-                <span className="font-semibold">
-                  Your Advanced Editor label design is active across the sheet.
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setAdvancedOpen(true)}
-                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-[#4d7c0f] px-3 text-xs font-bold text-white hover:bg-[#3f6212] cursor-pointer"
-                >
-                  <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
-                  Continue editing
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHasCustomDesign(false)}
-                  className="inline-flex min-h-[34px] items-center gap-1 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 cursor-pointer"
-                >
-                  <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
-                  Simple preset
-                </button>
-              </div>
-            </div>
-          )}
+  const customBanner = hasCustomDesign ? (
+    <div className="flex flex-col gap-2 rounded-2xl border border-[#4d7c0f]/30 bg-[#eef6e4] px-3.5 py-3 text-xs text-[#365314]">
+      <div className="flex items-start gap-2 min-w-0">
+        <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0 text-[#4d7c0f] mt-0.5" />
+        <span className="font-semibold leading-relaxed">
+          Your Advanced Editor label design is active across the sheet.
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen(true)}
+          className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-[#4d7c0f] px-3 text-xs font-bold text-white hover:bg-[#3f6212] cursor-pointer"
+        >
+          <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+          Continue in Advanced
+        </button>
+        <button
+          type="button"
+          onClick={() => setHasCustomDesign(false)}
+          className="inline-flex min-h-[34px] items-center gap-1 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 cursor-pointer"
+        >
+          <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
+          Simple preset
+        </button>
+      </div>
+    </div>
+  ) : null;
 
-          {/* Step 1 — sheet */}
-          <section className={sectionCls} aria-labelledby="label-step-1">
-            <StepHeader
-              id="label-step-1"
-              step={1}
-              title="Choose your label sheet"
-              hint="Pick the sheet you bought. The count and label size are printed on the pack."
-            />
-            <div className="space-y-3">
-              <div>
-                <span id="label-paper-label" className={labelCls}>
-                  Sheet size
-                </span>
-                <div role="radiogroup" aria-labelledby="label-paper-label" className="inline-flex rounded-xl bg-[#f5f5f7] p-1">
-                  {(["a4", "letter"] as SheetPaper[]).map((pp) => (
-                    <button
-                      key={pp}
-                      type="button"
-                      role="radio"
-                      aria-checked={grid.paper === pp}
-                      onClick={() => changePaper(pp)}
-                      className={`min-h-[36px] rounded-lg px-4 text-sm font-semibold transition cursor-pointer ${
-                        grid.paper === pp ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-600 hover:text-zinc-900"
-                      }`}
-                    >
-                      {pp === "a4" ? "A4" : "US Letter"}
-                    </button>
-                  ))}
-                </div>
-              </div>
+  const sheetStepContent = (
+    <div className="space-y-4">
+      <div>
+        <span id="label-paper-label" className={labelCls}>
+          Sheet size
+        </span>
+        <div role="radiogroup" aria-labelledby="label-paper-label" className="inline-flex rounded-xl bg-[#f5f5f7] p-1">
+          {(["a4", "letter"] as SheetPaper[]).map((pp) => (
+            <button
+              key={pp}
+              type="button"
+              role="radio"
+              aria-checked={grid.paper === pp}
+              onClick={() => changePaper(pp)}
+              className={`min-h-[36px] rounded-lg px-4 text-sm font-semibold transition cursor-pointer ${
+                grid.paper === pp ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-600 hover:text-zinc-900"
+              }`}
+            >
+              {pp === "a4" ? "A4" : "US Letter"}
+            </button>
+          ))}
+        </div>
+      </div>
 
-              <div className="grid grid-cols-2 gap-2" role="group" aria-label="Label sheet presets">
-                {presets.map((p) => {
-                  const spec = grid.paper === "letter" ? p.letter : p.a4;
-                  const fits = grid.paper === "letter" ? p.fitsLetter : p.fitsA4;
-                  const active = isActive(p);
-                  return (
-                    <button
-                      key={p.key}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => applyPreset(p)}
-                      className={presetBtnCls(active)}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-bold text-zinc-950">{presetCount(spec)}</span>
-                        {p.name && (
-                          <span className="rounded-md bg-[#f5f5f7] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
-                            {p.name}
-                          </span>
-                        )}
-                      </span>
-                      <span className="block text-xs text-zinc-700">{presetSize(spec)}</span>
-                      {fits && <span className="block text-[11px] font-semibold text-[#3f6212]">fits {fits}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-              <FieldHint>
-                Check the code printed on your label pack.
-                {activePreset ? "" : " Your sheet isn't one of these? Enter its measurements under “Custom size”."}
-              </FieldHint>
-
-              <details className="group rounded-xl bg-[#f5f5f7] px-3.5 py-2.5" open={!activePreset || undefined}>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 min-h-[32px] text-xs font-semibold text-zinc-800 [&::-webkit-details-marker]:hidden">
-                  <span>
-                    Custom size{" "}
-                    <span className="font-normal text-zinc-600">
-                      ({grid.cols} across × {grid.rows} down
-                      {grid.round ? `, ${diameter} mm circles` : `, ${grid.labelW} × ${grid.labelH} mm`})
-                    </span>
+      <div className="grid grid-cols-2 gap-2" role="group" aria-label="Label sheet presets">
+        {presets.map((p) => {
+          const spec = grid.paper === "letter" ? p.letter : p.a4;
+          const fits = grid.paper === "letter" ? p.fitsLetter : p.fitsA4;
+          const active = isActive(p);
+          return (
+            <button
+              key={p.key}
+              type="button"
+              aria-pressed={active}
+              onClick={() => applyPreset(p)}
+              className={presetBtnCls(active)}
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-sm font-bold text-zinc-950">{presetCount(spec)}</span>
+                {p.name && (
+                  <span className="rounded-md bg-[#f5f5f7] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
+                    {p.name}
                   </span>
-                  <ChevronDown className="h-4 w-4 shrink-0 text-zinc-500 transition group-open:rotate-180" aria-hidden="true" />
-                </summary>
-                <div className="mt-3 space-y-3 [&_input]:bg-white">
-                  <FieldHint>Measure with a ruler from the top-left corner of the sheet. All sizes are in millimetres.</FieldHint>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <NumberInput id="label-grid-cols" label="Labels across" field={colsF} />
-                    <NumberInput id="label-grid-rows" label="Labels down" field={rowsF} />
-                    {grid.round ? (
-                      <NumberInput id="label-grid-diameter" label="Circle diameter (mm)" field={diameterF} />
-                    ) : (
-                      <>
-                        <NumberInput id="label-grid-width" label="Label width (mm)" field={widthF} />
-                        <NumberInput id="label-grid-height" label="Label height (mm)" field={heightF} />
-                      </>
-                    )}
-                    <NumberInput id="label-grid-top" label="Top margin (mm)" field={topF} />
-                  </div>
-                  <details className="group/adv rounded-lg bg-white px-3 py-2 [&_input]:bg-[#f5f5f7]">
-                    <summary className="flex cursor-pointer list-none items-center justify-between min-h-[28px] text-[11px] font-semibold text-zinc-700 [&::-webkit-details-marker]:hidden">
-                      Advanced spacing
-                      <ChevronDown className="h-3.5 w-3.5 transition group-open/adv:rotate-180" aria-hidden="true" />
-                    </summary>
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <NumberInput id="label-grid-left" label="Left margin (mm)" field={leftF} />
-                      <NumberInput id="label-grid-gapx" label="Space between columns (mm)" field={gapXF} />
-                      <NumberInput id="label-grid-gapy" label="Space between rows (mm)" field={gapYF} />
-                    </div>
-                  </details>
-                </div>
-              </details>
+                )}
+              </span>
+              <span className="block text-xs text-zinc-700">{presetSize(spec)}</span>
+              {fits && <span className="block text-[11px] font-semibold text-[#3f6212]">fits {fits}</span>}
+            </button>
+          );
+        })}
+      </div>
+      <FieldHint>
+        Check the code printed on your label pack.
+        {activePreset ? "" : " Your sheet isn't one of these? Enter its measurements under “Custom size”."}
+      </FieldHint>
 
-              {fitError && (
-                <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-800 space-y-2" role="alert">
-                  <p>{fitError}</p>
-                  {!cannotFitAny && (
-                    <button
-                      type="button"
-                      onClick={autoFit}
-                      className="min-h-[36px] rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-100 cursor-pointer"
-                    >
-                      Auto-fit: {Math.min(grid.cols, fit.maxCols)} across × {Math.min(grid.rows, fit.maxRows)} down
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Step 2 — content */}
-          <section className={sectionCls} aria-labelledby="label-step-2">
-            <StepHeader
-              id="label-step-2"
-              step={2}
-              title={
-                mode === "title" && hasArtworkUpload
-                  ? pageId === "T22"
-                    ? "Add your artwork"
-                    : "Add your text or artwork"
-                  : MODE_COPY[mode].stepTitle
-              }
-              hint={
-                mode === "title" && hasArtworkUpload
-                  ? "Upload one or more images — they repeat across the sheet in order. No image? Type text instead."
-                  : MODE_COPY[mode].stepHint
-              }
-            />
-
-            {mode === "address" ? (
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="label-recipient-addresses" className={labelCls}>
-                    Addresses
-                  </label>
-                  <textarea
-                    id="label-recipient-addresses"
-                    rows={8}
-                    value={addressBulk}
-                    onChange={(e) => setAddressBulk(e.target.value)}
-                    aria-describedby="label-address-hint label-address-count"
-                    className="w-full rounded-xl bg-[#f5f5f7] px-3 py-2 text-sm font-mono text-zinc-950"
-                  />
-                  <div className="mt-1.5"><FieldHint id="label-address-hint">
-                    Leave a <strong>blank line between addresses</strong> — each address becomes one label. The first line
-                    (the name) prints in bold.
-                  </FieldHint></div>
-                  {listSummary("label-address-count")}
-                </div>
-                <div>
-                  <label htmlFor="label-return-address" className={labelCls}>
-                    Return address <span className="font-normal text-zinc-500">(optional)</span>
-                  </label>
-                  <input
-                    id="label-return-address"
-                    type="text"
-                    value={returnAddress}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setReturnAddress(val);
-                      if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "returnAddress", val));
-                    }}
-                    aria-describedby="label-return-hint"
-                    className={textFieldCls}
-                  />
-                  <div className="mt-1.5"><FieldHint id="label-return-hint">Printed in small type at the top of every label. Clear it to leave it off.</FieldHint></div>
-                </div>
-                {fillToggle}
-                {outlinesToggle}
-              </div>
-            ) : mode === "barcode" ? (
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="label-barcode-format" className={labelCls}>
-                    Barcode type
-                  </label>
-                  <select
-                    id="label-barcode-format"
-                    value={barcodeFormat}
-                    onChange={(e) => setBarcodeFormat(e.target.value as BarcodeFormat)}
-                    aria-describedby="label-barcode-format-hint"
-                    className={textFieldCls}
-                  >
-                    <option value="CODE128">Code 128 (any text / numbers)</option>
-                    <option value="EAN13">EAN-13 (shop products)</option>
-                    <option value="UPC">UPC-A (US shop products)</option>
-                  </select>
-                  <div className="mt-1.5"><FieldHint id="label-barcode-format-hint">
-                    {barcodeFormat === "CODE128"
-                      ? "Best for your own stock codes, SKUs and asset tags — letters and numbers both work."
-                      : barcodeFormat === "EAN13"
-                        ? "The 13-digit code on retail products. Enter 12 digits and we add the check digit, or all 13."
-                        : "The 12-digit code on US retail products. Enter 11 digits and we add the check digit, or all 12."}
-                  </FieldHint></div>
-                </div>
-                <div>
-                  <label htmlFor="label-barcode-skus" className={labelCls}>
-                    Codes
-                  </label>
-                  <textarea
-                    id="label-barcode-skus"
-                    rows={6}
-                    value={barcodeItems}
-                    onChange={(e) => setBarcodeItems(e.target.value)}
-                    aria-invalid={barcodeErrors.length > 0 || undefined}
-                    aria-describedby={`label-barcode-hint label-barcode-count${barcodeErrors.length > 0 ? " label-barcode-errors" : ""}`}
-                    className="w-full rounded-xl bg-[#f5f5f7] px-3 py-2 text-sm font-mono text-zinc-950"
-                  />
-                  <div className="mt-1.5"><FieldHint id="label-barcode-hint">
-                    <strong>One per line — each line becomes one label.</strong> Format: <code>code | product name | price</code>.
-                    Name and price are optional.
-                  </FieldHint></div>
-                  {listSummary("label-barcode-count")}
-                  {barcodeErrors.length > 0 && (
-                    <ul id="label-barcode-errors" className="mt-1.5 space-y-0.5 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">
-                      {barcodeErrors.slice(0, 8).map((b) => (
-                        <li key={b.line}>
-                          Line {b.line} ({b.code || "empty"}): {b.error}
-                        </li>
-                      ))}
-                      {barcodeErrors.length > 8 && <li>…and {barcodeErrors.length - 8} more lines.</li>}
-                    </ul>
-                  )}
-                </div>
-                {fillToggle}
-                {outlinesToggle}
-              </div>
-            ) : mode === "nametag" ? (
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="label-attendee-names" className={labelCls}>
-                    Names
-                  </label>
-                  <textarea
-                    id="label-attendee-names"
-                    rows={6}
-                    value={nameList}
-                    onChange={(e) => setNameList(e.target.value)}
-                    aria-describedby="label-names-hint label-names-count"
-                    className="w-full rounded-xl bg-[#f5f5f7] px-3 py-2 text-sm text-zinc-950"
-                  />
-                  <div className="mt-1.5"><FieldHint id="label-names-hint">
-                    <strong>One per line — each line becomes one name tag.</strong> Add a role or company after a{" "}
-                    <code>|</code>, e.g. <code>Alex Morgan | Design Lead</code>.
-                  </FieldHint></div>
-                  {listSummary("label-names-count")}
-                </div>
-                <div>
-                  <label htmlFor="label-header-banner" className={labelCls}>
-                    Banner text
-                  </label>
-                  <input
-                    id="label-header-banner"
-                    type="text"
-                    value={eventName}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setEventName(val);
-                      if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "eyebrow", val));
-                    }}
-                    aria-describedby="label-banner-hint"
-                    className={textFieldCls}
-                  />
-                  <div className="mt-1.5"><FieldHint id="label-banner-hint">Shown in the coloured strip at the top of every tag — e.g. your event name.</FieldHint></div>
-                </div>
-                {fillToggle}
-              </div>
+      <details className="group rounded-xl bg-[#f5f5f7] px-3.5 py-2.5" open={!activePreset || undefined}>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 min-h-[32px] text-xs font-semibold text-zinc-800 [&::-webkit-details-marker]:hidden">
+          <span>
+            Custom size{" "}
+            <span className="font-normal text-zinc-600">
+              ({grid.cols} across × {grid.rows} down
+              {grid.round ? `, ${diameter} mm circles` : `, ${grid.labelW} × ${grid.labelH} mm`})
+            </span>
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-zinc-500 transition group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <div className="mt-3 space-y-3 [&_input]:bg-white">
+          <FieldHint>Measure with a ruler from the top-left corner of the sheet. All sizes are in millimetres.</FieldHint>
+          <div className="grid grid-cols-2 gap-2.5">
+            <NumberInput id="label-grid-cols" label="Labels across" field={colsF} />
+            <NumberInput id="label-grid-rows" label="Labels down" field={rowsF} />
+            {grid.round ? (
+              <NumberInput id="label-grid-diameter" label="Circle diameter (mm)" field={diameterF} />
             ) : (
-              <div className="space-y-4">
-                {hasArtworkUpload &&
-                  (stickerImages.length === 0 ? (
-                    <UploadDropzone
-                      multiple
-                      onFiles={handleUploadStickers}
-                      title={pageId === "T22" ? "Add sticker artwork" : "Add artwork (optional)"}
-                      buttonLabel="Choose images"
-                      inputLabel="Upload sticker artwork"
-                      hint="PNG, JPG or WebP · add several to mix designs · stays on your device"
-                      secondaryAction={
-                        <button type="button" onClick={addSampleStickers} className={secondaryButtonClass}>
-                          Try samples
-                        </button>
-                      }
-                    />
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-semibold text-zinc-800">
-                          {stickerImages.length} design{stickerImages.length === 1 ? "" : "s"} · repeated across {slotsPerPage} labels
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setStickerImages([])}
-                          className="min-h-[32px] px-2 text-xs font-semibold text-zinc-600 hover:text-zinc-950 hover:underline cursor-pointer"
-                        >
-                          Remove all
-                        </button>
-                      </div>
-                      <ul className="grid grid-cols-4 sm:grid-cols-5 gap-2" aria-label="Uploaded artwork">
-                        {stickerImages.map((src, idx) => (
-                          <li key={idx} className="relative aspect-square rounded-xl bg-[#f5f5f7] p-1">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={src}
-                              alt={`Design ${idx + 1}`}
-                              className={`h-full w-full object-contain ${grid.round ? "rounded-full object-cover" : "rounded-lg"}`}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setStickerImages((prev) => prev.filter((_, j) => j !== idx))}
-                              aria-label={`Remove design ${idx + 1}`}
-                              className="absolute -right-1.5 -top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-950 text-white shadow hover:bg-zinc-700 cursor-pointer"
-                            >
-                              <X className="h-3.5 w-3.5" aria-hidden="true" />
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                      <UploadDropzone
-                        compact
-                        multiple
-                        onFiles={handleUploadStickers}
-                        title="Add more designs"
-                        buttonLabel="Add images"
-                        inputLabel="Upload more sticker artwork"
-                        hint="They fill the sheet in order, then repeat."
-                      />
-                    </div>
-                  ))}
-
-                {stickerImages.length === 0 && (
-                  <div className="space-y-2">
-                    {hasArtworkUpload && <p className="text-xs font-semibold text-zinc-600">Or type text instead</p>}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label htmlFor="label-title" className={labelCls}>
-                          Main text
-                        </label>
-                        <input
-                          id="label-title"
-                          type="text"
-                          value={labelTitle}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setLabelTitle(val);
-                            if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "title", val));
-                          }}
-                          placeholder="e.g. Pantry Label"
-                          className={textFieldCls}
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="label-subtitle" className={labelCls}>
-                          Second line <span className="font-normal text-zinc-500">(optional)</span>
-                        </label>
-                        <input
-                          id="label-subtitle"
-                          type="text"
-                          value={labelSub}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setLabelSub(val);
-                            if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "subtitle", val));
-                          }}
-                          placeholder="e.g. Batch 01 · Fresh"
-                          className={textFieldCls}
-                        />
-                      </div>
-                    </div>
-                    <FieldHint>Long text shrinks to fit. Leave both empty to print a blank grid you can write on.</FieldHint>
-                  </div>
-                )}
-              </div>
+              <>
+                <NumberInput id="label-grid-width" label="Label width (mm)" field={widthF} />
+                <NumberInput id="label-grid-height" label="Label height (mm)" field={heightF} />
+              </>
             )}
-          </section>
+            <NumberInput id="label-grid-top" label="Top margin (mm)" field={topF} />
+          </div>
+          <details className="group/adv rounded-lg bg-white px-3 py-2 [&_input]:bg-[#f5f5f7]">
+            <summary className="flex cursor-pointer list-none items-center justify-between min-h-[28px] text-[11px] font-semibold text-zinc-700 [&::-webkit-details-marker]:hidden">
+              Advanced spacing
+              <ChevronDown className="h-3.5 w-3.5 transition group-open/adv:rotate-180" aria-hidden="true" />
+            </summary>
+            <div className="mt-2 grid grid-cols-1 gap-2">
+              <NumberInput id="label-grid-left" label="Left margin (mm)" field={leftF} />
+              <NumberInput id="label-grid-gapx" label="Space between columns (mm)" field={gapXF} />
+              <NumberInput id="label-grid-gapy" label="Space between rows (mm)" field={gapYF} />
+            </div>
+          </details>
+        </div>
+      </details>
 
-          {/* Step 3 — style */}
-          {hasStyleStep && (
-            <section className={sectionCls} aria-labelledby="label-step-3">
-              <StepHeader
-                id="label-step-3"
-                step={3}
-                title="Style"
-                hint={showAccent ? "Pick a design, fonts and a colour. The preview updates as you go." : "Choose whether to print outlines."}
+      {fitError && (
+        <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-800 space-y-2" role="alert">
+          <p>{fitError}</p>
+          {!cannotFitAny && (
+            <button
+              type="button"
+              onClick={autoFit}
+              className="min-h-[36px] rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-100 cursor-pointer"
+            >
+              Auto-fit: {Math.min(grid.cols, fit.maxCols)} across × {Math.min(grid.rows, fit.maxRows)} down
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const contentStepContent = (
+    <div className="space-y-4">
+      {customBanner}
+      {mode === "address" ? (
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="label-recipient-addresses" className={labelCls}>
+              Addresses
+            </label>
+            <textarea
+              id="label-recipient-addresses"
+              rows={8}
+              value={addressBulk}
+              onChange={(e) => setAddressBulk(e.target.value)}
+              aria-describedby="label-address-hint label-address-count"
+              className="w-full rounded-xl bg-[#f5f5f7] px-3 py-2 text-sm font-mono text-zinc-950"
+            />
+            <div className="mt-1.5"><FieldHint id="label-address-hint">
+              Leave a <strong>blank line between addresses</strong> — each address becomes one label. The first line
+              (the name) prints in bold.
+            </FieldHint></div>
+            {listSummary("label-address-count")}
+          </div>
+          <div>
+            <label htmlFor="label-return-address" className={labelCls}>
+              Return address <span className="font-normal text-zinc-500">(optional)</span>
+            </label>
+            <input
+              id="label-return-address"
+              type="text"
+              value={returnAddress}
+              onChange={(e) => {
+                const val = e.target.value;
+                setReturnAddress(val);
+                if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "returnAddress", val));
+              }}
+              aria-describedby="label-return-hint"
+              className={textFieldCls}
+            />
+            <div className="mt-1.5"><FieldHint id="label-return-hint">Printed in small type at the top of every label. Clear it to leave it off.</FieldHint></div>
+          </div>
+          {fillToggle}
+          {outlinesToggle}
+        </div>
+      ) : mode === "barcode" ? (
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="label-barcode-format" className={labelCls}>
+              Barcode type
+            </label>
+            <select
+              id="label-barcode-format"
+              value={barcodeFormat}
+              onChange={(e) => setBarcodeFormat(e.target.value as BarcodeFormat)}
+              aria-describedby="label-barcode-format-hint"
+              className={textFieldCls}
+            >
+              <option value="CODE128">Code 128 (any text / numbers)</option>
+              <option value="EAN13">EAN-13 (shop products)</option>
+              <option value="UPC">UPC-A (US shop products)</option>
+            </select>
+            <div className="mt-1.5"><FieldHint id="label-barcode-format-hint">
+              {barcodeFormat === "CODE128"
+                ? "Best for your own stock codes, SKUs and asset tags — letters and numbers both work."
+                : barcodeFormat === "EAN13"
+                  ? "The 13-digit code on retail products. Enter 12 digits and we add the check digit, or all 13."
+                  : "The 12-digit code on US retail products. Enter 11 digits and we add the check digit, or all 12."}
+            </FieldHint></div>
+          </div>
+          <div>
+            <label htmlFor="label-barcode-skus" className={labelCls}>
+              Codes
+            </label>
+            <textarea
+              id="label-barcode-skus"
+              rows={6}
+              value={barcodeItems}
+              onChange={(e) => setBarcodeItems(e.target.value)}
+              aria-invalid={barcodeErrors.length > 0 || undefined}
+              aria-describedby={`label-barcode-hint label-barcode-count${barcodeErrors.length > 0 ? " label-barcode-errors" : ""}`}
+              className="w-full rounded-xl bg-[#f5f5f7] px-3 py-2 text-sm font-mono text-zinc-950"
+            />
+            <div className="mt-1.5"><FieldHint id="label-barcode-hint">
+              <strong>One per line — each line becomes one label.</strong> Format: <code>code | product name | price</code>.
+              Name and price are optional.
+            </FieldHint></div>
+            {listSummary("label-barcode-count")}
+            {barcodeErrors.length > 0 && (
+              <ul id="label-barcode-errors" className="mt-1.5 space-y-0.5 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">
+                {barcodeErrors.slice(0, 8).map((b) => (
+                  <li key={b.line}>
+                    Line {b.line} ({b.code || "empty"}): {b.error}
+                  </li>
+                ))}
+                {barcodeErrors.length > 8 && <li>…and {barcodeErrors.length - 8} more lines.</li>}
+              </ul>
+            )}
+          </div>
+          {fillToggle}
+          {outlinesToggle}
+        </div>
+      ) : mode === "nametag" ? (
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="label-attendee-names" className={labelCls}>
+              Names
+            </label>
+            <textarea
+              id="label-attendee-names"
+              rows={6}
+              value={nameList}
+              onChange={(e) => setNameList(e.target.value)}
+              aria-describedby="label-names-hint label-names-count"
+              className="w-full rounded-xl bg-[#f5f5f7] px-3 py-2 text-sm text-zinc-950"
+            />
+            <div className="mt-1.5"><FieldHint id="label-names-hint">
+              <strong>One per line — each line becomes one name tag.</strong> Add a role or company after a{" "}
+              <code>|</code>, e.g. <code>Alex Morgan | Design Lead</code>.
+            </FieldHint></div>
+            {listSummary("label-names-count")}
+          </div>
+          <div>
+            <label htmlFor="label-header-banner" className={labelCls}>
+              Banner text
+            </label>
+            <input
+              id="label-header-banner"
+              type="text"
+              value={eventName}
+              onChange={(e) => {
+                const val = e.target.value;
+                setEventName(val);
+                if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "eyebrow", val));
+              }}
+              aria-describedby="label-banner-hint"
+              className={textFieldCls}
+            />
+            <div className="mt-1.5"><FieldHint id="label-banner-hint">Shown in the coloured strip at the top of every tag — e.g. your event name.</FieldHint></div>
+          </div>
+          {fillToggle}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {hasArtworkUpload &&
+            (stickerImages.length === 0 ? (
+              <UploadDropzone
+                multiple
+                onFiles={handleUploadStickers}
+                title={pageId === "T22" ? "Add sticker artwork" : "Add artwork (optional)"}
+                buttonLabel="Choose images"
+                inputLabel="Upload sticker artwork"
+                hint="PNG, JPG or WebP · add several to mix designs · stays on your device"
+                secondaryAction={
+                  <button type="button" onClick={addSampleStickers} className={secondaryButtonClass}>
+                    Try samples
+                  </button>
+                }
               />
-              <div className="space-y-5">
-                {showAccent && (
-                  <>
-                    <LabelStylePicker
-                      name="label-style"
-                      value={labelStyle}
-                      onChange={(st) => {
-                        setLabelStyle(st);
-                        setTemplateId(st);
-                        setHasCustomDesign(false);
-                      }}
-                      measure={measure}
-                      sample={
-                        mode === "nametag"
-                          ? { ...designBase, title: parsedNames[0]?.person || "Alex Morgan", subtitle: parsedNames[0]?.role ?? "" }
-                          : { ...designBase, title: labelTitle || "Label", subtitle: labelSub }
-                      }
-                    />
-                    <FontPairPicker
-                      name="label-fonts"
-                      value={fontPair}
-                      onChange={(fp) => {
-                        setFontPair(fp);
-                        setHasCustomDesign(false);
-                      }}
-                    />
-                    <ColourSwatchPicker
-                      label="Colour"
-                      value={accentHex}
-                      onChange={(hex) => {
-                        setAccentHex(hex);
-                        setHasCustomDesign(false);
-                      }}
-                    />
-                  </>
-                )}
-                <div className="rounded-2xl border border-dashed border-[#4d7c0f]/50 bg-[#f7fbf1] p-3.5">
-                  <p className="text-sm font-bold text-zinc-950">Want to customize every detail?</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-zinc-600">
-                    Open the full-screen editor to drag, resize, rotate, add logos with background removal, sticker icons, barcodes, QR codes, Kraft/gradient backdrops, and export PDF, 300 DPI PNG or SVG.
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-zinc-800">
+                    {stickerImages.length} design{stickerImages.length === 1 ? "" : "s"} · repeated across {slotsPerPage} labels
                   </p>
                   <button
                     type="button"
-                    onClick={openAdvancedEditor}
-                    className="mt-2.5 inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-4 py-2 text-xs font-bold text-white hover:bg-[#3f6212] transition cursor-pointer"
+                    onClick={() => setStickerImages([])}
+                    className="min-h-[32px] px-2 text-xs font-semibold text-zinc-600 hover:text-zinc-950 hover:underline cursor-pointer"
                   >
-                    <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
-                    Open Advanced Editor
+                    Remove all
                   </button>
                 </div>
-                {outlinesToggle}
+                <ul className="grid grid-cols-4 gap-2" aria-label="Uploaded artwork">
+                  {stickerImages.map((src, idx) => (
+                    <li key={idx} className="relative aspect-square rounded-xl bg-[#f5f5f7] p-1">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={`Design ${idx + 1}`}
+                        className={`h-full w-full object-contain ${grid.round ? "rounded-full object-cover" : "rounded-lg"}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setStickerImages((prev) => prev.filter((_, j) => j !== idx))}
+                        aria-label={`Remove design ${idx + 1}`}
+                        className="absolute -right-1.5 -top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-950 text-white shadow hover:bg-zinc-700 cursor-pointer"
+                      >
+                        <X className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <UploadDropzone
+                  compact
+                  multiple
+                  onFiles={handleUploadStickers}
+                  title="Add more designs"
+                  buttonLabel="Add images"
+                  inputLabel="Upload more sticker artwork"
+                  hint="They fill the sheet in order, then repeat."
+                />
               </div>
-            </section>
-          )}
+            ))}
 
-          {/* Step 4 — download */}
-          <section id="label-download-step" className={sectionCls} aria-labelledby="label-step-dl">
-            <StepHeader
-              id="label-step-dl"
-              step={downloadStep}
-              title="Download & print"
-              hint={`You'll get a PDF sized exactly to ${paperShort} — ${summary}.`}
-            />
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                disabled={isExporting || !!exportBlocker}
-                aria-describedby={exportBlocker ? "label-export-blocker" : undefined}
-                className={`${primaryButtonClass} w-full`}
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Download className="h-4 w-4" aria-hidden="true" />
-                )}
-                {isExporting ? "Making your PDF…" : downloadLabel}
-              </button>
-              <DownloadPassBadge />
-              {exportBlocker && (
-                <FieldHint id="label-export-blocker" tone="error">
-                  {exportBlocker}
-                </FieldHint>
-              )}
-              <ToolStatus status={visibleStatus} />
-              <PrintTipsPanel
-                paperLabel={paperShort}
-                open={visibleStatus?.tone === "success"}
-                extraSteps={[
-                  "Print a test on plain paper and hold it against the label sheet to check alignment.",
-                  "Load the label sheet the right way up (check your printer's paper icon).",
-                ]}
-                cutStep={cutStep}
-              />
-            </div>
-          </section>
-        </div>
-
-        {/* Live sheet preview */}
-        <div className="order-1 lg:order-2 lg:col-span-7 lg:sticky lg:top-24 rounded-2xl bg-white p-4 sm:p-8 flex flex-col items-center justify-center gap-3 lg:min-h-[420px]">
-          <div className="w-full flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-zinc-950 text-sm">Preview</span>
-              {hasCustomDesign && (
-                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">
-                  Custom layout
-                </span>
-              )}
-              {hydrated && (
-                <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#eef6e4] px-2 py-0.5 text-[10px] font-semibold text-[#365314]">
-                  <Check aria-hidden="true" className="h-3 w-3" />
-                  {saveStatus === "saving" ? "Saving…" : "Auto-saved"}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-zinc-600">
-                {pageCount > 1 ? `Page 1 of ${pageCount} · ` : ""}
-                {slotsPerPage} per sheet · {paperShort}
-              </span>
-              <button
-                type="button"
-                onClick={openAdvancedEditor}
-                className="inline-flex min-h-[38px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#3f6212] transition cursor-pointer"
-              >
-                <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
-                Open Advanced Editor
-              </button>
-            </div>
-          </div>
-          <div
-            role="img"
-            aria-label={`Label sheet preview showing page 1 of ${Math.max(1, pageCount)}: ${grid.cols} labels across by ${grid.rows} down on ${paper.label} paper`}
-            className="relative bg-[#f5f5f7] rounded-xl overflow-hidden w-[min(100%,380px,calc(var(--ar)*46vh))] lg:w-[min(100%,380px)]"
-            style={
-              {
-                aspectRatio: `${paper.widthMm} / ${paper.heightMm}`,
-                containerType: "inline-size",
-                "--ar": paper.widthMm / paper.heightMm,
-              } as React.CSSProperties
-            }
-          >
-            {Array.from({ length: slotsPerPage }).map((_, s) => {
-              const r = Math.floor(s / grid.cols);
-              const c = s % grid.cols;
-              let left = grid.marginLeft + c * (grid.labelW + grid.gapX);
-              let top = grid.marginTop + r * (grid.labelH + grid.gapY);
-              let w = grid.labelW;
-              let h = grid.labelH;
-              if (grid.round) {
-                left += (w - diameter) / 2;
-                top += (h - diameter) / 2;
-                w = diameter;
-                h = diameter;
-              }
-              return (
-                <div
-                  key={s}
-                  className={`absolute overflow-hidden bg-white ${grid.round ? "rounded-full" : "rounded-[2px]"} ${
-                    cutGuideStyle === "dashed-outline"
-                      ? "border border-dashed border-zinc-400"
-                      : cutGuideStyle === "dashed-grid" && grid.round
-                        ? "border border-dashed border-zinc-400"
-                        : "ring-1 ring-zinc-200/70"
-                  }`}
-                  style={{
-                    left: `${(left / paper.widthMm) * 100}%`,
-                    top: `${(top / paper.heightMm) * 100}%`,
-                    width: `${(w / paper.widthMm) * 100}%`,
-                    height: `${(h / paper.heightMm) * 100}%`,
-                  }}
-                >
-                  {renderSlot(s)}
+          {stickerImages.length === 0 && (
+            <div className="space-y-2.5">
+              {hasArtworkUpload && <p className="text-xs font-semibold text-zinc-600">Or type text instead</p>}
+              <div className="grid grid-cols-1 gap-2.5">
+                <div>
+                  <label htmlFor="label-title" className={labelCls}>
+                    Main text
+                  </label>
+                  <input
+                    id="label-title"
+                    type="text"
+                    value={labelTitle}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setLabelTitle(val);
+                      if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "title", val));
+                    }}
+                    placeholder="e.g. Pantry Label"
+                    className={textFieldCls}
+                  />
                 </div>
-              );
-            })}
-            {cutGuideStyle === "dashed-grid" && !grid.round && (
-              <div aria-hidden="true" className="pointer-events-none">
-                {Array.from(
-                  new Set(
-                    Array.from({ length: grid.cols }, (_, c) => grid.marginLeft + c * (grid.labelW + grid.gapX)).flatMap((x) => [
-                      round2(x),
-                      round2(x + grid.labelW),
-                    ])
-                  )
-                ).map((x, idx) => (
-                  <span
-                    key={`lv${idx}`}
-                    className="absolute inset-y-1 border-l border-dashed border-zinc-400"
-                    style={{ left: `${(x / paper.widthMm) * 100}%` }}
+                <div>
+                  <label htmlFor="label-subtitle" className={labelCls}>
+                    Second line <span className="font-normal text-zinc-500">(optional)</span>
+                  </label>
+                  <input
+                    id="label-subtitle"
+                    type="text"
+                    value={labelSub}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setLabelSub(val);
+                      if (hasCustomDesign) hist.patchSilently((s) => applySimpleLabelFieldToSide(s, "subtitle", val));
+                    }}
+                    placeholder="e.g. Batch 01 · Fresh"
+                    className={textFieldCls}
                   />
-                ))}
-                {Array.from(
-                  new Set(
-                    Array.from({ length: grid.rows }, (_, r) => grid.marginTop + r * (grid.labelH + grid.gapY)).flatMap((y) => [
-                      round2(y),
-                      round2(y + grid.labelH),
-                    ])
-                  )
-                ).map((y, idx) => (
-                  <span
-                    key={`lh${idx}`}
-                    className="absolute inset-x-1 border-t border-dashed border-zinc-400"
-                    style={{ top: `${(y / paper.heightMm) * 100}%` }}
-                  />
-                ))}
+                </div>
               </div>
+              <FieldHint>Long text shrinks to fit. Leave both empty to print a blank grid you can write on.</FieldHint>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const styleStepContent = (
+    <div className="space-y-5">
+      {customBanner}
+      {showAccent && (
+        <>
+          <LabelStylePicker
+            name="label-style"
+            value={labelStyle}
+            onChange={(st) => {
+              setLabelStyle(st);
+              setTemplateId(st);
+              setHasCustomDesign(false);
+            }}
+            measure={measure}
+            sample={
+              mode === "nametag"
+                ? { ...designBase, title: parsedNames[0]?.person || "Alex Morgan", subtitle: parsedNames[0]?.role ?? "" }
+                : { ...designBase, title: labelTitle || "Label", subtitle: labelSub }
+            }
+          />
+          <FontPairPicker
+            name="label-fonts"
+            value={fontPair}
+            onChange={(fp) => {
+              setFontPair(fp);
+              setHasCustomDesign(false);
+            }}
+          />
+          <ColourSwatchPicker
+            label="Colour"
+            value={accentHex}
+            onChange={(hex) => {
+              setAccentHex(hex);
+              setHasCustomDesign(false);
+            }}
+          />
+        </>
+      )}
+      {outlinesToggle}
+    </div>
+  );
+
+  const exportStepContent = (
+    <div id="label-download-step" className="space-y-3">
+      <button
+        type="button"
+        onClick={handleDownloadPdf}
+        disabled={isExporting || !!exportBlocker}
+        aria-describedby={exportBlocker ? "label-export-blocker" : undefined}
+        className={`${primaryButtonClass} w-full`}
+      >
+        {isExporting ? (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <Download className="h-4 w-4" aria-hidden="true" />
+        )}
+        {isExporting ? "Making your PDF…" : downloadLabel}
+      </button>
+      <DownloadPassBadge />
+      {exportBlocker && (
+        <FieldHint id="label-export-blocker" tone="error">
+          {exportBlocker}
+        </FieldHint>
+      )}
+      <ToolStatus status={visibleStatus} />
+      <PrintTipsPanel
+        paperLabel={paperShort}
+        open={visibleStatus?.tone === "success"}
+        extraSteps={[
+          "Print a test on plain paper and hold it against the label sheet to check alignment.",
+          "Load the label sheet the right way up (check your printer's paper icon).",
+        ]}
+        cutStep={cutStep}
+      />
+    </div>
+  );
+
+  const steps: ToolStepDef[] = [
+    {
+      id: "sheet",
+      number: 1,
+      label: "Sheet",
+      title: "Choose your label sheet",
+      hint: "Pick the sheet you bought. The count and label size are printed on the pack.",
+      content: sheetStepContent,
+    },
+    {
+      id: "content",
+      number: 2,
+      label: "Content",
+      title:
+        mode === "title" && hasArtworkUpload
+          ? pageId === "T22"
+            ? "Add your artwork"
+            : "Add your text or artwork"
+          : MODE_COPY[mode].stepTitle,
+      hint:
+        mode === "title" && hasArtworkUpload
+          ? "Upload one or more images — they repeat across the sheet in order. No image? Type text instead."
+          : MODE_COPY[mode].stepHint,
+      content: contentStepContent,
+    },
+    ...(hasStyleStep
+      ? [
+          {
+            id: "style",
+            number: 3,
+            label: "Style",
+            title: "Style & cut guides",
+            hint: showAccent ? "Pick a design, fonts and a colour. The preview updates as you go." : "Choose cut guides and bleed.",
+            content: styleStepContent,
+          },
+        ]
+      : []),
+    {
+      id: "export",
+      number: downloadStep,
+      label: "Export",
+      title: "Download & print",
+      hint: `You'll get a PDF sized exactly to ${paperShort} — ${summary}.`,
+      content: exportStepContent,
+    },
+  ];
+
+  const previewNode = (
+    <div
+      role="img"
+      aria-label={`Label sheet preview showing page 1 of ${Math.max(1, pageCount)}: ${grid.cols} labels across by ${grid.rows} down on ${paper.label} paper`}
+      className="relative bg-white rounded-xl overflow-hidden shadow-md ring-1 ring-zinc-200 w-[min(100%,410px,calc(var(--ar)*60vh))]"
+      style={
+        {
+          aspectRatio: `${paper.widthMm} / ${paper.heightMm}`,
+          containerType: "inline-size",
+          "--ar": paper.widthMm / paper.heightMm,
+        } as React.CSSProperties
+      }
+    >
+      {Array.from({ length: slotsPerPage }).map((_, s) => {
+        const r = Math.floor(s / grid.cols);
+        const c = s % grid.cols;
+        let left = grid.marginLeft + c * (grid.labelW + grid.gapX);
+        let top = grid.marginTop + r * (grid.labelH + grid.gapY);
+        let w = grid.labelW;
+        let h = grid.labelH;
+        if (grid.round) {
+          left += (w - diameter) / 2;
+          top += (h - diameter) / 2;
+          w = diameter;
+          h = diameter;
+        }
+        return (
+          <div
+            key={s}
+            className={`absolute overflow-hidden bg-white ${grid.round ? "rounded-full" : "rounded-[2px]"} ${
+              cutGuideStyle === "dashed-outline"
+                ? "border border-dashed border-zinc-400"
+                : cutGuideStyle === "dashed-grid" && grid.round
+                  ? "border border-dashed border-zinc-400"
+                  : "ring-1 ring-zinc-200/70"
+            }`}
+            style={{
+              left: `${(left / paper.widthMm) * 100}%`,
+              top: `${(top / paper.heightMm) * 100}%`,
+              width: `${(w / paper.widthMm) * 100}%`,
+              height: `${(h / paper.heightMm) * 100}%`,
+            }}
+          >
+            {renderSlot(s)}
+          </div>
+        );
+      })}
+      {cutGuideStyle === "dashed-grid" && !grid.round && (
+        <div aria-hidden="true" className="pointer-events-none">
+          {Array.from(
+            new Set(
+              Array.from({ length: grid.cols }, (_, c) => grid.marginLeft + c * (grid.labelW + grid.gapX)).flatMap((x) => [
+                round2(x),
+                round2(x + grid.labelW),
+              ])
+            )
+          ).map((x, idx) => (
+            <span
+              key={`lv${idx}`}
+              className="absolute inset-y-1 border-l border-dashed border-zinc-400"
+              style={{ left: `${(x / paper.widthMm) * 100}%` }}
+            />
+          ))}
+          {Array.from(
+            new Set(
+              Array.from({ length: grid.rows }, (_, r) => grid.marginTop + r * (grid.labelH + grid.gapY)).flatMap((y) => [
+                round2(y),
+                round2(y + grid.labelH),
+              ])
+            )
+          ).map((y, idx) => (
+            <span
+              key={`lh${idx}`}
+              className="absolute inset-x-1 border-t border-dashed border-zinc-400"
+              style={{ top: `${(y / paper.heightMm) * 100}%` }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <FullPageToolShell
+        open={open}
+        onClose={onClose}
+        toolTitle={grid.round ? "Round Sticker Sheet" : "Label & Sticker Sheet"}
+        toolSummary={`${pageCount > 1 ? `Page 1 of ${pageCount} · ` : ""}${slotsPerPage} per sheet · ${paperShort}`}
+        steps={steps}
+        activeStep={activeStep}
+        onStepChange={setActiveStep}
+        headerCenter={headerCenter}
+        previewToolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            {hasCustomDesign && (
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">
+                Custom layout
+              </span>
+            )}
+            {hydrated && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-semibold text-[#365314]">
+                <Check aria-hidden="true" className="h-3 w-3" />
+                {saveStatus === "saving" ? "Saving…" : "Auto-saved"}
+              </span>
             )}
           </div>
+        }
+        preview={previewNode}
+        previewFooter={
           <p className="text-xs text-zinc-600 text-center">
             {activePreset
               ? `${presetCount(grid.paper === "letter" ? activePreset.letter : activePreset.a4)} · ${presetSize(grid)}`
@@ -2162,20 +2161,23 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
             {" · "}
             {summary}
           </p>
-        </div>
-      </div>
-
-      <MobileActionBar summary={mobileSummary}>
-        <button
-          type="button"
-          onClick={handleDownloadPdf}
-          disabled={isExporting || !!exportBlocker}
-          className={`${primaryButtonClass} min-h-[44px] px-4 py-2`}
-        >
-          <Download className="h-4 w-4" aria-hidden="true" />
-          {isExporting ? "Making PDF…" : "Download PDF"}
-        </button>
-      </MobileActionBar>
+        }
+        primaryAction={{
+          label: isExporting ? "Making your PDF…" : downloadLabel,
+          mobileLabel: isExporting ? "Making PDF…" : "Download PDF",
+          onClick: handleDownloadPdf,
+          disabled: isExporting || !!exportBlocker,
+          loading: isExporting,
+          describedBy: exportBlocker ? "label-export-blocker" : undefined,
+        }}
+        advancedAction={{
+          label: "Open Advanced Editor",
+          onClick: openAdvancedEditor,
+          title: "Drag, resize, rotate, add Kraft/gradients, icons, QR/barcodes & export PNG/SVG",
+        }}
+        howTo={LABEL_SHEET_HOW_TO}
+        mobileSummary={mobileSummary}
+      />
 
       {/* ==================== FULL-SCREEN ADVANCED LABEL & STICKER EDITOR ==================== */}
       <AdvancedLabelEditor
@@ -2215,6 +2217,6 @@ export function LabelSheetTool({ pageId }: { pageId: PageId }) {
         onLoadPayload={applyPersistedLabel}
         onClose={closeAdvancedEditor}
       />
-    </div>
+    </>
   );
 }

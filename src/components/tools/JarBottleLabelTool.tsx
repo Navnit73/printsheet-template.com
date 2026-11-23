@@ -13,14 +13,14 @@ import {
 import { useNumberField } from "@/lib/use-number-field";
 import {
   FieldHint,
-  MobileActionBar,
   PrintTipsPanel,
   primaryButtonClass,
-  StepHeader,
   ToolStatus,
   UploadDropzone,
   type ToolStatusValue,
 } from "@/components/tools/ui/ToolUi";
+import { FullPageToolShell, type ToolStepDef } from "@/components/tools/ui/FullPageToolShell";
+import { JAR_BOTTLE_HOW_TO } from "@/components/tools/ui/tool-howto-guides";
 import {
   hexToRgb,
   makeMeasure,
@@ -430,7 +430,6 @@ const BACKGROUND_SWATCHES = [
 ];
 const labelCls = "block text-xs font-semibold text-zinc-800 mb-1";
 const textFieldCls = "w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-sm text-zinc-950";
-const sectionCls = "pt-6 first:pt-0 border-t border-[#ebeced] first:border-t-0";
 
 function presetSize(p: { wMm: number; hMm: number; round?: boolean }): string {
   return p.round ? `${p.wMm} mm circle` : `${p.wMm} × ${p.hMm} mm`;
@@ -458,8 +457,19 @@ function ShapeIcon({ w, h, round, active }: { w: number; h: number; round: boole
 /* Component                                                                  */
 /* ------------------------------------------------------------------------- */
 
-export function JarBottleLabelTool({ pageId }: { pageId: PageId }) {
+export function JarBottleLabelTool({
+  pageId,
+  open = true,
+  onClose = () => {},
+  headerCenter,
+}: {
+  pageId: PageId;
+  open?: boolean;
+  onClose?: () => void;
+  headerCenter?: React.ReactNode;
+}) {
   const { requirePayment } = useDownloadGate();
+  const [activeStep, setActiveStep] = useState(0);
   const presets = useMemo(() => getPresets(pageId), [pageId]);
   const [selectedId, setSelectedId] = useState(presets[0].id);
   const preset = presets.find((p) => p.id === selectedId) ?? presets[0];
@@ -682,505 +692,515 @@ export function JarBottleLabelTool({ pageId }: { pageId: PageId }) {
   }
 
   /* ---- preview: the same primitives as the PDF, drawn as SVG ---- */
-  const previewWidth = round ? 240 : Math.round(Math.min(520, Math.max(220, wMm * 3)));
+  const previewWidth = round ? 260 : Math.round(Math.min(540, Math.max(240, wMm * 3.1)));
   const downloadLabel = `Download PDF · ${labelCount} label${labelCount === 1 ? "" : "s"}`;
   const pct = (mm: number, of: number) => `${(mm / of) * 100}%`;
 
-  return (
-    <div className="rounded-3xl bg-[#f5f5f7] p-2 sm:p-5 lg:p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-5 items-start">
-        {/* Controls */}
-        <div className="order-2 lg:order-1 lg:col-span-5 rounded-2xl bg-white p-4 sm:p-6 space-y-6">
-          {/* Step 1 — container */}
-          <section className={sectionCls} aria-labelledby="jar-step-1">
-            <StepHeader
-              id="jar-step-1"
-              step={1}
-              title="What are you labelling?"
-              hint="Pick the spot the label goes. Sizes fit most common containers."
-            />
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 gap-2" role="group" aria-label="Container label presets">
-                {presets.map((p) => {
-                  const active = p.id === preset.id;
-                  const pw = p.id === preset.id ? wMm : p.wMm;
-                  const l = computeSheetLayout(paperDim.widthMm, paperDim.heightMm, pw, p.hMm, p.cols, p.rows);
-                  const n = l.cols * l.rows;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => handleSelectPreset(p)}
-                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ring-1 transition cursor-pointer ${
-                        active ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]" : "bg-white ring-zinc-200 hover:ring-zinc-300 hover:bg-[#fafafa]"
-                      }`}
-                    >
-                      <ShapeIcon w={p.wMm} h={p.hMm} round={!!p.round} active={active} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">{p.kind}</span>
-                        <span className="block text-sm font-bold text-zinc-950">{p.name}</span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-xs font-semibold text-zinc-800">{presetSize({ ...p, wMm: pw })}</span>
-                        <span className="block text-[11px] text-zinc-600">{n} per sheet</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+  const steps: ToolStepDef[] = [
+    {
+      id: "container",
+      number: 1,
+      label: "Container",
+      title: "What are you labelling?",
+      hint: "Pick the spot the label goes. Sizes fit most common containers.",
+      badge: (
+        <span className="rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-bold text-[#365314]">
+          {perSheet}/sheet
+        </span>
+      ),
+      content: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-2" role="group" aria-label="Container label presets">
+            {presets.map((p) => {
+              const active = p.id === preset.id;
+              const pw = p.id === preset.id ? wMm : p.wMm;
+              const l = computeSheetLayout(paperDim.widthMm, paperDim.heightMm, pw, p.hMm, p.cols, p.rows);
+              const n = l.cols * l.rows;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => handleSelectPreset(p)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ring-1 transition cursor-pointer ${
+                    active ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]" : "bg-white ring-zinc-200 hover:ring-zinc-300 hover:bg-[#fafafa]"
+                  }`}
+                >
+                  <ShapeIcon w={p.wMm} h={p.hMm} round={!!p.round} active={active} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">{p.kind}</span>
+                    <span className="block text-sm font-bold text-zinc-950">{p.name}</span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="block text-xs font-semibold text-zinc-800">{presetSize({ ...p, wMm: pw })}</span>
+                    <span className="block text-[11px] text-zinc-600">{n} per sheet</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-              {isWrap && (
-                <div className="rounded-2xl bg-[#f5f5f7] p-3.5 space-y-3">
-                  <p className="text-sm font-bold text-zinc-950">Measure your {containerWord}</p>
-                  <ol className="space-y-1.5 text-xs text-zinc-700">
-                    {[
-                      `Wrap a strip of paper around the ${containerWord} where the label will go.`,
-                      "Mark where the end meets the strip.",
-                      `Lay it flat and measure up to the mark — or measure straight across the ${containerWord} instead.`,
-                    ].map((t, i) => (
-                      <li key={i} className="flex gap-2 leading-relaxed">
-                        <span
-                          aria-hidden="true"
-                          className="mt-px inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-bold text-zinc-700"
-                        >
-                          {i + 1}
-                        </span>
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ol>
-                  <div role="radiogroup" aria-label="How did you measure?" className="flex flex-wrap gap-1 rounded-xl bg-white p-1">
-                    {(
-                      [
-                        ["around", "Around (paper strip)"],
-                        ["across", "Across (diameter)"],
-                      ] as const
-                    ).map(([id, text]) => (
-                      <button
-                        key={id}
-                        type="button"
-                        role="radio"
-                        aria-checked={measureMode === id}
-                        onClick={() => setMeasureMode(id)}
-                        className={`min-h-[34px] flex-1 rounded-lg px-3 text-xs font-semibold transition cursor-pointer ${
-                          measureMode === id ? "bg-[#4d7c0f] text-white" : "text-zinc-700 hover:bg-[#f5f5f7]"
-                        }`}
-                      >
-                        {text}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap items-end gap-2">
-                    <div>
-                      <label htmlFor={measureMode === "around" ? "jar-around-mm" : "jar-diameter-mm"} className={labelCls}>
-                        {measureMode === "around" ? `Distance around the ${containerWord} (mm)` : `${containerWord === "bottle" ? "Bottle" : "Jar"} diameter (mm)`}
-                      </label>
-                      <input
-                        key={measureMode}
-                        id={measureMode === "around" ? "jar-around-mm" : "jar-diameter-mm"}
-                        type="number"
-                        {...measureField.inputProps}
-                        aria-describedby="jar-wrap-hint"
-                        className="w-28 min-h-[40px] rounded-xl bg-white px-3 py-2 text-sm text-zinc-950"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setCustomWrapW(wrapLenMm)}
-                      disabled={wrapTooLong || wrapLenMm === wMm}
-                      className="min-h-[40px] rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-[#3f6212] ring-1 ring-[#4d7c0f]/40 hover:bg-[#eef6e4] disabled:text-zinc-400 disabled:ring-zinc-200 disabled:cursor-not-allowed cursor-pointer"
+          {isWrap && (
+            <div className="rounded-2xl bg-[#f5f5f7] p-3.5 space-y-3">
+              <p className="text-sm font-bold text-zinc-950">Measure your {containerWord}</p>
+              <ol className="space-y-1.5 text-xs text-zinc-700">
+                {[
+                  `Wrap a strip of paper around the ${containerWord} where the label will go.`,
+                  "Mark where the end meets the strip.",
+                  `Lay it flat and measure up to the mark — or measure straight across the ${containerWord} instead.`,
+                ].map((t, i) => (
+                  <li key={i} className="flex gap-2 leading-relaxed">
+                    <span
+                      aria-hidden="true"
+                      className="mt-px inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-bold text-zinc-700"
                     >
-                      Apply to label
-                    </button>
-                    {customWrapW !== null && (
-                      <button
-                        type="button"
-                        onClick={() => setCustomWrapW(null)}
-                        className="min-h-[40px] px-2 text-xs font-semibold text-zinc-600 hover:underline cursor-pointer"
-                      >
-                        Reset to {preset.wMm} mm
-                      </button>
-                    )}
-                  </div>
-                  {measureField.error && <FieldHint tone="error">{measureField.error}</FieldHint>}
-                  <p className="text-xs text-zinc-800">
-                    Label length: <strong className="text-[#365314]">{wrapLenMm} mm</strong>
-                    <span className="text-zinc-600">
-                      {" "}
-                      ({measureMode === "around" ? `${jarAroundMm}` : `π × ${jarDiameterMm}`} + {WRAP_OVERLAP_MM} mm overlap)
-                      {customWrapW === wrapLenMm ? " · applied" : ` · label is now ${wMm} mm`}
+                      {i + 1}
                     </span>
-                  </p>
-                  <FieldHint id="jar-wrap-hint" tone={wrapTooLong ? "error" : "muted"}>
-                    {wrapTooLong
-                      ? `${wrapLenMm} mm is longer than the printable width of ${paperName} (${printableW} mm). Use a smaller jar, or print the wrap in two pieces.`
-                      : `We add ${WRAP_OVERLAP_MM} mm of overlap so the two ends tuck over each other at the back — no gap showing.`}
-                  </FieldHint>
-                </div>
-              )}
-
-              <div>
-                <span id="jar-paper-label" className={labelCls}>
-                  Sheet size
-                </span>
-                <div role="radiogroup" aria-labelledby="jar-paper-label" className="inline-flex rounded-xl bg-[#f5f5f7] p-1">
-                  {(["a4", "letter"] as SheetPaper[]).map((pp) => (
-                    <button
-                      key={pp}
-                      type="button"
-                      role="radio"
-                      aria-checked={paper === pp}
-                      onClick={() => setPaper(pp)}
-                      className={`min-h-[36px] rounded-lg px-4 text-sm font-semibold transition cursor-pointer ${
-                        paper === pp ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-600 hover:text-zinc-900"
-                      }`}
-                    >
-                      {PAPER_NAME[pp]}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-1.5">
-                  <FieldHint>Print on full-page sticker paper, then cut out each label.</FieldHint>
-                </div>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ol>
+              <div role="radiogroup" aria-label="How did you measure?" className="flex flex-wrap gap-1 rounded-xl bg-white p-1">
+                {(
+                  [
+                    ["around", "Around (paper strip)"],
+                    ["across", "Across (diameter)"],
+                  ] as const
+                ).map(([id, text]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    aria-checked={measureMode === id}
+                    onClick={() => setMeasureMode(id)}
+                    className={`min-h-[34px] flex-1 rounded-lg px-3 text-xs font-semibold transition cursor-pointer ${
+                      measureMode === id ? "bg-[#4d7c0f] text-white" : "text-zinc-700 hover:bg-[#f5f5f7]"
+                    }`}
+                  >
+                    {text}
+                  </button>
+                ))}
               </div>
-            </div>
-          </section>
-
-          {/* Step 2 — text */}
-          <section className={sectionCls} aria-labelledby="jar-step-2">
-            <StepHeader
-              id="jar-step-2"
-              step={2}
-              title="Your text"
-              hint="Long text shrinks to fit. Leave a box empty to skip that line."
-            />
-            <div className="space-y-4">
-              {pageId === "T27" && (
-                <div className="rounded-2xl bg-[#f5f5f7] p-3.5 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <label className="inline-flex items-center gap-2 min-h-[36px] text-sm font-semibold text-zinc-800 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={useMultiSpices}
-                        onChange={(e) => setUseMultiSpices(e.target.checked)}
-                        className="accent-[#4d7c0f] h-4 w-4"
-                      />
-                      One label per spice
-                    </label>
-                    {useMultiSpices && (
-                      <button
-                        type="button"
-                        onClick={sortSpicesAlphabetically}
-                        className="min-h-[32px] text-xs font-semibold text-[#3f6212] hover:underline px-2 cursor-pointer"
-                      >
-                        Sort A–Z
-                      </button>
-                    )}
-                  </div>
-                  {useMultiSpices && (
-                    <>
-                      <textarea
-                        id="jar-spice-list"
-                        aria-label="Spice names, one per line"
-                        aria-describedby="jar-spice-hint"
-                        rows={5}
-                        value={spiceListText}
-                        onChange={(e) => setSpiceListText(e.target.value)}
-                        className="w-full rounded-xl bg-white px-3 py-2 text-sm text-zinc-950"
-                      />
-                      <FieldHint id="jar-spice-hint">
-                        <strong>One per line — each line becomes one label.</strong> The name replaces the title below.
-                      </FieldHint>
-                      <p className="text-xs font-semibold text-[#3f6212]" aria-live="polite">
-                        {spiceNames.length > 0
-                          ? `${spiceNames.length} spice${spiceNames.length === 1 ? "" : "s"} → ${summary}`
-                          : "List is empty — the name below is used instead."}
-                      </p>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="jar-label-title" className={labelCls}>
-                  {pageId === "T27" ? "Spice name" : "Product name"}
-                </label>
-                <input
-                  id="jar-label-title"
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  disabled={multi}
-                  className={`${textFieldCls} disabled:text-zinc-400`}
-                />
-                {multi && (
-                  <div className="mt-1.5">
-                    <FieldHint>Using the names from your spice list instead.</FieldHint>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label htmlFor="jar-label-subtitle" className={labelCls}>
-                  {subtitleCopy.label} <span className="font-normal text-zinc-500">(optional)</span>
-                </label>
-                <input
-                  id="jar-label-subtitle"
-                  type="text"
-                  value={subtitle}
-                  onChange={(e) => setSubtitle(e.target.value)}
-                  placeholder={subtitleCopy.placeholder}
-                  className={textFieldCls}
-                />
-              </div>
-              <div>
-                <label htmlFor="jar-label-meta" className={labelCls}>
-                  Small print <span className="font-normal text-zinc-500">(date, batch, weight…)</span>
-                </label>
-                <input
-                  id="jar-label-meta"
-                  type="text"
-                  value={metaLine}
-                  onChange={(e) => setMetaLine(e.target.value)}
-                  aria-describedby={!showMeta && metaLine.trim() ? "jar-meta-hint" : undefined}
-                  className={textFieldCls}
-                />
-                {!showMeta && metaLine.trim() && (
-                  <div className="mt-1.5">
-                    <FieldHint id="jar-meta-hint" tone="warning">
-                      Too small to print on {hMm} mm-tall labels — it will be left off.
-                    </FieldHint>
-                  </div>
-                )}
-              </div>
-              <div>
-                <span className={labelCls}>
-                  Logo or picture <span className="font-normal text-zinc-500">(optional)</span>
-                </span>
-                {logo ? (
-                  <div className="flex items-center gap-3 rounded-xl bg-[#f5f5f7] p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={logo.src} alt="Your logo" className={`h-12 w-12 bg-white object-contain p-1 ${round ? "rounded-full" : "rounded-lg"}`} />
-                    <p className="min-w-0 flex-1 text-xs text-zinc-700">
-                      Placed {round ? "above the name, kept inside the circle" : wMm / hMm > 2 ? "to the left of the name" : "above the name"}.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setLogo(null)}
-                      className="inline-flex min-h-[36px] items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-zinc-700 hover:bg-white cursor-pointer"
-                    >
-                      <X className="h-3.5 w-3.5" aria-hidden="true" />
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <UploadDropzone
-                    compact
-                    onFiles={handleLogo}
-                    title="Add a logo"
-                    buttonLabel="Choose image"
-                    inputLabel="Upload a logo or picture for the label"
-                    hint="PNG with a transparent background looks best · stays on your device"
+              <div className="flex flex-wrap items-end gap-2">
+                <div>
+                  <label htmlFor={measureMode === "around" ? "jar-around-mm" : "jar-diameter-mm"} className={labelCls}>
+                    {measureMode === "around" ? `Distance around the ${containerWord} (mm)` : `${containerWord === "bottle" ? "Bottle" : "Jar"} diameter (mm)`}
+                  </label>
+                  <input
+                    key={measureMode}
+                    id={measureMode === "around" ? "jar-around-mm" : "jar-diameter-mm"}
+                    type="number"
+                    {...measureField.inputProps}
+                    aria-describedby="jar-wrap-hint"
+                    className="w-28 min-h-[40px] rounded-xl bg-white px-3 py-2 text-sm text-zinc-950"
                   />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCustomWrapW(wrapLenMm)}
+                  disabled={wrapTooLong || wrapLenMm === wMm}
+                  className="min-h-[40px] rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-[#3f6212] ring-1 ring-[#4d7c0f]/40 hover:bg-[#eef6e4] disabled:text-zinc-400 disabled:ring-zinc-200 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Apply to label
+                </button>
+                {customWrapW !== null && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomWrapW(null)}
+                    className="min-h-[40px] px-2 text-xs font-semibold text-zinc-600 hover:underline cursor-pointer"
+                  >
+                    Reset to {preset.wMm} mm
+                  </button>
                 )}
               </div>
+              {measureField.error && <FieldHint tone="error">{measureField.error}</FieldHint>}
+              <p className="text-xs text-zinc-800">
+                Label length: <strong className="text-[#365314]">{wrapLenMm} mm</strong>
+                <span className="text-zinc-600">
+                  {" "}
+                  ({measureMode === "around" ? `${jarAroundMm}` : `π × ${jarDiameterMm}`} + {WRAP_OVERLAP_MM} mm overlap)
+                  {customWrapW === wrapLenMm ? " · applied" : ` · label is now ${wMm} mm`}
+                </span>
+              </p>
+              <FieldHint id="jar-wrap-hint" tone={wrapTooLong ? "error" : "muted"}>
+                {wrapTooLong
+                  ? `${wrapLenMm} mm is longer than the printable width of ${paperName} (${printableW} mm). Use a smaller jar, or print the wrap in two pieces.`
+                  : `We add ${WRAP_OVERLAP_MM} mm of overlap so the two ends tuck over each other at the back — no gap showing.`}
+              </FieldHint>
             </div>
-          </section>
+          )}
 
-          {/* Step 3 — style */}
-          <section className={sectionCls} aria-labelledby="jar-step-3">
-            <StepHeader id="jar-step-3" step={3} title="Style" hint="Pick a design, fonts and colours. The preview updates as you go." />
-            <div className="space-y-5">
-              <LabelStylePicker
-                name="jar-frame"
-                value={frameStyle}
-                onChange={setFrameStyle}
-                measure={measure}
-                sample={{ ...design, title: previewTitle }}
-              />
-              <FontPairPicker name="jar-fonts" value={fontPair} onChange={setFontPair} />
-              <div>
-                <ColourSwatchPicker label="Colour" value={accentHex} onChange={setAccentHex} hintId="jar-colour-hint" />
-                <div className="mt-1.5">
-                  <FieldHint id="jar-colour-hint">Used for borders, bands and accents.</FieldHint>
-                </div>
-              </div>
-              <div className="rounded-2xl bg-[#f5f5f7] p-3.5 space-y-3">
+          <div>
+            <span id="jar-paper-label" className={labelCls}>
+              Sheet size
+            </span>
+            <div role="radiogroup" aria-labelledby="jar-paper-label" className="inline-flex rounded-xl bg-[#f5f5f7] p-1">
+              {(["a4", "letter"] as SheetPaper[]).map((pp) => (
+                <button
+                  key={pp}
+                  type="button"
+                  role="radio"
+                  aria-checked={paper === pp}
+                  onClick={() => setPaper(pp)}
+                  className={`min-h-[36px] rounded-lg px-4 text-sm font-semibold transition cursor-pointer ${
+                    paper === pp ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-600 hover:text-zinc-900"
+                  }`}
+                >
+                  {PAPER_NAME[pp]}
+                </button>
+              ))}
+            </div>
+            <div className="mt-1.5">
+              <FieldHint>Print on full-page sticker paper, then cut out each label.</FieldHint>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "text",
+      number: 2,
+      label: "Text",
+      title: "Your text & logo",
+      hint: "Long text shrinks to fit. Leave a box empty to skip that line.",
+      content: (
+        <div className="space-y-4">
+          {pageId === "T27" && (
+            <div className="rounded-2xl bg-[#f5f5f7] p-3.5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
                 <label className="inline-flex items-center gap-2 min-h-[36px] text-sm font-semibold text-zinc-800 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={bgOn}
-                    onChange={(e) => setBgOn(e.target.checked)}
+                    checked={useMultiSpices}
+                    onChange={(e) => setUseMultiSpices(e.target.checked)}
                     className="accent-[#4d7c0f] h-4 w-4"
                   />
-                  Background colour
+                  One label per spice
                 </label>
-                {bgOn && (
-                  <div className="[&_label]:bg-white">
-                    <ColourSwatchPicker
-                      label="Fill"
-                      value={bgHex}
-                      onChange={setBgHex}
-                      swatches={BACKGROUND_SWATCHES}
-                    />
-                  </div>
+                {useMultiSpices && (
+                  <button
+                    type="button"
+                    onClick={sortSpicesAlphabetically}
+                    className="min-h-[32px] text-xs font-semibold text-[#3f6212] hover:underline px-2 cursor-pointer"
+                  >
+                    Sort A–Z
+                  </button>
                 )}
-                {edgeFill && (
-                  <FieldHint>
-                    Colour runs right up to the cut line. For full-colour edges, print slightly larger or trim just inside the line.
+              </div>
+              {useMultiSpices && (
+                <>
+                  <textarea
+                    id="jar-spice-list"
+                    aria-label="Spice names, one per line"
+                    aria-describedby="jar-spice-hint"
+                    rows={5}
+                    value={spiceListText}
+                    onChange={(e) => setSpiceListText(e.target.value)}
+                    className="w-full rounded-xl bg-white px-3 py-2 text-sm text-zinc-950"
+                  />
+                  <FieldHint id="jar-spice-hint">
+                    <strong>One per line — each line becomes one label.</strong> The name replaces the title below.
                   </FieldHint>
-                )}
-              </div>
-              <div>
-                <label className="inline-flex items-center gap-2 min-h-[36px] text-sm font-medium text-zinc-800 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showCutLines}
-                    onChange={(e) => setShowCutLines(e.target.checked)}
-                    aria-describedby="jar-cut-hint"
-                    className="accent-[#4d7c0f] h-4 w-4"
-                  />
-                  <Scissors className="h-3.5 w-3.5 text-zinc-600" aria-hidden="true" />
-                  Print cut lines
-                </label>
-                <div className="pl-6">
-                  <FieldHint id="jar-cut-hint">A thin grey outline to cut along. Turn it off if you use pre-cut labels.</FieldHint>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Step 4 — download */}
-          <section id="jar-download-step" className={sectionCls} aria-labelledby="jar-step-4">
-            <StepHeader
-              id="jar-step-4"
-              step={4}
-              title="Download & print"
-              hint={`You'll get a PDF sized exactly to ${paperName} — ${summary}.`}
-            />
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                disabled={isExporting || !!exportBlocker}
-                aria-describedby={exportBlocker ? "jar-export-blocker" : undefined}
-                className={`${primaryButtonClass} w-full`}
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Download className="h-4 w-4" aria-hidden="true" />
-                )}
-                {isExporting ? "Making your PDF…" : downloadLabel}
-              </button>
-              <DownloadPassBadge />
-              {exportBlocker && (
-                <FieldHint id="jar-export-blocker" tone="error">
-                  {exportBlocker}
-                </FieldHint>
+                  <p className="text-xs font-semibold text-[#3f6212]" aria-live="polite">
+                    {spiceNames.length > 0
+                      ? `${spiceNames.length} spice${spiceNames.length === 1 ? "" : "s"} → ${summary}`
+                      : "List is empty — the name below is used instead."}
+                  </p>
+                </>
               )}
-              <ToolStatus status={visibleStatus} />
-              <PrintTipsPanel
-                paperLabel={paperName}
-                open={visibleStatus?.tone === "success"}
-                extraSteps={["For glossy or waterproof labels, use vinyl/sticker paper and your printer's 'Glossy' setting."]}
-                cutStep="Cut along the outline (round labels: use scissors or a circle punch)."
-              />
-              <div className="rounded-xl bg-[#f5f5f7] px-3.5 py-2.5 text-[11px] text-zinc-700 flex items-start gap-2">
-                <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-amber-700" aria-hidden="true" />
-                <span className="leading-relaxed">
-                  Selling food, candles, oils or cosmetics? Check local labelling rules for weights, allergens, batch codes and
-                  safety warnings before printing.
-                </span>
-              </div>
             </div>
-          </section>
-        </div>
+          )}
 
-        {/* Preview */}
-        <div className="order-1 lg:order-2 lg:col-span-7 lg:sticky lg:top-24 rounded-2xl bg-white p-4 sm:p-8 flex flex-col items-center justify-center gap-4 lg:min-h-[420px]">
-          <div className="w-full flex items-center justify-between gap-2 text-xs">
-            <span className="font-bold text-zinc-950">Preview</span>
-            <span className="text-zinc-600">
-              {preset.name} · {presetSize({ wMm, hMm, round })}
+          <div>
+            <label htmlFor="jar-label-title" className={labelCls}>
+              {pageId === "T27" ? "Spice name" : "Product name"}
+            </label>
+            <input
+              id="jar-label-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={multi}
+              className={`${textFieldCls} disabled:text-zinc-400`}
+            />
+            {multi && (
+              <div className="mt-1.5">
+                <FieldHint>Using the names from your spice list instead.</FieldHint>
+              </div>
+            )}
+          </div>
+          <div>
+            <label htmlFor="jar-label-subtitle" className={labelCls}>
+              {subtitleCopy.label} <span className="font-normal text-zinc-500">(optional)</span>
+            </label>
+            <input
+              id="jar-label-subtitle"
+              type="text"
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+              placeholder={subtitleCopy.placeholder}
+              className={textFieldCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="jar-label-meta" className={labelCls}>
+              Small print <span className="font-normal text-zinc-500">(date, batch, weight…)</span>
+            </label>
+            <input
+              id="jar-label-meta"
+              type="text"
+              value={metaLine}
+              onChange={(e) => setMetaLine(e.target.value)}
+              aria-describedby={!showMeta && metaLine.trim() ? "jar-meta-hint" : undefined}
+              className={textFieldCls}
+            />
+            {!showMeta && metaLine.trim() && (
+              <div className="mt-1.5">
+                <FieldHint id="jar-meta-hint" tone="warning">
+                  Too small to print on {hMm} mm-tall labels — it will be left off.
+                </FieldHint>
+              </div>
+            )}
+          </div>
+          <div>
+            <span className={labelCls}>
+              Logo or picture <span className="font-normal text-zinc-500">(optional)</span>
+            </span>
+            {logo ? (
+              <div className="flex items-center gap-3 rounded-xl bg-[#f5f5f7] p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logo.src} alt="Your logo" className={`h-12 w-12 bg-white object-contain p-1 ${round ? "rounded-full" : "rounded-lg"}`} />
+                <p className="min-w-0 flex-1 text-xs text-zinc-700">
+                  Placed {round ? "above the name, kept inside the circle" : wMm / hMm > 2 ? "to the left of the name" : "above the name"}.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setLogo(null)}
+                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-zinc-700 hover:bg-white cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <UploadDropzone
+                compact
+                onFiles={handleLogo}
+                title="Add a logo"
+                buttonLabel="Choose image"
+                inputLabel="Upload a logo or picture for the label"
+                hint="PNG with a transparent background looks best · stays on your device"
+              />
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "style",
+      number: 3,
+      label: "Style",
+      title: "Style & finish",
+      hint: "Pick a design, fonts and colours. The preview updates as you go.",
+      content: (
+        <div className="space-y-5">
+          <LabelStylePicker
+            name="jar-frame"
+            value={frameStyle}
+            onChange={setFrameStyle}
+            measure={measure}
+            sample={{ ...design, title: previewTitle }}
+          />
+          <FontPairPicker name="jar-fonts" value={fontPair} onChange={setFontPair} />
+          <div>
+            <ColourSwatchPicker label="Colour" value={accentHex} onChange={setAccentHex} hintId="jar-colour-hint" />
+            <div className="mt-1.5">
+              <FieldHint id="jar-colour-hint">Used for borders, bands and accents.</FieldHint>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-[#f5f5f7] p-3.5 space-y-3">
+            <label className="inline-flex items-center gap-2 min-h-[36px] text-sm font-semibold text-zinc-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={bgOn}
+                onChange={(e) => setBgOn(e.target.checked)}
+                className="accent-[#4d7c0f] h-4 w-4"
+              />
+              Background colour
+            </label>
+            {bgOn && (
+              <div className="[&_label]:bg-white">
+                <ColourSwatchPicker
+                  label="Fill"
+                  value={bgHex}
+                  onChange={setBgHex}
+                  swatches={BACKGROUND_SWATCHES}
+                />
+              </div>
+            )}
+            {edgeFill && (
+              <FieldHint>
+                Colour runs right up to the cut line. For full-colour edges, print slightly larger or trim just inside the line.
+              </FieldHint>
+            )}
+          </div>
+          <div>
+            <label className="inline-flex items-center gap-2 min-h-[36px] text-sm font-medium text-zinc-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showCutLines}
+                onChange={(e) => setShowCutLines(e.target.checked)}
+                aria-describedby="jar-cut-hint"
+                className="accent-[#4d7c0f] h-4 w-4"
+              />
+              <Scissors className="h-3.5 w-3.5 text-zinc-600" aria-hidden="true" />
+              Print cut lines
+            </label>
+            <div className="pl-6">
+              <FieldHint id="jar-cut-hint">A thin grey outline to cut along. Turn it off if you use pre-cut labels.</FieldHint>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "export",
+      number: 4,
+      label: "Export",
+      title: "Download & print",
+      hint: `You'll get a PDF sized exactly to ${paperName} — ${summary}.`,
+      content: (
+        <div id="jar-download-step" className="space-y-3">
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={isExporting || !!exportBlocker}
+            aria-describedby={exportBlocker ? "jar-export-blocker" : undefined}
+            className={`${primaryButtonClass} w-full`}
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Download className="h-4 w-4" aria-hidden="true" />
+            )}
+            {isExporting ? "Making your PDF…" : downloadLabel}
+          </button>
+          <DownloadPassBadge />
+          {exportBlocker && (
+            <FieldHint id="jar-export-blocker" tone="error">
+              {exportBlocker}
+            </FieldHint>
+          )}
+          <ToolStatus status={visibleStatus} />
+          <PrintTipsPanel
+            paperLabel={paperName}
+            open={visibleStatus?.tone === "success"}
+            extraSteps={["For glossy or waterproof labels, use vinyl/sticker paper and your printer's 'Glossy' setting."]}
+            cutStep="Cut along the outline (round labels: use scissors or a circle punch)."
+          />
+          <div className="rounded-xl bg-[#f5f5f7] px-3.5 py-2.5 text-[11px] text-zinc-700 flex items-start gap-2">
+            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-amber-700" aria-hidden="true" />
+            <span className="leading-relaxed">
+              Selling food, candles, oils or cosmetics? Check local labelling rules for weights, allergens, batch codes and safety warnings before printing.
             </span>
           </div>
-          <div className="rounded-2xl bg-[#f5f5f7] p-4 sm:p-6 w-full flex items-center justify-center">
-            <div
-              className={`relative bg-white overflow-hidden ${round ? "rounded-full" : "rounded-[3px]"} ${
-                round ? "max-lg:max-w-[min(100%,190px)]" : ""
-              }`}
-              style={{
-                width: `min(100%, ${previewWidth}px)`,
-                aspectRatio: `${wMm} / ${hMm}`,
-                containerType: "inline-size",
-                outline: showCutLines ? "1px dashed #a1a1aa" : undefined,
-              }}
-            >
-              <LabelArt prims={previewPrims} w={wMm} h={hMm} />
-            </div>
-          </div>
+        </div>
+      ),
+    },
+  ];
 
-          {/* Whole-sheet thumbnail */}
-          <div className="w-full flex items-center gap-4 rounded-2xl bg-[#fafafa] p-3 ring-1 ring-[#ebeced]">
-            <div
-              role="img"
-              aria-label={`${perSheet} labels arranged ${layout.cols} across by ${layout.rows} down on ${paperName}`}
-              className="relative shrink-0 bg-white shadow-sm ring-1 ring-zinc-200"
-              style={{ width: 92, aspectRatio: `${paperDim.widthMm} / ${paperDim.heightMm}` }}
-            >
-              {Array.from({ length: perSheet }).map((_, s) => {
-                const r = Math.floor(s / layout.cols);
-                const c = s % layout.cols;
-                const x = layout.startX + c * (wMm + layout.gap);
-                const y = layout.startY + r * (hMm + layout.gap);
-                const used = s < labelCount;
-                return (
-                  <span
-                    key={s}
-                    className={`absolute block overflow-hidden ${round ? "rounded-full" : "rounded-[1px]"} ${
-                      used ? "bg-[#eef6e4]" : "bg-zinc-100"
-                    }`}
-                    style={{
-                      left: pct(x, paperDim.widthMm),
-                      top: pct(y, paperDim.heightMm),
-                      width: pct(wMm, paperDim.widthMm),
-                      height: pct(hMm, paperDim.heightMm),
-                      boxShadow: used ? `inset 0 0 0 1px ${accentHex}` : undefined,
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <div className="min-w-0 text-xs text-zinc-700 space-y-1">
-              <p className="text-sm font-bold text-zinc-950">
-                {perSheet} labels on {paperName}
-              </p>
-              <p>
-                {layout.cols} across × {layout.rows} down, centred on the page.
-              </p>
-              {layout.reduced && perSheet > 0 && (
-                <p className="text-amber-800">
-                  Reduced from {preset.cols} × {preset.rows} so every label stays inside the printable area.
-                </p>
-              )}
-              {pageCount > 1 && <p className="font-semibold text-[#3f6212]">{summary}</p>}
-            </div>
-          </div>
+  const previewNode = (
+    <div className="w-full flex flex-col items-center gap-5">
+      <div className="w-full flex items-center justify-center p-2">
+        <div
+          className={`relative bg-white overflow-hidden shadow-md ${round ? "rounded-full" : "rounded-[3px]"} ${
+            round ? "max-lg:max-w-[min(100%,210px)]" : ""
+          }`}
+          style={{
+            width: `min(100%, ${previewWidth}px)`,
+            aspectRatio: `${wMm} / ${hMm}`,
+            containerType: "inline-size",
+            outline: showCutLines ? "1px dashed #a1a1aa" : undefined,
+          }}
+        >
+          <LabelArt prims={previewPrims} w={wMm} h={hMm} />
         </div>
       </div>
 
-      <MobileActionBar summary={exportBlocker ? "Can't download yet — see step 1" : `${labelCount} label${labelCount === 1 ? "" : "s"} · ${paperName}${pageCount > 1 ? ` · ${pageCount} pages` : ""}`}>
-        <button
-          type="button"
-          onClick={handleDownloadPdf}
-          disabled={isExporting || !!exportBlocker}
-          className={`${primaryButtonClass} min-h-[44px] px-4 py-2`}
+      {/* Whole-sheet thumbnail */}
+      <div className="w-full max-w-md flex items-center gap-4 rounded-2xl bg-white p-3.5 ring-1 ring-zinc-200 shadow-xs">
+        <div
+          role="img"
+          aria-label={`${perSheet} labels arranged ${layout.cols} across by ${layout.rows} down on ${paperName}`}
+          className="relative shrink-0 bg-white shadow-sm ring-1 ring-zinc-200"
+          style={{ width: 84, aspectRatio: `${paperDim.widthMm} / ${paperDim.heightMm}` }}
         >
-          <Download className="h-4 w-4" aria-hidden="true" />
-          {isExporting ? "Making PDF…" : "Download PDF"}
-        </button>
-      </MobileActionBar>
+          {Array.from({ length: perSheet }).map((_, s) => {
+            const r = Math.floor(s / layout.cols);
+            const c = s % layout.cols;
+            const x = layout.startX + c * (wMm + layout.gap);
+            const y = layout.startY + r * (hMm + layout.gap);
+            const used = s < labelCount;
+            return (
+              <span
+                key={s}
+                className={`absolute block overflow-hidden ${round ? "rounded-full" : "rounded-[1px]"} ${
+                  used ? "bg-[#eef6e4]" : "bg-zinc-100"
+                }`}
+                style={{
+                  left: pct(x, paperDim.widthMm),
+                  top: pct(y, paperDim.heightMm),
+                  width: pct(wMm, paperDim.widthMm),
+                  height: pct(hMm, paperDim.heightMm),
+                  boxShadow: used ? `inset 0 0 0 1px ${accentHex}` : undefined,
+                }}
+              />
+            );
+          })}
+        </div>
+        <div className="min-w-0 text-xs text-zinc-700 space-y-1">
+          <p className="text-sm font-bold text-zinc-950">
+            {perSheet} labels on {paperName}
+          </p>
+          <p>
+            {layout.cols} across × {layout.rows} down, centred on the page.
+          </p>
+          {layout.reduced && perSheet > 0 && (
+            <p className="text-amber-800">
+              Reduced from {preset.cols} × {preset.rows} so every label stays inside the printable area.
+            </p>
+          )}
+          {pageCount > 1 && <p className="font-semibold text-[#3f6212]">{summary}</p>}
+        </div>
+      </div>
     </div>
+  );
+
+  return (
+    <FullPageToolShell
+      open={open}
+      onClose={onClose}
+      toolTitle={pageId === "T29" ? "Bottle Label Maker" : "Jar & Bottle Labels"}
+      toolSummary={`${preset.name} · ${presetSize({ wMm, hMm, round })} · ${paperName}`}
+      steps={steps}
+      activeStep={activeStep}
+      onStepChange={setActiveStep}
+      headerCenter={headerCenter}
+      preview={previewNode}
+      primaryAction={{
+        label: isExporting ? "Making your PDF…" : downloadLabel,
+        mobileLabel: isExporting ? "Making PDF…" : "Download PDF",
+        onClick: handleDownloadPdf,
+        disabled: isExporting || !!exportBlocker,
+        loading: isExporting,
+        describedBy: exportBlocker ? "jar-export-blocker" : undefined,
+      }}
+      howTo={JAR_BOTTLE_HOW_TO}
+      mobileSummary={
+        exportBlocker
+          ? "Can't download yet — see step 1"
+          : `${labelCount} label${labelCount === 1 ? "" : "s"} · ${paperName}${pageCount > 1 ? ` · ${pageCount} pages` : ""}`
+      }
+    />
   );
 }

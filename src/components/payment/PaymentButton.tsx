@@ -148,12 +148,12 @@ export function PaymentButton({
       )}
 
       {clientId === "test" && (
-        <p className="mb-3 rounded-xl border border-amber-400 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950">
-          PayPal sandbox mode: no real money will be charged. Set{" "}
-          <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-[11px]">
+        <p className="mb-2.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-950 leading-snug break-words">
+          Sandbox test mode (no real charge). Set{" "}
+          <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-[10px]">
             NEXT_PUBLIC_PAYPAL_CLIENT_ID
           </code>{" "}
-          to accept live payments.
+          for live checkout.
         </p>
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Download, Grid3X3, Info, Ruler, RotateCw, Sparkles } from "lucide-react";
 import {
   createSamplePhotoDataUrl,
@@ -15,15 +15,15 @@ import {
 } from "@/lib/pdf-utils";
 import {
   FieldHint,
-  MobileActionBar,
   PrintTipsPanel,
-  StepHeader,
   ToolStatus,
   UploadDropzone,
   primaryButtonClass,
   secondaryButtonClass,
   type ToolStatusValue,
 } from "@/components/tools/ui/ToolUi";
+import { FullPageToolShell, type ToolStepDef } from "@/components/tools/ui/FullPageToolShell";
+import { POSTER_SPLITTER_HOW_TO } from "@/components/tools/ui/tool-howto-guides";
 import { CropEditor } from "@/components/tools/ui/CropEditor";
 import { DEFAULT_CROP, getSourceRect, type CropState } from "@/lib/crop";
 import { useNumberField } from "@/lib/use-number-field";
@@ -111,8 +111,19 @@ function imagePlacement(
 
 const fmt1 = (n: number) => (Math.round(n * 10) / 10).toString();
 
-export function PosterSplitterTool() {
+export function PosterSplitterTool({
+  open = true,
+  onClose = () => {},
+  headerCenter,
+  autoSampleSignal = 0,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+  headerCenter?: React.ReactNode;
+  autoSampleSignal?: number;
+} = {}) {
   const { requirePayment } = useDownloadGate();
+  const [activeStep, setActiveStep] = useState(0);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [paper, setPaper] = useState<PaperSizeId>("a4");
@@ -486,662 +497,676 @@ export function PosterSplitterTool() {
     { id: "contain", title: "Show whole image", hint: "white borders" },
   ];
 
-  return (
-    <div className="rounded-3xl bg-[#f5f5f7] p-2 sm:p-5 lg:p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-5 items-start">
-        {/* Controls */}
-        <div className="order-2 lg:order-1 lg:col-span-5 rounded-2xl bg-white p-4 sm:p-6 space-y-7">
-          {/* Step 1 — image */}
-          <section aria-labelledby="ps-step-1" className="space-y-3">
-            <StepHeader
-              step={1}
-              id="ps-step-1"
-              title="Upload your image"
-              hint="A big, sharp photo or artwork works best — it gets printed across several pages."
-            />
-            {imageSrc && imageSize && quality && (
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imageSrc}
-                  alt="Your uploaded image"
-                  className="h-14 w-14 shrink-0 rounded-xl object-cover bg-[#f5f5f7]"
-                />
-                <div className="min-w-0 space-y-1">
-                  <span
-                    data-testid="poster-quality"
-                    className={`inline-flex flex-wrap items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold ${quality.cls}`}
-                  >
-                    <Info className="h-3 w-3" aria-hidden="true" />
-                    Print quality: {quality.label}
-                  </span>
-                  <p className="text-[11px] text-zinc-600">
-                    {imageSize.width} × {imageSize.height} px · about {effectiveDpi} dots
-                    per inch at this poster size
-                  </p>
-                </div>
-              </div>
-            )}
-            {isLowRes && (
-              <FieldHint tone="warning">
-                Your image is small for a poster this big, so it may look blurry.
-                Use a larger image or choose fewer pages in step 2.
-              </FieldHint>
-            )}
-            <UploadDropzone
-              onFiles={(files) => void addFile(files[0])}
-              title={imageSrc ? "Use a different image" : "Upload your image"}
-              buttonLabel={imageSrc ? "Choose another" : "Choose image"}
-              compact={!!imageSrc}
-              inputLabel="Upload poster image"
-              secondaryAction={
-                imageSrc ? undefined : (
-                  <button
-                    type="button"
-                    onClick={handleLoadSample}
-                    className={secondaryButtonClass}
-                  >
-                    <Sparkles className="h-4 w-4 text-[#3f6212]" aria-hidden="true" />
-                    Try sample
-                  </button>
-                )
-              }
-            />
-            {status?.area === "upload" && <ToolStatus status={status.value} />}
-          </section>
+  const prevSampleSignalRef = useRef(0);
+  useEffect(() => {
+    if (autoSampleSignal > prevSampleSignalRef.current) {
+      prevSampleSignalRef.current = autoSampleSignal;
+      void handleLoadSample();
+    }
+  }, [autoSampleSignal]);
 
-          {/* Step 2 — size */}
-          <section aria-labelledby="ps-step-2" className="space-y-4">
-            <StepHeader
-              step={2}
-              id="ps-step-2"
-              title="Choose poster size"
-              hint="Type the size you want, or pick how many pages across and down."
-            />
-
-            {/* Target finished size */}
-            <div
-              data-testid="poster-target"
-              className={`rounded-xl p-3 space-y-2.5 ring-1 ${
-                sizeMode === "target"
-                  ? "bg-[#eef6e4] ring-[#4d7c0f]"
-                  : "bg-[#f5f5f7] ring-transparent"
-              }`}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p
-                  id="poster-target-label"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-800"
+  const steps: ToolStepDef[] = [
+    {
+      id: "image",
+      number: 1,
+      label: "Image",
+      title: "Upload your image",
+      hint: "A big, sharp photo or artwork works best — it gets printed across several pages.",
+      badge: quality ? (
+        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${quality.cls}`}>
+          {quality.label}
+        </span>
+      ) : undefined,
+      content: (
+        <div className="space-y-4">
+          {imageSrc && imageSize && quality && (
+            <div className="flex items-center gap-3 rounded-2xl bg-[#f5f5f7] p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageSrc}
+                alt="Your uploaded image"
+                className="h-14 w-14 shrink-0 rounded-xl object-cover bg-white"
+              />
+              <div className="min-w-0 space-y-1">
+                <span
+                  data-testid="poster-quality"
+                  className={`inline-flex flex-wrap items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-semibold ${quality.cls}`}
                 >
-                  <Ruler className="h-3.5 w-3.5 text-[#3f6212]" aria-hidden="true" />
-                  Finished size you want
+                  <Info className="h-3 w-3" aria-hidden="true" />
+                  Print quality: {quality.label}
+                </span>
+                <p className="text-[11px] text-zinc-600">
+                  {imageSize.width} × {imageSize.height} px · ~{effectiveDpi} DPI at this size
                 </p>
-                <div
-                  role="radiogroup"
-                  aria-label="Size applies to"
-                  className="inline-flex rounded-lg bg-white p-0.5"
-                >
-                  {(["width", "height"] as const).map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      role="radio"
-                      aria-checked={targetDim === d}
-                      onClick={() => {
-                        setTargetDim(d);
-                        setSizeMode("target");
-                        clearStatus();
-                      }}
-                      className={`min-h-[32px] rounded-md px-2.5 text-xs font-semibold cursor-pointer ${
-                        targetDim === d
-                          ? "bg-zinc-950 text-white"
-                          : "text-zinc-700 hover:bg-[#f5f5f7]"
-                      }`}
-                    >
-                      {d === "width" ? "Width" : "Height"}
-                    </button>
-                  ))}
-                </div>
               </div>
-              <div className="flex items-stretch gap-2">
-                <label htmlFor="poster-target-size" className="sr-only">
-                  Poster {targetDim} in {targetUnit === "cm" ? "centimetres" : "inches"}
-                </label>
-                <input
-                  id="poster-target-size"
-                  type="number"
-                  {...targetField.inputProps}
-                  onChange={(e) => {
-                    // Typing a size switches to "target size" mode.
-                    setSizeMode("target");
-                    targetField.inputProps.onChange(e);
-                  }}
-                  aria-describedby="poster-target-result"
-                  className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-white px-3 py-2 text-sm font-semibold text-zinc-950 ring-1 ring-zinc-200 aria-[invalid=true]:ring-red-500"
-                />
-                <div
-                  role="radiogroup"
-                  aria-label="Unit"
-                  className="inline-flex shrink-0 rounded-xl bg-white p-0.5 ring-1 ring-zinc-200"
+            </div>
+          )}
+          {isLowRes && (
+            <FieldHint tone="warning">
+              Your image is small for a poster this big, so it may look blurry. Use a larger image or choose fewer pages in step 2.
+            </FieldHint>
+          )}
+          <UploadDropzone
+            onFiles={(files) => void addFile(files[0])}
+            title={imageSrc ? "Use a different image" : "Upload your image"}
+            buttonLabel={imageSrc ? "Choose another" : "Choose image"}
+            compact={!!imageSrc}
+            inputLabel="Upload poster image"
+            secondaryAction={
+              imageSrc ? undefined : (
+                <button
+                  type="button"
+                  onClick={handleLoadSample}
+                  className={secondaryButtonClass}
                 >
-                  {(["cm", "in"] as const).map((u) => (
-                    <button
-                      key={u}
-                      type="button"
-                      role="radio"
-                      aria-checked={targetUnit === u}
-                      aria-label={u === "cm" ? "Centimetres" : "Inches"}
-                      onClick={() => {
-                        changeTargetUnit(u);
-                        setSizeMode("target");
-                      }}
-                      className={`min-w-[44px] rounded-lg px-2.5 text-xs font-bold cursor-pointer ${
-                        targetUnit === u
-                          ? "bg-[#4d7c0f] text-white"
-                          : "text-zinc-700 hover:bg-[#f5f5f7]"
-                      }`}
-                    >
-                      {u}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {targetField.error && (
-                <FieldHint tone="warning">{targetField.error}</FieldHint>
-              )}
+                  <Sparkles className="h-4 w-4 text-[#3f6212]" aria-hidden="true" />
+                  Try sample
+                </button>
+              )
+            }
+          />
+          {status?.area === "upload" && <ToolStatus status={status.value} />}
+        </div>
+      ),
+    },
+    {
+      id: "size",
+      number: 2,
+      label: "Size",
+      title: "Choose poster size",
+      hint: "Type the finished size you want, or pick how many pages across and down.",
+      badge: (
+        <span className="rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-bold text-[#365314]">
+          {pagesText}
+        </span>
+      ),
+      content: (
+        <div className="space-y-4">
+          <div
+            data-testid="poster-target"
+            className={`rounded-xl p-3 space-y-2.5 ring-1 ${
+              sizeMode === "target"
+                ? "bg-[#eef6e4] ring-[#4d7c0f]"
+                : "bg-[#f5f5f7] ring-transparent"
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p
-                id="poster-target-result"
-                aria-live="polite"
-                className="text-xs text-zinc-700"
+                id="poster-target-label"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-800"
               >
-                {sizeMode === "target" ? (
-                  <>
-                    <span className="font-semibold text-zinc-950">
-                      {targetCols} across × {targetRows} down ({targetCols * targetRows}{" "}
-                      pages)
-                    </span>{" "}
-                    → exactly {exactCm} cm ({exactIn} in)
-                    {!imageSrc && " · add your image to match its shape"}
-                  </>
-                ) : (
-                  <>
-                    Would use {targetCols} × {targetRows} pages.{" "}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSizeMode("target");
-                        clearStatus();
-                      }}
-                      className="font-semibold text-[#3f6212] underline underline-offset-2 cursor-pointer"
-                    >
-                      Use this size
-                    </button>
-                  </>
-                )}
-              </p>
-              {targetCapped && (
-                <FieldHint tone="warning">
-                  That&apos;s more than {MAX_PAGES_PER_SIDE} pages on a side, so it&apos;s
-                  capped — try bigger paper (A3) for a poster this large.
-                </FieldHint>
-              )}
-            </div>
-
-            <p
-              id="poster-pages-label"
-              className="text-xs font-semibold text-zinc-700"
-            >
-              Or choose pages across/down
-            </p>
-            <div
-              className="grid grid-cols-2 gap-1.5"
-              role="group"
-              aria-labelledby="poster-pages-label"
-            >
-              {presetSizes.map((p) => {
-                const active = sizeMode === "pages" && cols === p.c && rows === p.r;
-                const s = posterSize(
-                  orientedPaper.widthMm,
-                  orientedPaper.heightMm,
-                  marginMm,
-                  overlapMm,
-                  p.c,
-                  p.r
-                );
-                return (
-                  <button
-                    key={`${p.c}x${p.r}`}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => {
-                      setPages(p.c, p.r);
-                      clearStatus();
-                    }}
-                    className={`min-h-[52px] rounded-xl px-3 py-2 text-left transition cursor-pointer ${
-                      active
-                        ? "bg-[#4d7c0f] text-white"
-                        : "bg-[#f5f5f7] text-zinc-800 hover:bg-[#ebeced]"
-                    }`}
-                  >
-                    <span className="block text-xs font-bold">
-                      {p.c * p.r} pages ({p.c} × {p.r})
-                    </span>
-                    <span
-                      className={`block text-[11px] ${active ? "text-white/85" : "text-zinc-600"}`}
-                    >
-                      ≈ {toCm(s.fullW)} × {toCm(s.fullH)} cm · {toIn(s.fullW)} × {toIn(s.fullH)} in
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-[#f5f5f7] p-3">
-                <label
-                  htmlFor="poster-cols"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Pages across: {cols}
-                </label>
-                <input
-                  id="poster-cols"
-                  type="range"
-                  min={1}
-                  max={MAX_PAGES_PER_SIDE}
-                  value={cols}
-                  onChange={(e) => {
-                    setPages(Number(e.target.value), rows);
-                    clearStatus();
-                  }}
-                  className="w-full accent-[#4d7c0f]"
-                />
-              </div>
-              <div className="rounded-xl bg-[#f5f5f7] p-3">
-                <label
-                  htmlFor="poster-rows"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Pages down: {rows}
-                </label>
-                <input
-                  id="poster-rows"
-                  type="range"
-                  min={1}
-                  max={MAX_PAGES_PER_SIDE}
-                  value={rows}
-                  onChange={(e) => {
-                    setPages(cols, Number(e.target.value));
-                    clearStatus();
-                  }}
-                  className="w-full accent-[#4d7c0f]"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  htmlFor="poster-tile-paper"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Paper size
-                </label>
-                <select
-                  id="poster-tile-paper"
-                  value={paper}
-                  onChange={(e) => {
-                    setPaper(e.target.value as PaperSizeId);
-                    clearStatus();
-                  }}
-                  className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-950"
-                >
-                  <option value="a4">{PAPER_SIZES.a4.label}</option>
-                  <option value="letter">{PAPER_SIZES.letter.label}</option>
-                  <option value="a3">{PAPER_SIZES.a3.label}</option>
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="poster-orientation"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Page direction
-                </label>
-                <select
-                  id="poster-orientation"
-                  value={orientation}
-                  onChange={(e) => {
-                    setOrientation(e.target.value as "portrait" | "landscape");
-                    clearStatus();
-                  }}
-                  className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-950"
-                >
-                  <option value="portrait">Portrait (tall)</option>
-                  <option value="landscape">Landscape (wide)</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <p
-                id="poster-fit-label"
-                className="text-xs font-semibold text-zinc-700 mb-1.5"
-              >
-                How the image fits the poster
+                <Ruler className="h-3.5 w-3.5 text-[#3f6212]" aria-hidden="true" />
+                Finished size you want
               </p>
               <div
                 role="radiogroup"
-                aria-labelledby="poster-fit-label"
-                className="grid grid-cols-2 gap-1.5"
+                aria-label="Size applies to"
+                className="inline-flex rounded-lg bg-white p-0.5"
               >
-                {fitOptions.map((opt) => {
-                  const active = fitMode === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => {
-                        setFitMode(opt.id);
-                        clearStatus();
-                      }}
-                      className={`min-h-[44px] rounded-xl px-3 py-2 text-left text-xs transition cursor-pointer ring-1 ${
-                        active
-                          ? "bg-[#eef6e4] ring-[#4d7c0f] text-zinc-950"
-                          : "bg-[#f5f5f7] ring-transparent text-zinc-700 hover:bg-[#ebeced]"
-                      }`}
-                    >
-                      <span className="block font-semibold">{opt.title}</span>
-                      <span className="block text-zinc-600">({opt.hint})</span>
-                    </button>
-                  );
-                })}
+                {(["width", "height"] as const).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    role="radio"
+                    aria-checked={targetDim === d}
+                    onClick={() => {
+                      setTargetDim(d);
+                      setSizeMode("target");
+                      clearStatus();
+                    }}
+                    className={`min-h-[32px] rounded-md px-2.5 text-xs font-semibold cursor-pointer ${
+                      targetDim === d
+                        ? "bg-zinc-950 text-white"
+                        : "text-zinc-700 hover:bg-[#f5f5f7]"
+                    }`}
+                  >
+                    {d === "width" ? "Width" : "Height"}
+                  </button>
+                ))}
               </div>
             </div>
-
-            <div
-              data-testid="poster-finished-size"
-              className="rounded-xl bg-[#eef6e4] px-4 py-3 text-[#365314]"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#3f6212]">
-                Finished poster
-              </p>
-              <p className="text-base font-bold text-zinc-950">
-                {exactCm} cm{" "}
-                <span className="font-semibold text-zinc-700">({exactIn} in)</span>
-              </p>
-              <p className="text-xs">
-                {pagesText} of {paperShort} · {cols} across × {rows} down
-              </p>
-              {imageSrc && fitMode === "contain" && whitePct >= 2 && (
-                <p className="text-xs">
-                  Image prints {fmt1(imagePrintW / 10)} × {fmt1(imagePrintH / 10)} cm
-                  with white borders.
-                </p>
-              )}
-            </div>
-
-            {imageSrc && isCropped && (
-              <FieldHint>
-                Your image is a different shape from the poster, so about{" "}
-                {trimmedPct}% is trimmed off the edges — drag below to choose
-                what&apos;s kept, or pick &ldquo;Show whole image&rdquo;.
-              </FieldHint>
-            )}
-            {imageSrc && fitMode === "contain" && whitePct >= 2 && (
-              <FieldHint>
-                The whole image is shown; about {whitePct}% of the poster is
-                white border (see preview).
-              </FieldHint>
-            )}
-            {suggestFlip && (
-              <button
-                type="button"
-                onClick={applyFlip}
-                className="min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-[#eef6e4] px-3 py-2 text-xs font-semibold text-[#3f6212] hover:bg-[#e2efd3] cursor-pointer"
-              >
-                <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
-                Use {flippedOrientation} pages
-                {sizeMode === "pages" ? ` (${rows} across × ${cols} down)` : ""} —{" "}
-                {fitMode === "cover" ? "less trimming" : "smaller borders"}
-              </button>
-            )}
-
-            {imageSrc && fitMode === "cover" && (
-              <div data-testid="poster-crop">
-                <p className="text-xs font-semibold text-zinc-700 mb-1.5">
-                  Choose which part is kept
-                </p>
-                <CropEditor
-                  src={imageSrc}
-                  aspect={posterAspect}
-                  value={posterCrop}
-                  onChange={(c) => {
-                    setPosterCrop(c);
-                    clearStatus();
-                  }}
-                  label="Position your image on the poster"
-                  maxWidthPx={260}
-                />
-              </div>
-            )}
-          </section>
-
-          {/* Step 3 — overlap & margins */}
-          <section aria-labelledby="ps-step-3" className="space-y-4">
-            <StepHeader
-              step={3}
-              id="ps-step-3"
-              title="Overlap & margins"
-              hint="The defaults work for most home printers."
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="rounded-xl bg-[#f5f5f7] p-3">
-                <label
-                  htmlFor="poster-overlap-mm"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Overlap for taping: {overlapMm} mm
-                </label>
-                <input
-                  id="poster-overlap-mm"
-                  type="range"
-                  min={0}
-                  max={15}
-                  value={overlapMm}
-                  aria-describedby="poster-overlap-hint"
-                  onChange={(e) => {
-                    setOverlapMm(Number(e.target.value));
-                    clearStatus();
-                  }}
-                  className="w-full accent-[#4d7c0f]"
-                />
-                <FieldHint id="poster-overlap-hint">
-                  Each page shares this strip with its neighbour so you can
-                  glue/tape them.
-                </FieldHint>
-              </div>
-              <div className="rounded-xl bg-[#f5f5f7] p-3">
-                <label
-                  htmlFor="poster-margin-mm"
-                  className="block text-xs font-semibold text-zinc-700 mb-1"
-                >
-                  Edge margin: {marginMm} mm
-                </label>
-                <input
-                  id="poster-margin-mm"
-                  type="range"
-                  min={PRINTER_SAFE_MARGIN_MM}
-                  max={15}
-                  value={marginMm}
-                  aria-describedby="poster-margin-hint"
-                  onChange={(e) => {
-                    setMarginMm(Number(e.target.value));
-                    clearStatus();
-                  }}
-                  className="w-full accent-[#4d7c0f]"
-                />
-                <FieldHint id="poster-margin-hint">
-                  Blank border printers need — they can&apos;t print right to the
-                  edge.
-                </FieldHint>
-              </div>
-            </div>
-
-            <label className="min-h-[36px] flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
+            <div className="flex items-stretch gap-2">
+              <label htmlFor="poster-target-size" className="sr-only">
+                Poster {targetDim} in {targetUnit === "cm" ? "centimetres" : "inches"}
+              </label>
               <input
-                type="checkbox"
-                checked={showNumbers}
+                id="poster-target-size"
+                type="number"
+                {...targetField.inputProps}
                 onChange={(e) => {
-                  setShowNumbers(e.target.checked);
+                  setSizeMode("target");
+                  targetField.inputProps.onChange(e);
+                }}
+                aria-describedby="poster-target-result"
+                className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-white px-3 py-2 text-sm font-semibold text-zinc-950 ring-1 ring-zinc-200 aria-[invalid=true]:ring-red-500"
+              />
+              <div
+                role="radiogroup"
+                aria-label="Unit"
+                className="inline-flex shrink-0 rounded-xl bg-white p-0.5 ring-1 ring-zinc-200"
+              >
+                {(["cm", "in"] as const).map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    role="radio"
+                    aria-checked={targetUnit === u}
+                    aria-label={u === "cm" ? "Centimetres" : "Inches"}
+                    onClick={() => {
+                      changeTargetUnit(u);
+                      setSizeMode("target");
+                    }}
+                    className={`min-w-[44px] rounded-lg px-2.5 text-xs font-bold cursor-pointer ${
+                      targetUnit === u
+                        ? "bg-[#4d7c0f] text-white"
+                        : "text-zinc-700 hover:bg-[#f5f5f7]"
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {targetField.error && (
+              <FieldHint tone="warning">{targetField.error}</FieldHint>
+            )}
+            <p
+              id="poster-target-result"
+              aria-live="polite"
+              className="text-xs text-zinc-700"
+            >
+              {sizeMode === "target" ? (
+                <>
+                  <span className="font-semibold text-zinc-950">
+                    {targetCols} across × {targetRows} down ({targetCols * targetRows} pages)
+                  </span>{" "}
+                  → exactly {exactCm} cm ({exactIn} in)
+                  {!imageSrc && " · add your image to match its shape"}
+                </>
+              ) : (
+                <>
+                  Would use {targetCols} × {targetRows} pages.{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSizeMode("target");
+                      clearStatus();
+                    }}
+                    className="font-semibold text-[#3f6212] underline underline-offset-2 cursor-pointer"
+                  >
+                    Use this size
+                  </button>
+                </>
+              )}
+            </p>
+            {targetCapped && (
+              <FieldHint tone="warning">
+                That&apos;s more than {MAX_PAGES_PER_SIDE} pages on a side, so it&apos;s capped — try bigger paper (A3) for a poster this large.
+              </FieldHint>
+            )}
+          </div>
+
+          <p
+            id="poster-pages-label"
+            className="text-xs font-semibold text-zinc-700"
+          >
+            Or choose pages across/down
+          </p>
+          <div
+            className="grid grid-cols-2 gap-1.5"
+            role="group"
+            aria-labelledby="poster-pages-label"
+          >
+            {presetSizes.map((p) => {
+              const active = sizeMode === "pages" && cols === p.c && rows === p.r;
+              const s = posterSize(
+                orientedPaper.widthMm,
+                orientedPaper.heightMm,
+                marginMm,
+                overlapMm,
+                p.c,
+                p.r
+              );
+              return (
+                <button
+                  key={`${p.c}x${p.r}`}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    setPages(p.c, p.r);
+                    clearStatus();
+                  }}
+                  className={`min-h-[52px] rounded-xl px-3 py-2 text-left transition cursor-pointer ${
+                    active
+                      ? "bg-[#4d7c0f] text-white"
+                      : "bg-[#f5f5f7] text-zinc-800 hover:bg-[#ebeced]"
+                  }`}
+                >
+                  <span className="block text-xs font-bold">
+                    {p.c * p.r} pages ({p.c} × {p.r})
+                  </span>
+                  <span
+                    className={`block text-[11px] ${active ? "text-white/85" : "text-zinc-600"}`}
+                  >
+                    ≈ {toCm(s.fullW)} × {toCm(s.fullH)} cm · {toIn(s.fullW)} × {toIn(s.fullH)} in
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-[#f5f5f7] p-3">
+              <label
+                htmlFor="poster-cols"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Pages across: {cols}
+              </label>
+              <input
+                id="poster-cols"
+                type="range"
+                min={1}
+                max={MAX_PAGES_PER_SIDE}
+                value={cols}
+                onChange={(e) => {
+                  setPages(Number(e.target.value), rows);
                   clearStatus();
                 }}
-                className="mt-0.5 accent-[#4d7c0f] h-4 w-4"
+                className="w-full accent-[#4d7c0f]"
               />
-              <span>
-                <span className="inline-flex items-center gap-1.5 font-semibold text-zinc-800">
-                  <Grid3X3 className="h-3.5 w-3.5 text-zinc-600" aria-hidden="true" />
-                  Print page labels (Row / Col)
-                </span>
-                <span className="block text-zinc-600">
-                  A small label on each page so you know where it goes.
-                </span>
-              </span>
-            </label>
-          </section>
+            </div>
+            <div className="rounded-xl bg-[#f5f5f7] p-3">
+              <label
+                htmlFor="poster-rows"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Pages down: {rows}
+              </label>
+              <input
+                id="poster-rows"
+                type="range"
+                min={1}
+                max={MAX_PAGES_PER_SIDE}
+                value={rows}
+                onChange={(e) => {
+                  setPages(cols, Number(e.target.value));
+                  clearStatus();
+                }}
+                className="w-full accent-[#4d7c0f]"
+              />
+            </div>
+          </div>
 
-          {/* Step 4 — download */}
-          <section aria-labelledby="ps-step-4" className="space-y-3">
-            <StepHeader
-              step={4}
-              id="ps-step-4"
-              title="Download & assemble"
-              hint="You get one PDF with every page. Nothing is uploaded — it's all made on your device."
-            />
+          <div
+            data-testid="poster-finished-size"
+            className="rounded-xl bg-[#eef6e4] px-4 py-3 text-[#365314]"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#3f6212]">
+              Finished poster
+            </p>
+            <p className="text-base font-bold text-zinc-950">
+              {exactCm} cm{" "}
+              <span className="font-semibold text-zinc-700">({exactIn} in)</span>
+            </p>
+            <p className="text-xs">
+              {pagesText} of {paperShort} · {cols} across × {rows} down
+            </p>
+            {imageSrc && fitMode === "contain" && whitePct >= 2 && (
+              <p className="text-xs">
+                Image prints {fmt1(imagePrintW / 10)} × {fmt1(imagePrintH / 10)} cm with white borders.
+              </p>
+            )}
+          </div>
+
+          {suggestFlip && (
             <button
               type="button"
-              onClick={handleDownloadPosterPdf}
-              disabled={isExporting || !imageSrc}
-              aria-describedby={imageSrc ? undefined : "poster-download-hint"}
-              className={`${primaryButtonClass} w-full`}
+              onClick={applyFlip}
+              className="min-h-[40px] w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#eef6e4] px-3 py-2 text-xs font-semibold text-[#3f6212] hover:bg-[#e2efd3] cursor-pointer"
             >
-              <Download className="h-4 w-4" aria-hidden="true" />
-              {isExporting ? "Making your PDF…" : `Download PDF · ${pagesText}`}
+              <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
+              Use {flippedOrientation} pages
+              {sizeMode === "pages" ? ` (${rows} across × ${cols} down)` : ""} —{" "}
+              {fitMode === "cover" ? "less trimming" : "smaller borders"}
             </button>
-            <DownloadPassBadge />
-            {!imageSrc && (
-              <FieldHint id="poster-download-hint">
-                Upload an image first (or try the sample) to download.
-              </FieldHint>
-            )}
-            <ToolStatus status={status?.area === "download" ? status.value : null} />
-            <PrintTipsPanel
-              paperLabel={paperShort}
-              open={hasDownloaded}
-              extraSteps={[
-                "Trim the overlap strip off one page of each pair.",
-                "Line pages up using the dashed lines and Row/Col labels, then tape from behind.",
-              ]}
-              cutStep="Start with the top-left page (Row 1, Col 1) and work across."
-            />
-          </section>
+          )}
         </div>
-
-        {/* Preview */}
-        <div className="order-1 lg:order-2 lg:col-span-7 lg:sticky lg:top-24 rounded-2xl bg-white p-4 sm:p-8 flex flex-col items-center justify-center gap-3 lg:min-h-[420px]">
-          <div
-            data-testid="poster-preview"
-            className={`relative overflow-hidden ${
-              imageSrc ? "bg-white ring-1 ring-zinc-200" : "bg-[#f5f5f7]"
-            } w-[min(100%,460px,calc(46vh*var(--poster-ar)))] lg:w-[min(100%,460px,calc(70vh*var(--poster-ar)))]`}
-            style={
-              {
-                aspectRatio: `${fullW} / ${fullH}`,
-                // Constrain by width AND height so tall layouts (e.g. 1×6) always fit.
-                "--poster-ar": posterAspect.toFixed(4),
-              } as React.CSSProperties
-            }
-          >
-            {imageSrc && imageSize && placement ? (
-              // Same placement maths as the PDF export (imagePlacement).
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imageSrc}
-                alt={`Poster preview split into ${rows} rows by ${cols} columns (${rows * cols} pages)`}
-                className="absolute max-w-none"
-                style={{
-                  left: `${(placement.offsetX / fullW) * 100}%`,
-                  top: `${(placement.offsetY / fullH) * 100}%`,
-                  width: `${(imagePrintW / fullW) * 100}%`,
-                  height: `${(imagePrintH / fullH) * 100}%`,
+      ),
+    },
+    {
+      id: "overlap",
+      number: 3,
+      label: "Fit & Glue",
+      title: "Crop, paper & overlap",
+      hint: "Adjust framing, paper format, and tape overlap.",
+      content: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                htmlFor="poster-tile-paper"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Paper size
+              </label>
+              <select
+                id="poster-tile-paper"
+                value={paper}
+                onChange={(e) => {
+                  setPaper(e.target.value as PaperSizeId);
+                  clearStatus();
                 }}
-              />
-            ) : imageSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imageSrc}
-                alt={`Poster preview split into ${rows} rows by ${cols} columns (${rows * cols} pages)`}
-                className={`h-full w-full ${fitMode === "cover" ? "object-cover" : "object-contain"}`}
-              />
-            ) : (
-              <div className="h-full w-full flex flex-col items-center justify-center text-zinc-600 bg-[#f5f5f7] p-2 text-center">
-                <Grid3X3 className="h-8 w-8 mb-2 text-zinc-600" aria-hidden="true" />
-                <span className="text-xs font-medium">
-                  Your image will appear here
-                </span>
-              </div>
-            )}
+                className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-950"
+              >
+                <option value="a4">{PAPER_SIZES.a4.label}</option>
+                <option value="letter">{PAPER_SIZES.letter.label}</option>
+                <option value="a3">{PAPER_SIZES.a3.label}</option>
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="poster-orientation"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Page direction
+              </label>
+              <select
+                id="poster-orientation"
+                value={orientation}
+                onChange={(e) => {
+                  setOrientation(e.target.value as "portrait" | "landscape");
+                  clearStatus();
+                }}
+                className="w-full min-h-[40px] rounded-xl bg-[#f5f5f7] px-3 py-2 text-xs text-zinc-950"
+              >
+                <option value="portrait">Portrait (tall)</option>
+                <option value="landscape">Landscape (wide)</option>
+              </select>
+            </div>
+          </div>
 
-            {/* Real tile boundaries (overlapping tiles show as double lines = glue band) */}
-            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-              {Array.from({ length: rows * cols }).map((_, i) => {
-                const r = Math.floor(i / cols);
-                const c = i % cols;
+          <div>
+            <p
+              id="poster-fit-label"
+              className="text-xs font-semibold text-zinc-700 mb-1.5"
+            >
+              How the image fits the poster
+            </p>
+            <div
+              role="radiogroup"
+              aria-labelledby="poster-fit-label"
+              className="grid grid-cols-2 gap-1.5"
+            >
+              {fitOptions.map((opt) => {
+                const active = fitMode === opt.id;
                 return (
-                  <div
-                    key={i}
-                    className="absolute flex items-start justify-start p-1"
-                    style={{
-                      left: `${((c * stepX) / fullW) * 100}%`,
-                      top: `${((r * stepY) / fullH) * 100}%`,
-                      width: `${(tilePrintW / fullW) * 100}%`,
-                      height: `${(tilePrintH / fullH) * 100}%`,
-                      border: "1px solid rgba(255,255,255,0.9)",
-                      boxShadow: "0 0 0 1px rgba(24,24,27,0.45)",
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => {
+                      setFitMode(opt.id);
+                      clearStatus();
                     }}
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-left text-xs transition cursor-pointer ring-1 ${
+                      active
+                        ? "bg-[#eef6e4] ring-[#4d7c0f] text-zinc-950"
+                        : "bg-[#f5f5f7] ring-transparent text-zinc-700 hover:bg-[#ebeced]"
+                    }`}
                   >
-                    <span className="rounded bg-white/90 px-1 py-px text-[10px] font-mono font-bold text-zinc-950">
-                      R{r + 1}·C{c + 1}
-                    </span>
-                  </div>
+                    <span className="block font-semibold">{opt.title}</span>
+                    <span className="block text-zinc-600">({opt.hint})</span>
+                  </button>
                 );
               })}
             </div>
           </div>
-          <p className="text-xs text-zinc-600 text-center">
-            <span className="font-semibold text-zinc-800">
-              Finished poster {exactCm} cm ({exactIn} in)
-            </span>
-            {" · "}
-            {pagesText} of {paperShort}
-          </p>
-        </div>
-      </div>
 
-      <MobileActionBar summary={`${pagesText} · ${paperShort}`}>
-        <button
-          type="button"
-          onClick={handleDownloadPosterPdf}
-          disabled={isExporting || !imageSrc}
-          aria-describedby={imageSrc ? undefined : "poster-download-hint"}
-          className={primaryButtonClass}
-        >
-          <Download className="h-4 w-4" aria-hidden="true" />
-          {isExporting ? "Making PDF…" : "Download PDF"}
-        </button>
-      </MobileActionBar>
+          {imageSrc && isCropped && (
+            <FieldHint>
+              Your image is a different shape from the poster, so about {trimmedPct}% is trimmed off the edges — drag below to choose what&apos;s kept, or pick &ldquo;Show whole image&rdquo;.
+            </FieldHint>
+          )}
+          {imageSrc && fitMode === "contain" && whitePct >= 2 && (
+            <FieldHint>
+              The whole image is shown; about {whitePct}% of the poster is white border (see preview).
+            </FieldHint>
+          )}
+
+          {imageSrc && fitMode === "cover" && (
+            <div data-testid="poster-crop">
+              <p className="text-xs font-semibold text-zinc-700 mb-1.5">
+                Choose which part is kept
+              </p>
+              <CropEditor
+                src={imageSrc}
+                aspect={posterAspect}
+                value={posterCrop}
+                onChange={(c) => {
+                  setPosterCrop(c);
+                  clearStatus();
+                }}
+                label="Position your image on the poster"
+                maxWidthPx={260}
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3">
+            <div className="rounded-xl bg-[#f5f5f7] p-3">
+              <label
+                htmlFor="poster-overlap-mm"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Overlap for taping: {overlapMm} mm
+              </label>
+              <input
+                id="poster-overlap-mm"
+                type="range"
+                min={0}
+                max={15}
+                value={overlapMm}
+                aria-describedby="poster-overlap-hint"
+                onChange={(e) => {
+                  setOverlapMm(Number(e.target.value));
+                  clearStatus();
+                }}
+                className="w-full accent-[#4d7c0f]"
+              />
+              <FieldHint id="poster-overlap-hint">
+                Each page shares this strip with its neighbour so you can glue/tape them.
+              </FieldHint>
+            </div>
+            <div className="rounded-xl bg-[#f5f5f7] p-3">
+              <label
+                htmlFor="poster-margin-mm"
+                className="block text-xs font-semibold text-zinc-700 mb-1"
+              >
+                Edge margin: {marginMm} mm
+              </label>
+              <input
+                id="poster-margin-mm"
+                type="range"
+                min={PRINTER_SAFE_MARGIN_MM}
+                max={15}
+                value={marginMm}
+                aria-describedby="poster-margin-hint"
+                onChange={(e) => {
+                  setMarginMm(Number(e.target.value));
+                  clearStatus();
+                }}
+                className="w-full accent-[#4d7c0f]"
+              />
+              <FieldHint id="poster-margin-hint">
+                Blank border printers need — they can&apos;t print right to the edge.
+              </FieldHint>
+            </div>
+          </div>
+
+          <label className="min-h-[36px] flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showNumbers}
+              onChange={(e) => {
+                setShowNumbers(e.target.checked);
+                clearStatus();
+              }}
+              className="mt-0.5 accent-[#4d7c0f] h-4 w-4"
+            />
+            <span>
+              <span className="inline-flex items-center gap-1.5 font-semibold text-zinc-800">
+                <Grid3X3 className="h-3.5 w-3.5 text-zinc-600" aria-hidden="true" />
+                Print page labels (Row / Col)
+              </span>
+              <span className="block text-zinc-600">
+                A small label on each page so you know where it goes.
+              </span>
+            </span>
+          </label>
+        </div>
+      ),
+    },
+    {
+      id: "export",
+      number: 4,
+      label: "Export",
+      title: "Download & assemble",
+      hint: "You get one PDF with every page. Nothing is uploaded — it's all made on your device.",
+      content: (
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleDownloadPosterPdf}
+            disabled={isExporting || !imageSrc}
+            aria-describedby={imageSrc ? undefined : "poster-download-hint"}
+            className={`${primaryButtonClass} w-full`}
+          >
+            <Download className="h-4 w-4" aria-hidden="true" />
+            {isExporting ? "Making your PDF…" : `Download PDF · ${pagesText}`}
+          </button>
+          <DownloadPassBadge />
+          {!imageSrc && (
+            <FieldHint id="poster-download-hint">
+              Upload an image first (or try the sample) to download.
+            </FieldHint>
+          )}
+          <ToolStatus status={status?.area === "download" ? status.value : null} />
+          <PrintTipsPanel
+            paperLabel={paperShort}
+            open={hasDownloaded}
+            extraSteps={[
+              "Trim the overlap strip off one page of each pair.",
+              "Line pages up using the dashed lines and Row/Col labels, then tape from behind.",
+            ]}
+            cutStep="Start with the top-left page (Row 1, Col 1) and work across."
+          />
+        </div>
+      ),
+    },
+  ];
+
+  const previewNode = (
+    <div
+      data-testid="poster-preview"
+      className={`relative overflow-hidden shadow-md ${
+        imageSrc ? "bg-white ring-1 ring-zinc-200" : "bg-white ring-1 ring-zinc-200"
+      } w-[min(100%,460px,calc(58vh*var(--poster-ar)))]`}
+      style={
+        {
+          aspectRatio: `${fullW} / ${fullH}`,
+          "--poster-ar": posterAspect.toFixed(4),
+        } as React.CSSProperties
+      }
+    >
+      {imageSrc && imageSize && placement ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageSrc}
+          alt={`Poster preview split into ${rows} rows by ${cols} columns (${rows * cols} pages)`}
+          className="absolute max-w-none"
+          style={{
+            left: `${(placement.offsetX / fullW) * 100}%`,
+            top: `${(placement.offsetY / fullH) * 100}%`,
+            width: `${(imagePrintW / fullW) * 100}%`,
+            height: `${(imagePrintH / fullH) * 100}%`,
+          }}
+        />
+      ) : imageSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageSrc}
+          alt={`Poster preview split into ${rows} rows by ${cols} columns (${rows * cols} pages)`}
+          className={`h-full w-full ${fitMode === "cover" ? "object-cover" : "object-contain"}`}
+        />
+      ) : (
+        <div className="h-full w-full flex flex-col items-center justify-center text-zinc-600 bg-white p-4 text-center">
+          <Grid3X3 className="h-8 w-8 mb-2 text-[#4d7c0f]" aria-hidden="true" />
+          <span className="text-xs font-medium">
+            Your image will appear here
+          </span>
+        </div>
+      )}
+
+      {/* Real tile boundaries (overlapping tiles show as double lines = glue band) */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        {Array.from({ length: rows * cols }).map((_, i) => {
+          const r = Math.floor(i / cols);
+          const c = i % cols;
+          return (
+            <div
+              key={i}
+              className="absolute flex items-start justify-start p-1"
+              style={{
+                left: `${((c * stepX) / fullW) * 100}%`,
+                top: `${((r * stepY) / fullH) * 100}%`,
+                width: `${(tilePrintW / fullW) * 100}%`,
+                height: `${(tilePrintH / fullH) * 100}%`,
+                border: "1px solid rgba(255,255,255,0.9)",
+                boxShadow: "0 0 0 1px rgba(24,24,27,0.45)",
+              }}
+            >
+              <span className="rounded bg-white/90 px-1 py-px text-[10px] font-mono font-bold text-zinc-950">
+                R{r + 1}·C{c + 1}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
+  );
+
+  return (
+    <FullPageToolShell
+      open={open}
+      onClose={onClose}
+      toolTitle="Multi-Page Poster Splitter"
+      toolSummary={`${pagesText} · ${exactCm} cm`}
+      steps={steps}
+      activeStep={activeStep}
+      onStepChange={setActiveStep}
+      headerCenter={headerCenter}
+      preview={previewNode}
+      previewFooter={
+        <p className="text-xs text-zinc-600 text-center">
+          <span className="font-semibold text-zinc-800">
+            Finished poster {exactCm} cm ({exactIn} in)
+          </span>
+          {" · "}
+          {pagesText} of {paperShort}
+        </p>
+      }
+      primaryAction={{
+        label: isExporting ? "Making your PDF…" : `Download PDF · ${pagesText}`,
+        mobileLabel: isExporting ? "Making PDF…" : "Download PDF",
+        onClick: handleDownloadPosterPdf,
+        disabled: isExporting || !imageSrc,
+        loading: isExporting,
+        describedBy: imageSrc ? undefined : "poster-download-hint",
+      }}
+      howTo={POSTER_SPLITTER_HOW_TO}
+      mobileSummary={`${pagesText} · ${paperShort}`}
+    />
   );
 }

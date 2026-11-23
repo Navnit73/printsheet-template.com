@@ -113,9 +113,13 @@ export function DirectoryIndexPage({
           </p>
         </header>
 
-        <div className="space-y-16">
+        <div className="space-y-12">
           {grouped.map((group) => (
-            <section key={group.cluster} aria-labelledby={`group-${group.cluster}`}>
+            <section
+              key={group.cluster}
+              aria-labelledby={`group-${group.cluster}`}
+              className="pt-10 border-t border-[#ebeced] first:pt-0 first:border-t-0"
+            >
               <div className="flex flex-wrap items-baseline justify-between gap-2 mb-5">
                 <h2
                   id={`group-${group.cluster}`}

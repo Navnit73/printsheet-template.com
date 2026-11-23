@@ -381,6 +381,8 @@ export function AdvancedCardEditor(props: AdvancedCardEditorProps) {
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
+      if (document.querySelector('[data-paywall-overlay="true"]')) return;
+
       const target = e.target as HTMLElement | null;
       const inInput =
         target &&
@@ -417,7 +419,7 @@ export function AdvancedCardEditor(props: AdvancedCardEditorProps) {
         }
       }
 
-      if (inInput) return;
+      if (inInput || imageModal || exportOpen || saveOpen || shortcutsOpen) return;
 
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key.toLowerCase() === "z") {
@@ -1776,7 +1778,8 @@ export function AdvancedCardEditor(props: AdvancedCardEditorProps) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#f5f5f7] text-zinc-950"
+      data-studio-overlay="true"
+      className="fixed inset-0 z-[60] flex flex-col bg-[#f5f5f7] text-zinc-950"
       role="dialog"
       aria-modal="true"
       aria-label="Advanced Business Card Editor"
