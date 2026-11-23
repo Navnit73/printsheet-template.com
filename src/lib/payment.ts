@@ -116,7 +116,7 @@ export const PRICING_BY_REGION = {
     countryCode: "US",
     regionLabel: "United States",
     currency: "USD",
-    amount: 399,
+    amount: 99,
     priceLabel: "$3.99",
   },
   UK: {
