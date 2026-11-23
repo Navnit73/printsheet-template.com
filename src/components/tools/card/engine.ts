@@ -10,12 +10,26 @@ import {
   type FittedTextOptions,
   type PdfFontFamily,
 } from "@/lib/pdf-utils";
+import { getCardFont } from "./fonts";
 
 export type SheetPresetId = "a4-10up" | "letter-10up" | "letter-8up" | "a4-8up";
 export type CardStyleId = "minimal" | "classic" | "bold-logo" | "clean" | "split" | "monogram" | "dark" | "blank";
 export type FontPairId = "modern" | "classic" | "editorial" | "typewriter";
 export type BackStyleId = "logo" | "tagline" | "solid";
 export type RGB = [number, number, number];
+export type SemanticFieldKey =
+  | "fullName"
+  | "role"
+  | "company"
+  | "phone"
+  | "email"
+  | "website"
+  | "tagline"
+  | "logo"
+  | "qr"
+  | "initials";
+
+export type PatternKind = "dots" | "grid" | "diagonal" | "crosshatch" | "waves" | "diamonds";
 
 export interface SheetPreset {
   id: SheetPresetId;
@@ -104,9 +118,11 @@ export function getInitialConfig(pageId: PageId): {
       return { mode: "design", sheet: "a4-10up", style: "bold-logo" };
   }
 }
+
 export function hexToRgb(hex: string): RGB {
-  const clean = hex.replace("#", "");
-  const num = parseInt(clean.length === 3 ? clean.replace(/(.)/g, "$1$1") : clean, 16);
+  const clean = (hex || "").replace("#", "").trim();
+  const norm = clean.length === 3 ? clean.replace(/(.)/g, "$1$1") : clean.slice(0, 6);
+  const num = parseInt(norm, 16);
   if (Number.isNaN(num)) return [77, 124, 15];
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
 }
@@ -136,8 +152,12 @@ export const LATIN_STACKS: Record<PdfFontFamily, string> = {
   times: FONT_PAIRS.classic.cssBody,
   courier: FONT_PAIRS.typewriter.cssBody,
 };
-export const cssStack = (family: PdfFontFamily, text: string) =>
-  isPdfSafeText(text) ? LATIN_STACKS[family] : UNICODE_STACKS[family];
+export const cssStack = (family: PdfFontFamily, text: string, fontId?: string) => {
+  if (fontId && fontId !== "helvetica" && fontId !== "times" && fontId !== "courier") {
+    return `${getCardFont(fontId, family).cssFamily}, ${CJK_FALLBACK}`;
+  }
+  return isPdfSafeText(text) ? LATIN_STACKS[family] : UNICODE_STACKS[family];
+};
 
 export interface Fonts {
   heading: PdfFontFamily;
@@ -145,15 +165,70 @@ export interface Fonts {
 }
 
 /** trackEm: letter-spacing in em (only applied to Latin text, which jsPDF can space with charSpace). */
-export type FitFn = (text: string, opts: FittedTextOptions, trackEm?: number) => FittedTextLayout;
+export type FitFn = (text: string, opts: FittedTextOptions, trackEm?: number, fontId?: string) => FittedTextLayout;
+
+interface ElCommon {
+  layerId?: string;
+  fieldKey?: SemanticFieldKey;
+  opacity?: number;
+  rotation?: number;
+}
 
 export type CardEl =
-  | { kind: "rect"; x: number; y: number; w: number; h: number; fill: RGB }
-  | { kind: "circle"; cx: number; cy: number; r: number; fill: RGB }
-  | { kind: "frame"; x: number; y: number; w: number; h: number; stroke: RGB; lineWidth: number }
-  | { kind: "ellipse"; cx: number; cy: number; rx: number; ry: number; fill: RGB }
-  | { kind: "image"; which?: "logo" | "qr"; src?: string; x: number; y: number; w: number; h: number }
-  | { kind: "text"; text: string; opts: FittedTextOptions; layout: FittedTextLayout; trackEm?: number };
+  | (ElCommon & { kind: "bg-gradient"; x: number; y: number; w: number; h: number; from: RGB; to: RGB; angle: number })
+  | (ElCommon & {
+      kind: "bg-pattern";
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      bg: RGB;
+      fg: RGB;
+      pattern: PatternKind;
+      patternOpacity: number;
+      scale: number;
+    })
+  | (ElCommon & {
+      kind: "bg-image";
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      src: string;
+      fit: "cover" | "contain";
+      tint?: RGB;
+      tintOpacity?: number;
+    })
+  | (ElCommon & { kind: "rect"; x: number; y: number; w: number; h: number; fill: RGB; radius?: number; stroke?: RGB; lineWidth?: number })
+  | (ElCommon & { kind: "circle"; cx: number; cy: number; r: number; fill: RGB })
+  | (ElCommon & { kind: "frame"; x: number; y: number; w: number; h: number; stroke: RGB; lineWidth: number; radius?: number })
+  | (ElCommon & { kind: "ellipse"; cx: number; cy: number; rx: number; ry: number; fill: RGB; stroke?: RGB; lineWidth?: number })
+  | (ElCommon & { kind: "triangle"; x: number; y: number; w: number; h: number; fill: RGB; stroke?: RGB; lineWidth?: number })
+  | (ElCommon & { kind: "star"; x: number; y: number; w: number; h: number; fill: RGB; stroke?: RGB; lineWidth?: number })
+  | (ElCommon & { kind: "line"; x: number; y: number; w: number; h: number; stroke: RGB; lineWidth: number; dash?: "solid" | "dashed" | "dotted" })
+  | (ElCommon & { kind: "icon"; iconId: string; x: number; y: number; w: number; h: number; color: RGB; strokeWidth?: number })
+  | (ElCommon & {
+      kind: "image";
+      which?: "logo" | "qr";
+      src?: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      radius?: number;
+      fit?: "contain" | "cover";
+    })
+  | (ElCommon & {
+      kind: "text";
+      text: string;
+      opts: FittedTextOptions;
+      layout: FittedTextLayout;
+      trackEm?: number;
+      fontId?: string;
+      underline?: boolean;
+      boxX?: number;
+      boxW?: number;
+    });
 
 export interface CardContent {
   fullName: string;
@@ -182,13 +257,16 @@ export function luminance([r, g, b]: RGB) {
   };
   return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
 }
+
 export const mix = (a: RGB, b: RGB, t: number): RGB => [
   Math.round(a[0] + (b[0] - a[0]) * t),
   Math.round(a[1] + (b[1] - a[1]) * t),
   Math.round(a[2] + (b[2] - a[2]) * t),
 ];
+
 /** Readable text colour on top of a fill. */
 export const textOn = (fill: RGB): RGB => (luminance(fill) > 0.4 ? INK : WHITE);
+
 /** Accent lightened enough to read on the dark card background. */
 export const accentOnDark = (accent: RGB): RGB => {
   const l = luminance(accent);
@@ -208,15 +286,16 @@ export function spacedLine(
   fit: FitFn,
   text: string,
   opts: FittedTextOptions,
-  trackEm: number
+  trackEm: number,
+  fontId?: string
 ): Extract<CardEl, { kind: "text" }> {
   const o: FittedTextOptions = { ...opts, maxLines: 1 };
-  const layout = fit(text, o, trackEm);
+  const layout = fit(text, o, trackEm, fontId);
   const effTrack = isPdfSafeText(text) ? trackEm : 0;
   // Visual width excludes the trailing letter-space.
   const vis = layout.widthMm - effTrack * layout.fontSize * PT_TO_MM;
   const x = opts.align === "center" ? opts.x - vis / 2 : opts.align === "right" ? opts.x - vis : opts.x;
-  return { kind: "text", text, opts: { ...o, x, align: "left" }, layout, trackEm: effTrack || undefined };
+  return { kind: "text", text, opts: { ...o, x, align: "left" }, layout, trackEm: effTrack || undefined, fontId };
 }
 
 export interface FrontConfig {
@@ -260,24 +339,33 @@ export function layoutFrontBody(
   let headerW = fullW - indent;
   if (logo && cfg.logoAt === "top") {
     const f = fitContain(logo.w, logo.h, { x: cx - 12, y: headerTop, w: 24, h: 9 });
-    els.push({ kind: "image", which: "logo", x: f.x, y: headerTop, w: f.w, h: f.h });
+    els.push({ kind: "image", which: "logo", fieldKey: "logo", x: f.x, y: headerTop, w: f.w, h: f.h });
     headerTop += f.h + 2;
   } else if (logo && cfg.logoAt === "corner") {
     const f = fitContain(logo.w, logo.h, { x: x1 - 22, y: y0, w: 22, h: 11 });
-    els.push({ kind: "image", which: "logo", x: x1 - f.w, y: y0, w: f.w, h: f.h });
+    els.push({ kind: "image", which: "logo", fieldKey: "logo", x: x1 - f.w, y: y0, w: f.w, h: f.h });
     headerW = fullW - indent - f.w - 2.5;
   }
 
   const qr = showQr ? Math.min(QR_SIZE_MM, (y1 - y0) * 0.42) : 0;
-  if (showQr) els.push({ kind: "image", which: "qr", x: x1 - qr, y: y1 - qr, w: qr, h: qr });
+  if (showQr) els.push({ kind: "image", which: "qr", fieldKey: "qr", x: x1 - qr, y: y1 - qr, w: qr, h: qr });
   const contactW = showQr ? (centered ? fullW - 2 * (qr + 2.5) : fullW - indent - qr - 2.5) : fullW - indent;
 
   const textX = centered ? cx : x0 + indent;
   const align: FittedTextOptions["align"] = centered ? "center" : "left";
 
   // Contacts: one line each, bottom of the safe area, one shared size.
-  const contacts = [c.phone, c.email, c.website].map((s) => s.trim()).filter(Boolean);
-  const contactTop = y1 - contacts.length * CONTACT_SLOT_MM;
+  const contactPairs: Array<{ key: SemanticFieldKey; text: string }> = (
+    [
+      ["phone", c.phone],
+      ["email", c.email],
+      ["website", c.website],
+    ] as const
+  )
+    .map(([key, v]) => ({ key, text: v.trim() }))
+    .filter((item) => Boolean(item.text));
+
+  const contactTop = y1 - contactPairs.length * CONTACT_SLOT_MM;
   const contactOpts = (i: number, fontSize: number): FittedTextOptions => ({
     x: textX,
     y: contactTop + i * CONTACT_SLOT_MM + 0.15,
@@ -290,14 +378,14 @@ export function layoutFrontBody(
     align,
     color: cfg.contact,
   });
-  const contactSize = Math.min(7, ...contacts.map((t, i) => fit(t, contactOpts(i, 7)).fontSize));
-  contacts.forEach((text, i) => {
+  const contactSize = Math.min(7, ...contactPairs.map((t, i) => fit(t.text, contactOpts(i, 7)).fontSize));
+  contactPairs.forEach((item, i) => {
     const opts = contactOpts(i, contactSize);
-    els.push({ kind: "text", text, opts, layout: fit(text, opts) });
+    els.push({ kind: "text", fieldKey: item.key, text: item.text, opts, layout: fit(item.text, opts) });
   });
 
-  let headerBottom = contacts.length ? contactTop - 1.5 : y1;
-  if (cfg.rule && contacts.length) {
+  let headerBottom = contactPairs.length ? contactTop - 1.5 : y1;
+  if (cfg.rule && contactPairs.length) {
     const ruleY = contactTop - 2.4;
     const ruleW = 8;
     els.push({ kind: "rect", x: centered ? cx - ruleW / 2 : textX, y: ruleY, w: ruleW, h: 0.35, fill: cfg.rule });
@@ -315,20 +403,41 @@ export function layoutFrontBody(
       const el = spacedLine(
         fit,
         company.toUpperCase(),
-        { x: textX, y, maxWidth: headerW, maxHeight: h, fontSize: 6, minFontSize: 5, fontFamily: fonts.body, fontStyle: "bold", align, color: cfg.company },
+        {
+          x: textX,
+          y,
+          maxWidth: headerW,
+          maxHeight: h,
+          fontSize: 6,
+          minFontSize: 5,
+          fontFamily: fonts.body,
+          fontStyle: "bold",
+          align,
+          color: cfg.company,
+        },
         SPACED_EM
       );
-      els.push(el);
+      els.push({ ...el, fieldKey: "company" });
       y += el.layout.heightMm + 2.6;
     }
   }
 
-  const header: Array<{ text: string; size: number; min: number; style: FittedTextOptions["fontStyle"]; family: PdfFontFamily; color: RGB; lhf: number; gap: number }> = [
-    { text: c.fullName, size: 12, min: 7, style: "bold", family: fonts.heading, color: cfg.name, lhf: 1.12, gap: 1.1 },
-    { text: c.role, size: 7.5, min: 6, style: "normal", family: fonts.body, color: cfg.role, lhf: 1.2, gap: 0.5 },
+  const header: Array<{
+    key: SemanticFieldKey;
+    text: string;
+    size: number;
+    min: number;
+    style: FittedTextOptions["fontStyle"];
+    family: PdfFontFamily;
+    color: RGB;
+    lhf: number;
+    gap: number;
+  }> = [
+    { key: "fullName", text: c.fullName, size: 12, min: 7, style: "bold", family: fonts.heading, color: cfg.name, lhf: 1.12, gap: 1.1 },
+    { key: "role", text: c.role, size: 7.5, min: 6, style: "normal", family: fonts.body, color: cfg.role, lhf: 1.2, gap: 0.5 },
   ];
   if (!cfg.companySpaced) {
-    header.push({ text: c.company, size: 7, min: 6, style: "normal", family: fonts.body, color: cfg.company, lhf: 1.2, gap: 0 });
+    header.push({ key: "company", text: c.company, size: 7, min: 6, style: "normal", family: fonts.body, color: cfg.company, lhf: 1.2, gap: 0 });
   }
   const barTop = y;
   let barBottom = y;
@@ -352,7 +461,7 @@ export function layoutFrontBody(
       lineHeightFactor: item.lhf,
     };
     const layout = fit(text, opts);
-    els.push({ kind: "text", text, opts, layout });
+    els.push({ kind: "text", fieldKey: item.key, text, opts, layout });
     barBottom = y + layout.heightMm;
     y += layout.heightMm + item.gap;
   }
@@ -379,11 +488,27 @@ export function layoutCardFront(
   switch (style) {
     case "minimal":
       els.push({ kind: "rect", x: 0, y: 0, w: W, h: STRIPE_TOP_MM, fill: accent });
-      layoutFrontBody(els, { x0: 5.5, y0: STRIPE_TOP_MM + 3.3, x1: W - 5, y1: H - 4.5, centered: false, logoAt: "corner", ...light }, c, logo, showQr, fit, fonts);
+      layoutFrontBody(
+        els,
+        { x0: 5.5, y0: STRIPE_TOP_MM + 3.3, x1: W - 5, y1: H - 4.5, centered: false, logoAt: "corner", ...light },
+        c,
+        logo,
+        showQr,
+        fit,
+        fonts
+      );
       break;
     case "bold-logo":
       els.push({ kind: "rect", x: 0, y: 0, w: STRIPE_LEFT_MM, h: H, fill: accent });
-      layoutFrontBody(els, { x0: STRIPE_LEFT_MM + 4, y0: 5, x1: W - 4.5, y1: H - 4.5, centered: false, logoAt: "corner", ...light }, c, logo, showQr, fit, fonts);
+      layoutFrontBody(
+        els,
+        { x0: STRIPE_LEFT_MM + 4, y0: 5, x1: W - 4.5, y1: H - 4.5, centered: false, logoAt: "corner", ...light },
+        c,
+        logo,
+        showQr,
+        fit,
+        fonts
+      );
       break;
     case "classic": {
       const i = CLASSIC_FRAME_INSET_MM;
@@ -411,17 +536,28 @@ export function layoutCardFront(
         els.push({ kind: "circle", cx: P / 2, cy: H / 2, r, fill: WHITE });
         const box = r * 1.25;
         const f = fitContain(logo.w, logo.h, { x: P / 2 - box / 2, y: H / 2 - box / 2, w: box, h: box });
-        els.push({ kind: "image", which: "logo", x: f.x, y: f.y, w: f.w, h: f.h });
+        els.push({ kind: "image", which: "logo", fieldKey: "logo", x: f.x, y: f.y, w: f.w, h: f.h });
       } else {
         const ini = initialsOf(c.fullName, c.company);
         if (ini) {
           const size = 26;
-          const opts: FittedTextOptions = { x: P / 2, y: 0, maxWidth: P - 8, maxLines: 1, fontSize: size, minFontSize: 14, fontStyle: "bold", fontFamily: fonts.heading, align: "center", color: on, lineHeightFactor: 1 };
+          const opts: FittedTextOptions = {
+            x: P / 2,
+            y: 0,
+            maxWidth: P - 8,
+            maxLines: 1,
+            fontSize: size,
+            minFontSize: 14,
+            fontStyle: "bold",
+            fontFamily: fonts.heading,
+            align: "center",
+            color: on,
+            lineHeightFactor: 1,
+          };
           const layout = fit(ini, opts);
           const capH = layout.fontSize * PT_TO_MM * 0.72;
-          // Centre the capitals (cap height ≈ 0.72 em, baseline ≈ 0.85 em below the top of the line box).
           const y = H / 2 - layout.fontSize * PT_TO_MM * 0.85 + capH / 2;
-          els.push({ kind: "text", text: ini, opts: { ...opts, y }, layout });
+          els.push({ kind: "text", fieldKey: "initials", text: ini, opts: { ...opts, y }, layout });
         }
       }
       layoutFrontBody(els, { x0: P + 5, y0: 6, x1: W - 4.5, y1: H - 5, centered: false, logoAt: "none", ...light }, c, null, showQr, fit, fonts);
@@ -436,10 +572,22 @@ export function layoutCardFront(
           const r = 5.6;
           const cy = top + r;
           els.push({ kind: "circle", cx: W / 2, cy, r, fill: accent });
-          const opts: FittedTextOptions = { x: W / 2, y: 0, maxWidth: r * 1.5, maxLines: 1, fontSize: 12, minFontSize: 7, fontStyle: "bold", fontFamily: fonts.heading, align: "center", color: textOn(accent), lineHeightFactor: 1 };
+          const opts: FittedTextOptions = {
+            x: W / 2,
+            y: 0,
+            maxWidth: r * 1.5,
+            maxLines: 1,
+            fontSize: 12,
+            minFontSize: 7,
+            fontStyle: "bold",
+            fontFamily: fonts.heading,
+            align: "center",
+            color: textOn(accent),
+            lineHeightFactor: 1,
+          };
           const layout = fit(ini, opts);
           const y = cy - layout.fontSize * PT_TO_MM * 0.85 + (layout.fontSize * PT_TO_MM * 0.72) / 2;
-          els.push({ kind: "text", text: ini, opts: { ...opts, y }, layout });
+          els.push({ kind: "text", fieldKey: "initials", text: ini, opts: { ...opts, y }, layout });
           headerTop = top + 2 * r + 2.6;
         }
       }
@@ -451,7 +599,19 @@ export function layoutCardFront(
       const a = accentOnDark(accent);
       layoutFrontBody(
         els,
-        { x0: 6.5, y0: 6.5, x1: W - 6, y1: H - 5.5, centered: false, logoAt: "corner", bar: a, name: WHITE, role: a, company: [161, 161, 170], contact: [228, 228, 231] },
+        {
+          x0: 6.5,
+          y0: 6.5,
+          x1: W - 6,
+          y1: H - 5.5,
+          centered: false,
+          logoAt: "corner",
+          bar: a,
+          name: WHITE,
+          role: a,
+          company: [161, 161, 170],
+          contact: [228, 228, 231],
+        },
         c,
         logo,
         showQr,
@@ -478,16 +638,21 @@ export function layoutCardBack(
   const maxWidth = W - 12;
   type Block = { h: number; place: (y: number) => void };
   const blocks: Block[] = [];
-  const textBlock = (text: string, o: Omit<FittedTextOptions, "x" | "y">, trackEm?: number): Block | null => {
+  const textBlock = (
+    text: string,
+    o: Omit<FittedTextOptions, "x" | "y">,
+    trackEm?: number,
+    fieldKey?: SemanticFieldKey
+  ): Block | null => {
     const t = text.trim();
     if (!t) return null;
     const opts: FittedTextOptions = { ...o, x: W / 2, y: 0, align: "center" };
     if (trackEm) {
       const el = spacedLine(fit, t, opts, trackEm);
-      return { h: el.layout.heightMm, place: (y) => els.push({ ...el, opts: { ...el.opts, y } }) };
+      return { h: el.layout.heightMm, place: (y) => els.push({ ...el, fieldKey, opts: { ...el.opts, y } }) };
     }
     const layout = fit(t, opts);
-    return { h: layout.heightMm, place: (y) => els.push({ kind: "text", text: t, opts: { ...opts, y }, layout }) };
+    return { h: layout.heightMm, place: (y) => els.push({ kind: "text", fieldKey, text: t, opts: { ...opts, y }, layout }) };
   };
   const push = (blk: Block | null) => blk && blocks.push(blk);
   const top = 5;
@@ -497,41 +662,111 @@ export function layoutCardBack(
   if (backStyle === "tagline") {
     els.push({ kind: "rect", x: 0, y: 0, w: W, h: H, fill: DARK_BG }, { kind: "rect", x: 0, y: H - 2.5, w: W, h: 2.5, fill: accent });
     bottom = H - 2.5 - 4;
-    push(textBlock(b.title, { maxWidth, maxHeight: (bottom - top) * 0.6, maxLines: 2, fontSize: 14, minFontSize: 8, fontStyle: "bold", fontFamily: fonts.heading, color: WHITE, lineHeightFactor: 1.12 }));
-    push(textBlock(b.tagline || b.website, { maxWidth, maxHeight: (bottom - top) * 0.35, maxLines: 2, fontSize: 7.5, minFontSize: 6, fontFamily: fonts.body, color: [212, 212, 216] }));
+    push(
+      textBlock(
+        b.title,
+        {
+          maxWidth,
+          maxHeight: (bottom - top) * 0.6,
+          maxLines: 2,
+          fontSize: 14,
+          minFontSize: 8,
+          fontStyle: "bold",
+          fontFamily: fonts.heading,
+          color: WHITE,
+          lineHeightFactor: 1.12,
+        },
+        undefined,
+        "company"
+      )
+    );
+    push(
+      textBlock(
+        b.tagline || b.website,
+        {
+          maxWidth,
+          maxHeight: (bottom - top) * 0.35,
+          maxLines: 2,
+          fontSize: 7.5,
+          minFontSize: 6,
+          fontFamily: fonts.body,
+          color: [212, 212, 216],
+        },
+        undefined,
+        b.tagline ? "tagline" : "website"
+      )
+    );
     gaps.push(2.2);
   } else if (backStyle === "solid") {
     els.push({ kind: "rect", x: 0, y: 0, w: W, h: H, fill: accent });
     const on = textOn(accent);
     const soft = mix(on, accent, 0.25);
-    push(textBlock(b.tagline, { maxWidth, maxHeight: lineHeightMm(7) * 2, maxLines: 2, fontSize: 7, minFontSize: 6, fontFamily: fonts.body, color: soft }));
-    push(textBlock(b.website || b.title, { maxWidth, maxLines: 1, fontSize: 12, minFontSize: 7, fontStyle: "bold", fontFamily: fonts.heading, color: on }));
+    push(
+      textBlock(
+        b.tagline,
+        { maxWidth, maxHeight: lineHeightMm(7) * 2, maxLines: 2, fontSize: 7, minFontSize: 6, fontFamily: fonts.body, color: soft },
+        undefined,
+        "tagline"
+      )
+    );
+    push(
+      textBlock(
+        b.website || b.title,
+        { maxWidth, maxLines: 1, fontSize: 12, minFontSize: 7, fontStyle: "bold", fontFamily: fonts.heading, color: on },
+        undefined,
+        b.website ? "website" : "company"
+      )
+    );
     gaps.push(2.4);
   } else {
-    // Logo centred (or a monogram when there is no logo), company in spaced capitals.
     if (logo) {
       const f = fitContain(logo.w, logo.h, { x: 0, y: 0, w: Math.min(44, W - 20), h: 17 });
-      blocks.push({ h: f.h, place: (y) => els.push({ kind: "image", which: "logo", x: W / 2 - f.w / 2, y, w: f.w, h: f.h }) });
+      blocks.push({ h: f.h, place: (y) => els.push({ kind: "image", which: "logo", fieldKey: "logo", x: W / 2 - f.w / 2, y, w: f.w, h: f.h }) });
     } else if (b.initials) {
       const r = 8;
-      const opts: FittedTextOptions = { x: W / 2, y: 0, maxWidth: r * 1.5, maxLines: 1, fontSize: 17, minFontSize: 9, fontStyle: "bold", fontFamily: fonts.heading, align: "center", color: textOn(accent), lineHeightFactor: 1 };
+      const opts: FittedTextOptions = {
+        x: W / 2,
+        y: 0,
+        maxWidth: r * 1.5,
+        maxLines: 1,
+        fontSize: 17,
+        minFontSize: 9,
+        fontStyle: "bold",
+        fontFamily: fonts.heading,
+        align: "center",
+        color: textOn(accent),
+        lineHeightFactor: 1,
+      };
       const layout = fit(b.initials, opts);
       blocks.push({
         h: 2 * r,
         place: (y) => {
           els.push({ kind: "circle", cx: W / 2, cy: y + r, r, fill: accent });
           const ty = y + r - layout.fontSize * PT_TO_MM * 0.85 + (layout.fontSize * PT_TO_MM * 0.72) / 2;
-          els.push({ kind: "text", text: b.initials, opts: { ...opts, y: ty }, layout });
+          els.push({ kind: "text", fieldKey: "initials", text: b.initials, opts: { ...opts, y: ty }, layout });
         },
       });
     }
     gaps.push(3.4);
-    push(textBlock(b.title.toUpperCase(), { maxWidth, maxLines: 1, fontSize: 7, minFontSize: 5.5, fontStyle: "bold", fontFamily: fonts.body, color: INK }, SPACED_EM));
+    push(
+      textBlock(
+        b.title.toUpperCase(),
+        { maxWidth, maxLines: 1, fontSize: 7, minFontSize: 5.5, fontStyle: "bold", fontFamily: fonts.body, color: INK },
+        SPACED_EM,
+        "company"
+      )
+    );
     gaps.push(1.4);
-    push(textBlock(b.tagline, { maxWidth, maxLines: 1, fontSize: 6.5, minFontSize: 5.5, fontFamily: fonts.body, color: MUTED }));
+    push(
+      textBlock(
+        b.tagline,
+        { maxWidth, maxLines: 1, fontSize: 6.5, minFontSize: 5.5, fontFamily: fonts.body, color: MUTED },
+        undefined,
+        "tagline"
+      )
+    );
   }
 
-  // Centre the stacked blocks vertically.
   const gapAt = (i: number) => gaps[Math.min(i, gaps.length - 1)] ?? 2;
   const total = blocks.reduce((s, bl, i) => s + bl.h + (i ? gapAt(i - 1) : 0), 0);
   let y = Math.max(top, (top + bottom) / 2 - total / 2);
@@ -562,10 +797,14 @@ export type MeasureMm = (t: string, sizePt: number) => number;
 export const withTracking = (m: MeasureMm, trackEm: number): MeasureMm =>
   trackEm ? (t, s) => m(t, s) + t.length * trackEm * s * PT_TO_MM : m;
 
-export const previewFit: FitFn = (text, opts, trackEm = 0) => {
+export const previewFit: FitFn = (text, opts, trackEm = 0, fontId) => {
   const family = opts.fontFamily ?? "helvetica";
   const safe = isPdfSafeText(text);
-  return layoutFittedText(text, opts, withTracking(canvasMeasure(opts.fontStyle, cssStack(family, text)), safe ? trackEm : 0));
+  return layoutFittedText(
+    text,
+    opts,
+    withTracking(canvasMeasure(opts.fontStyle, cssStack(family, text, fontId)), safe ? trackEm : 0)
+  );
 };
 
 /** Rough deterministic layout used before hydration so SSR and first client render match. */
@@ -573,10 +812,11 @@ export const approxFit: FitFn = (text, opts, trackEm = 0) =>
   layoutFittedText(text, opts, withTracking((t, s) => t.length * s * PT_TO_MM * 0.55, trackEm));
 
 export function pdfFitFor(doc: import("jspdf").jsPDF): FitFn {
-  return (text, opts, trackEm = 0) => {
+  return (text, opts, trackEm = 0, fontId) => {
     const style = opts.fontStyle ?? "normal";
     const family = opts.fontFamily ?? "helvetica";
-    if (isPdfSafeText(text)) {
+    const builtin = !fontId || fontId === "helvetica" || fontId === "times" || fontId === "courier";
+    if (builtin && isPdfSafeText(text)) {
       const m: MeasureMm = (t, s) => {
         doc.setFont(family, style);
         doc.setFontSize(s);
@@ -584,15 +824,12 @@ export function pdfFitFor(doc: import("jspdf").jsPDF): FitFn {
       };
       return layoutFittedText(text, opts, withTracking(m, trackEm));
     }
-    return layoutFittedText(text, opts, canvasMeasure(style, UNICODE_STACKS[family]));
+    return layoutFittedText(text, opts, withTracking(canvasMeasure(style, cssStack(family, text, fontId)), trackEm));
   };
 }
 
 export const RASTER_PX_PER_MM = 16;
-/**
- * Rasterises non-Latin text (e.g. "Ünïcödé 株式会社") with vertical padding so accents on capitals
- * and tall CJK glyphs are not clipped. Uses the same font stack the layout was measured with.
- */
+
 export function rasterTextPdf(doc: import("jspdf").jsPDF, el: Extract<CardEl, { kind: "text" }>, ox: number, oy: number) {
   if (typeof document === "undefined") return false;
   const { opts, layout } = el;
@@ -604,7 +841,8 @@ export function rasterTextPdf(doc: import("jspdf").jsPDF, el: Extract<CardEl, { 
   const style = opts.fontStyle ?? "normal";
   const weight = style === "bold" || style === "bolditalic" ? "700" : "400";
   const italic = style === "italic" || style === "bolditalic" ? "italic " : "";
-  const font = `${italic}${weight} ${layout.fontSize * PT_TO_MM * k}px ${UNICODE_STACKS[opts.fontFamily ?? "helvetica"]}`;
+  const stack = cssStack(opts.fontFamily ?? "helvetica", el.text, el.fontId);
+  const font = `${italic}${weight} ${layout.fontSize * PT_TO_MM * k}px ${stack}`;
   const pad = layout.fontSize * PT_TO_MM * 0.4;
   const wMm = Math.max(0.5, layout.widthMm) + 0.4;
   const hMm = layout.heightMm + 2 * pad;
@@ -634,7 +872,11 @@ export function drawCardElsPdf(
   for (const el of els) {
     if (el.kind === "rect") {
       doc.setFillColor(el.fill[0], el.fill[1], el.fill[2]);
-      doc.rect(ox + el.x, oy + el.y, el.w, el.h, "F");
+      if (el.radius && el.radius > 0) {
+        doc.roundedRect(ox + el.x, oy + el.y, el.w, el.h, el.radius, el.radius, "F");
+      } else {
+        doc.rect(ox + el.x, oy + el.y, el.w, el.h, "F");
+      }
     } else if (el.kind === "circle") {
       doc.setFillColor(el.fill[0], el.fill[1], el.fill[2]);
       doc.circle(ox + el.cx, oy + el.cy, el.r, "F");
@@ -644,26 +886,36 @@ export function drawCardElsPdf(
     } else if (el.kind === "frame") {
       doc.setDrawColor(el.stroke[0], el.stroke[1], el.stroke[2]);
       doc.setLineWidth(el.lineWidth);
-      doc.rect(ox + el.x, oy + el.y, el.w, el.h);
+      if (el.radius && el.radius > 0) {
+        doc.roundedRect(ox + el.x, oy + el.y, el.w, el.h, el.radius, el.radius);
+      } else {
+        doc.rect(ox + el.x, oy + el.y, el.w, el.h);
+      }
+    } else if (el.kind === "line") {
+      doc.setDrawColor(el.stroke[0], el.stroke[1], el.stroke[2]);
+      doc.setLineWidth(el.lineWidth);
+      const midY = oy + el.y + el.h / 2;
+      doc.line(ox + el.x, midY, ox + el.x + el.w, midY);
     } else if (el.kind === "image") {
       const src = el.src ?? (el.which ? images[el.which] : undefined);
       if (src) doc.addImage(src, "PNG", ox + el.x, oy + el.y, el.w, el.h);
-    } else if (el.trackEm && isPdfSafeText(el.text)) {
-      // Letter-spaced Latin line: drawn directly so jsPDF's charSpace matches CSS letter-spacing.
-      const { opts, layout } = el;
-      const color = opts.color ?? INK;
-      doc.setFont(opts.fontFamily ?? "helvetica", opts.fontStyle ?? "normal");
-      doc.setFontSize(layout.fontSize);
-      doc.setTextColor(color[0], color[1], color[2]);
-      const charSpace = el.trackEm * layout.fontSize * PT_TO_MM;
-      layout.lines.forEach((line, i) => {
-        doc.text(line, ox + opts.x, oy + opts.y + i * layout.lineHeightMm, { baseline: "top", charSpace });
-      });
-      doc.setCharSpace(0);
-    } else if (!isPdfSafeText(el.text) && rasterTextPdf(doc, el, ox, oy)) {
-      // drawn as an image (non-Latin text)
-    } else {
-      drawFittedText(doc, el.text, { ...el.opts, x: ox + el.opts.x, y: oy + el.opts.y });
+    } else if (el.kind === "text") {
+      if (el.trackEm && isPdfSafeText(el.text) && (!el.fontId || el.fontId === "helvetica" || el.fontId === "times" || el.fontId === "courier")) {
+        const { opts, layout } = el;
+        const color = opts.color ?? INK;
+        doc.setFont(opts.fontFamily ?? "helvetica", opts.fontStyle ?? "normal");
+        doc.setFontSize(layout.fontSize);
+        doc.setTextColor(color[0], color[1], color[2]);
+        const charSpace = el.trackEm * layout.fontSize * PT_TO_MM;
+        layout.lines.forEach((line, i) => {
+          doc.text(line, ox + opts.x, oy + opts.y + i * layout.lineHeightMm, { baseline: "top", charSpace });
+        });
+        doc.setCharSpace(0);
+      } else if ((!isPdfSafeText(el.text) || (el.fontId && el.fontId !== "helvetica" && el.fontId !== "times" && el.fontId !== "courier")) && rasterTextPdf(doc, el, ox, oy)) {
+        // drawn via high-DPI raster
+      } else {
+        drawFittedText(doc, el.text, { ...el.opts, x: ox + el.opts.x, y: oy + el.opts.y });
+      }
     }
   }
 }
@@ -675,9 +927,10 @@ export function drawCardElsPdf(
  */
 export function drawGridCropMarks(
   doc: import("jspdf").jsPDF,
-  g: { startX: number; startY: number; sheet: SheetPreset; paperW: number; paperH: number }
+  g: { startX: number; startY: number; sheet: SheetPreset; paperW: number; paperH: number; bleedMm?: number }
 ) {
-  const OFF = 1;
+  const bleed = g.bleedMm ?? 0;
+  const OFF = Math.max(1, bleed + 0.6);
   const LEN = 3;
   const SAFE = PRINTER_SAFE_MARGIN_MM;
   const { startX, startY, sheet, paperW, paperH } = g;
@@ -688,7 +941,6 @@ export function drawGridCropMarks(
   const xs = uniq(Array.from({ length: cols }, (_, c) => startX + c * (cardW + gapX)).flatMap((x) => [x, x + cardW]));
   const ys = uniq(Array.from({ length: rows }, (_, r) => startY + r * (cardH + gapY)).flatMap((y) => [y, y + cardH]));
 
-  // Outward mark from `from` towards a paper edge; keeps PRINTER_SAFE_MARGIN_MM where possible.
   const outward = (from: number, dir: -1 | 1, paperLen: number): [number, number] | null => {
     const start = from + dir * OFF;
     const limit = dir < 0 ? SAFE : paperLen - SAFE;
@@ -736,6 +988,7 @@ export function drawGridCropMarks(
     }
   }
 }
+
 export function sheetGeometry(sheet: SheetPreset, paperW: number, paperH: number, offsetX = 0, offsetY = 0) {
   const gridW = sheet.cols * sheet.cardW + (sheet.cols - 1) * sheet.gapX;
   const gridH = sheet.rows * sheet.cardH + (sheet.rows - 1) * sheet.gapY;

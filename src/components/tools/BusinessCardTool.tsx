@@ -1,17 +1,20 @@
 "use client";
 
-import React, { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
+  AlertTriangle,
   Check,
   Download,
   ImagePlus,
+  Maximize2,
   Pencil,
   QrCode,
   RefreshCw,
+  RotateCcw,
   Scissors,
   SlidersHorizontal,
+  Sparkles,
   Trash2,
-  Undo2,
 } from "lucide-react";
 import type { PageId } from "@/types/spec";
 import {
@@ -22,7 +25,7 @@ import {
   PAPER_SIZES,
   PRINTER_SAFE_MARGIN_MM,
   renderImageToBoxDataUrl,
-  } from "@/lib/pdf-utils";
+} from "@/lib/pdf-utils";
 import { useNumberField } from "@/lib/use-number-field";
 import {
   FieldHint,
@@ -54,26 +57,40 @@ import {
   type CardStyleId,
   type Fonts,
   type FontPairId,
+  type SemanticFieldKey,
   type SheetPreset,
   type SheetPresetId,
 } from "./card/engine";
 import { CardFacePreview } from "./card/CardFacePreview";
-import { CardEditorOverlay, CardEditorPanel, type LayerPatch } from "./card/CardEditor";
-import { compileSide, elsToSide, newLayerId, type CardDesign, type ImageLayer, type Layer, type SideDesign } from "./card/editor-model";
+import {
+  applySimpleTextToDesign,
+  compileSide,
+  elsToSide,
+  extractSyncedFields,
+  newLayerId,
+  setSideBackground,
+  type CardDesign,
+  type GalleryTemplateId,
+  type ImageLayer,
+  type Layer,
+  type SideBackground,
+  type SideDesign,
+} from "./card/editor-model";
 import { useHistory } from "./card/useHistory";
 import { checkRowClass, inputClass, labelClass } from "./card/styles";
-
-/* ------------------------------------------------------------------------- */
-/* Preview rendering of the same layout                                       */
-/* ------------------------------------------------------------------------- */
+import { AdvancedCardEditor } from "./card/AdvancedCardEditor";
+import type { LayerPatch } from "./card/AdvancedCanvas";
+import { ensureGoogleFontsLoaded } from "./card/fonts";
+import { isEdgeToEdgeOrDarkSide } from "./card/contrast";
+import {
+  decodeShareHash,
+  exportAdvancedPdf,
+  loadAutoDesign,
+  saveAutoDesign,
+  type PersistedCardDesign,
+} from "./card/export";
 
 const noopSubscribe = () => () => {};
-
-
-/* ------------------------------------------------------------------------- */
-/* Sheet geometry shared by the PDF export and the whole-sheet thumbnail      */
-/* ------------------------------------------------------------------------- */
-
 
 /* ------------------------------------------------------------------------- */
 /* Small UI pieces                                                            */
@@ -295,7 +312,6 @@ function LoadedFileRow({
   );
 }
 
-
 /* ------------------------------------------------------------------------- */
 /* Tool                                                                       */
 /* ------------------------------------------------------------------------- */
@@ -310,7 +326,7 @@ interface CustomSheet {
   gapX: number;
   gapY: number;
 }
-const EMPTY_SIDE: SideDesign = { bg: "#ffffff", layers: [] };
+const EMPTY_SIDE: SideDesign = { bg: "#ffffff", background: { type: "solid", color: "#ffffff" }, layers: [] };
 const EMPTY_DESIGN: CardDesign = { front: EMPTY_SIDE, back: EMPTY_SIDE };
 
 /** One labelled mm/count input that lets people type freely (see useNumberField). */
@@ -347,6 +363,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
   const [mode, setMode] = useState<"design" | "upload">(init.mode);
   const [sheetId, setSheetId] = useState<SheetChoice>(init.sheet);
   const [styleId, setStyleId] = useState<CardStyleId>(init.style);
+  const [templateId, setTemplateId] = useState<GalleryTemplateId>(init.style);
 
   const [fullName, setFullName] = useState("Alex Morgan");
   const [role, setRole] = useState("Independent Print Designer");
@@ -365,16 +382,27 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
   const [uploadedName, setUploadedName] = useState<string>("");
   const [logo, setLogo] = useState<{ src: string; w: number; h: number; name: string } | null>(null);
   const [showCropMarks, setShowCropMarks] = useState(true);
+  const [includeBleed, setIncludeBleed] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [status, setStatus] = useState<ToolStatusValue | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [previewSide, setPreviewSide] = useState<"front" | "back">("front");
-  const [custom, setCustom] = useState(false);
-  const [confirmExit, setConfirmExit] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Advanced Editor state & custom layer design
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [hasCustomDesign, setHasCustomDesign] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const hist = useHistory<CardDesign>(EMPTY_DESIGN);
+  const restoredRef = useRef(false);
+
   const [customSheet, setCustomSheet] = useState<CustomSheet>({
-    paper: "a4", cols: 2, rows: 5, cardW: 90, cardH: 55, gapX: 6, gapY: 2,
+    paper: "a4",
+    cols: 2,
+    rows: 5,
+    cardW: 90,
+    cardH: 55,
+    gapX: 6,
+    gapY: 2,
   });
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
@@ -390,14 +418,13 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
   const paperShort = PAPER_SHORT[sheet.paper];
   const cardCount = sheet.cols * sheet.rows;
   const isBlank = styleId === "blank";
-  const blankView = isBlank && !custom;
-  const canBack = mode === "design" && (custom || !isBlank);
+  const blankView = isBlank && !hasCustomDesign;
+  const canBack = mode === "design" && (hasCustomDesign || !isBlank);
   const backOn = includeBack && canBack;
   const side = backOn ? previewSide : "front";
   const needsUpload = mode === "upload" && !uploadedFront;
   const accent = hexToRgb(accentHex);
   const geo = sheetGeometry(sheet, paper.widthMm, paper.heightMm, offsetX, offsetY);
-  // Flipping the paper along the long edge mirrors left and right, so the back page is shifted the opposite way.
   const geoBack = sheetGeometry(sheet, paper.widthMm, paper.heightMm, -offsetX, offsetY);
   const gridCheck = checkGridFit({
     paperW: paper.widthMm,
@@ -414,7 +441,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
   });
   const gridBad = sheetId === "custom" && !gridCheck.fits;
 
-  // QR target: website → URL, else email → mailto:, else phone → tel:. Never a placeholder.
+  // QR target: website → URL, else email → mailto:, else phone → tel:.
   const qrTarget = useMemo(() => {
     const w = website.trim();
     if (w) return /^https?:\/\//i.test(w) ? w : `https://${w}`;
@@ -450,23 +477,27 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
   const qrDataUrl = includeQr && qrTarget && qrState.target === qrTarget ? qrState.url : "";
   const showQr = !isBlank && !!qrDataUrl;
 
-  const content: CardContent = { fullName, role, company, phone, email, website };
+  const content: CardContent = useMemo(
+    () => ({ fullName, role, company, phone, email, website }),
+    [fullName, role, company, phone, email, website]
+  );
   const pair = FONT_PAIRS[fontPairId];
-  const fonts: Fonts = { heading: pair.heading, body: pair.body };
-  const backContent = {
-    title: company.trim() || fullName.trim(),
-    tagline: tagline.trim(),
-    website: website.trim(),
-    initials: initialsOf(fullName, company),
-  };
-  const isDarkDesign = custom
-    ? hist.present.front.bg.toLowerCase() !== "#ffffff" || (backOn && hist.present.back.bg.toLowerCase() !== "#ffffff")
-    : (!isBlank && mode === "design" && styleId === "dark") || (backOn && backStyle !== "logo");
+  const fonts: Fonts = useMemo(() => ({ heading: pair.heading, body: pair.body }), [pair.heading, pair.body]);
+  const backContent = useMemo(
+    () => ({
+      title: company.trim() || fullName.trim(),
+      tagline: tagline.trim(),
+      website: website.trim(),
+      initials: initialsOf(fullName, company),
+    }),
+    [company, fullName, tagline, website]
+  );
 
   const fit = hydrated ? previewFit : approxFit;
   const design = hist.present;
-  const compiledFront = custom ? compileSide(design.front, sheet.cardW, sheet.cardH, fit) : null;
-  const compiledBack = custom ? compileSide(design.back, sheet.cardW, sheet.cardH, fit) : null;
+  const compiledFront = hasCustomDesign ? compileSide(design.front, sheet.cardW, sheet.cardH, fit) : null;
+  const compiledBack = hasCustomDesign ? compileSide(design.back, sheet.cardW, sheet.cardH, fit) : null;
+
   const frontEls = compiledFront
     ? compiledFront.els
     : isBlank
@@ -478,66 +509,311 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
       ? layoutCardBack(sheet.cardW, sheet.cardH, backStyle, accent, backContent, logo, fit, fonts)
       : [];
 
-  /* ---- Free-edit mode ---- */
-  function startCustom() {
+  const isDarkDesign = (() => {
+    if (hasCustomDesign) {
+      const f = isEdgeToEdgeOrDarkSide(design.front, sheet.cardW, sheet.cardH);
+      const b = backOn ? isEdgeToEdgeOrDarkSide(design.back, sheet.cardW, sheet.cardH) : { isDark: false, touchesEdge: false };
+      return f.isDark || f.touchesEdge || b.isDark || b.touchesEdge;
+    }
+    return (!isBlank && mode === "design" && (styleId === "dark" || styleId === "split")) || (backOn && backStyle !== "logo");
+  })();
+
+  // Apply a loaded design payload (from auto-save, URL share hash, JSON file, or browser snapshot)
+  const applyPersistedPayload = useCallback(
+    (payload: PersistedCardDesign) => {
+      const s = payload.simple;
+      setFullName(s.fullName);
+      setRole(s.role);
+      setCompany(s.company);
+      setPhone(s.phone);
+      setEmail(s.email);
+      setWebsite(s.website);
+      setAccentHex(s.accentHex);
+      setStyleId(s.styleId);
+      setFontPairId(s.fontPairId);
+      setBackStyle(s.backStyle);
+      setTagline(s.tagline);
+      setIncludeQr(s.includeQr);
+      setIncludeBack(s.includeBack);
+      setShowCropMarks(s.showCropMarks);
+      setIncludeBleed(Boolean(s.includeBleed));
+      setSheetId(s.sheetId);
+      if (s.customSheet) setCustomSheet(s.customSheet);
+      setOffsetX(s.offsetX || 0);
+      setOffsetY(s.offsetY || 0);
+      setTemplateId(payload.templateId || s.styleId);
+      if (payload.hasCustomDesign) {
+        ensureGoogleFontsLoaded();
+        hist.reset(payload.design);
+        setHasCustomDesign(true);
+        setMode("design");
+        const synced = extractSyncedFields(payload.design);
+        if (synced.hasLogoLayer && synced.logo) setLogo(synced.logo);
+      } else {
+        setHasCustomDesign(false);
+      }
+    },
+    [hist]
+  );
+
+  // Restore shared link (#card=...) or browser auto-save once after hydration
+  useEffect(() => {
+    if (!hydrated || restoredRef.current) return;
+    restoredRef.current = true;
+    const shared = decodeShareHash(window.location.hash);
+    const saved = shared ?? loadAutoDesign(pageId);
+    if (!saved) return;
+    const id = window.setTimeout(() => {
+      applyPersistedPayload(saved);
+      if (shared) {
+        setStatus({ tone: "info", text: "Loaded your shared business card design." });
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [hydrated, pageId, applyPersistedPayload]);
+
+  // Ensure Google fonts are loaded when displaying a custom design in Simple Mode
+  useEffect(() => {
+    if (hasCustomDesign) ensureGoogleFontsLoaded();
+  }, [hasCustomDesign]);
+
+  // Build snapshot payload for auto-save and Share/Save modal
+  const persistedPayload = useMemo<PersistedCardDesign>(
+    () => ({
+      v: 1,
+      savedAt: 0,
+      simple: {
+        fullName,
+        role,
+        company,
+        phone,
+        email,
+        website,
+        accentHex,
+        styleId,
+        fontPairId,
+        backStyle,
+        tagline,
+        includeQr,
+        includeBack,
+        showCropMarks,
+        includeBleed,
+        sheetId,
+        customSheet,
+        offsetX,
+        offsetY,
+      },
+      hasCustomDesign,
+      templateId,
+      design: hist.present,
+    }),
+    [
+      fullName,
+      role,
+      company,
+      phone,
+      email,
+      website,
+      accentHex,
+      styleId,
+      fontPairId,
+      backStyle,
+      tagline,
+      includeQr,
+      includeBack,
+      showCropMarks,
+      includeBleed,
+      sheetId,
+      customSheet,
+      offsetX,
+      offsetY,
+      hasCustomDesign,
+      templateId,
+      hist.present,
+    ]
+  );
+
+  // Debounced auto-save to localStorage
+  useEffect(() => {
+    if (!hydrated || !restoredRef.current) return;
+    const timer = window.setTimeout(() => {
+      const ok = saveAutoDesign(pageId, { ...persistedPayload, savedAt: Date.now() });
+      setSaveStatus(ok ? "saved" : "unsaved");
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [hydrated, pageId, persistedPayload]);
+
+  /* ---- Simple <-> Advanced Editor sync & transitions ---- */
+
+  function buildCurrentSimpleDesign(): CardDesign {
     const W = sheet.cardW;
     const H = sheet.cardH;
     const front = isBlank
       ? EMPTY_SIDE
-      : elsToSide(frontEls, W, H, {
+      : elsToSide(layoutCardFront(W, H, styleId, accent, content, logo, showQr, previewFit, fonts), W, H, {
           logo: logo ? { src: logo.src, w: logo.w, h: logo.h } : undefined,
           qr: qrDataUrl ? { src: qrDataUrl, target: qrTarget } : undefined,
         });
-    const back = elsToSide(layoutCardBack(W, H, backStyle, accent, backContent, logo, fit, fonts), W, H, {
+    const back = elsToSide(layoutCardBack(W, H, backStyle, accent, backContent, logo, previewFit, fonts), W, H, {
       logo: logo ? { src: logo.src, w: logo.w, h: logo.h } : undefined,
     });
-    hist.reset({ front, back });
-    setSelectedId(null);
-    setConfirmExit(false);
-    setCustom(true);
-    setPreviewSide("front");
+    return { front, back };
+  }
+
+  function openAdvancedEditor() {
+    setMode("design");
+    if (!hasCustomDesign) {
+      const initial = buildCurrentSimpleDesign();
+      hist.reset(initial);
+      setTemplateId(styleId);
+      setHasCustomDesign(true);
+    }
     setStatus(null);
+    setAdvancedOpen(true);
   }
-  function exitCustom() {
-    setCustom(false);
-    setConfirmExit(false);
-    setSelectedId(null);
-    setPreviewSide("front");
+
+  function closeAdvancedEditor() {
+    // Sync edited fields, logo and QR back into Simple Mode state
+    const synced = extractSyncedFields(hist.present);
+    if (synced.fullName !== undefined) setFullName(synced.fullName);
+    if (synced.role !== undefined) setRole(synced.role);
+    if (synced.company !== undefined) setCompany(synced.company);
+    if (synced.phone !== undefined) setPhone(synced.phone);
+    if (synced.email !== undefined) setEmail(synced.email);
+    if (synced.website !== undefined) setWebsite(synced.website);
+    if (synced.tagline !== undefined) setTagline(synced.tagline);
+    if (synced.hasLogoLayer && synced.logo) setLogo(synced.logo);
+    setIncludeQr(Boolean(synced.hasQrLayer));
+    setAdvancedOpen(false);
   }
-  const editSide: "front" | "back" = backOn ? previewSide : "front";
-  const mapSide = (d: CardDesign, fn: (s: SideDesign) => SideDesign): CardDesign => ({ ...d, [editSide]: fn(d[editSide]) });
-  const updateLayer = (id: string, patch: LayerPatch, group?: string) =>
-    hist.set((d) => mapSide(d, (s) => ({ ...s, layers: s.layers.map((l) => (l.id === id ? ({ ...l, ...patch } as Layer) : l)) })), group);
-  const addLayer = (layer: Layer) => {
-    hist.set((d) => mapSide(d, (s) => ({ ...s, layers: [...s.layers, layer] })));
-    setSelectedId(layer.id);
+
+  function resetToSimplePreset() {
+    setHasCustomDesign(false);
+    setStatus({ tone: "info", text: "Switched back to simple preset mode. Your details and logo are kept." });
+  }
+
+  const updateSimpleField = (key: SemanticFieldKey, value: string, setter: (v: string) => void) => {
+    setter(value);
+    if (hasCustomDesign) {
+      hist.patchSilently((d) => applySimpleTextToDesign(d, key, value));
+    }
   };
-  const removeLayer = (id: string) => {
-    hist.set((d) => mapSide(d, (s) => ({ ...s, layers: s.layers.filter((l) => l.id !== id) })));
-    setSelectedId(null);
-  };
-  const duplicateLayer = (id: string) => {
-    const src = design[editSide].layers.find((l) => l.id === id);
-    if (!src) return;
-    const copy = { ...src, id: newLayerId(), x: src.x + 2, y: src.y + 2, locked: false } as Layer;
-    addLayer(copy);
-  };
-  const reorderLayer = (id: string, dir: 1 | -1) =>
-    hist.set((d) =>
-      mapSide(d, (s) => {
-        const i = s.layers.findIndex((l) => l.id === id);
-        const j = i + dir;
-        if (i < 0 || j < 0 || j >= s.layers.length) return s;
-        const layers = [...s.layers];
-        [layers[i], layers[j]] = [layers[j], layers[i]];
-        return { ...s, layers };
-      })
-    );
-  const patchSilently = (which: "front" | "back", id: string, patch: Partial<ImageLayer>) =>
-    hist.patchSilently((d) => ({
-      ...d,
-      [which]: { ...d[which], layers: d[which].layers.map((l) => (l.id === id && l.kind === "image" ? { ...l, ...patch } : l)) },
-    }));
+
+  /* ---- Advanced Editor mutation handlers ---- */
+
+  const mapSide = (d: CardDesign, which: "front" | "back", fn: (s: SideDesign) => SideDesign): CardDesign => ({
+    ...d,
+    [which]: fn(d[which]),
+  });
+
+  const handleChangeLayer = useCallback(
+    (which: "front" | "back", id: string, patch: LayerPatch, group?: string) => {
+      hist.set(
+        (d) =>
+          mapSide(d, which, (s) => ({
+            ...s,
+            layers: s.layers.map((l) => (l.id === id ? ({ ...l, ...patch } as Layer) : l)),
+          })),
+        group
+      );
+    },
+    [hist]
+  );
+
+  const handleAddLayer = useCallback(
+    (which: "front" | "back", layer: Layer) => {
+      hist.set((d) => mapSide(d, which, (s) => ({ ...s, layers: [...s.layers, layer] })));
+    },
+    [hist]
+  );
+
+  const handleRemoveLayer = useCallback(
+    (which: "front" | "back", id: string) => {
+      hist.set((d) => mapSide(d, which, (s) => ({ ...s, layers: s.layers.filter((l) => l.id !== id) })));
+    },
+    [hist]
+  );
+
+  const handleDuplicateLayer = useCallback(
+    (which: "front" | "back", id: string) => {
+      hist.set((d) =>
+        mapSide(d, which, (s) => {
+          const src = s.layers.find((l) => l.id === id);
+          if (!src) return s;
+          const copy = { ...src, id: newLayerId(), x: src.x + 2.5, y: src.y + 2.5, locked: false, fieldKey: undefined } as Layer;
+          return { ...s, layers: [...s.layers, copy] };
+        })
+      );
+    },
+    [hist]
+  );
+
+  const handleReorderLayer = useCallback(
+    (which: "front" | "back", id: string, dir: "up" | "down" | "front" | "back") => {
+      hist.set((d) =>
+        mapSide(d, which, (s) => {
+          const i = s.layers.findIndex((l) => l.id === id);
+          if (i < 0) return s;
+          const layers = [...s.layers];
+          const [item] = layers.splice(i, 1);
+          if (dir === "up") layers.splice(Math.min(layers.length, i + 1), 0, item);
+          else if (dir === "down") layers.splice(Math.max(0, i - 1), 0, item);
+          else if (dir === "front") layers.push(item);
+          else layers.unshift(item);
+          return { ...s, layers };
+        })
+      );
+    },
+    [hist]
+  );
+
+  const handleSetBackground = useCallback(
+    (which: "front" | "back", bg: SideBackground, group?: string) => {
+      hist.set((d) => mapSide(d, which, (s) => setSideBackground(s, bg)), group);
+    },
+    [hist]
+  );
+
+  const handleReplaceSide = useCallback(
+    (which: "front" | "back", next: SideDesign) => {
+      hist.set((d) => ({ ...d, [which]: next }));
+    },
+    [hist]
+  );
+
+  const handleApplyTemplate = useCallback(
+    (nextTplId: GalleryTemplateId, nextDesign: CardDesign) => {
+      setTemplateId(nextTplId);
+      if (
+        nextTplId === "minimal" ||
+        nextTplId === "classic" ||
+        nextTplId === "bold-logo" ||
+        nextTplId === "clean" ||
+        nextTplId === "split" ||
+        nextTplId === "monogram" ||
+        nextTplId === "dark" ||
+        nextTplId === "blank"
+      ) {
+        setStyleId(nextTplId);
+      }
+      hist.set(() => nextDesign);
+    },
+    [hist]
+  );
+
+  const patchSilently = useCallback(
+    (which: "front" | "back", id: string, patch: Partial<ImageLayer>) => {
+      hist.patchSilently((d) => ({
+        ...d,
+        [which]: {
+          ...d[which],
+          layers: d[which].layers.map((l) => (l.id === id && l.kind === "image" ? { ...l, ...patch } : l)),
+        },
+      }));
+    },
+    [hist]
+  );
+
   const previewImages = { logo: logo?.src, qr: qrDataUrl || undefined };
   const frontLabel = [fullName, role, company, phone, email, website].filter((s) => s.trim()).join(", ");
   const backLabel = [
@@ -573,7 +849,6 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
       const img = await loadImageElement(raw);
       const w = img.naturalWidth || 300;
       const h = img.naturalHeight || 150;
-      // Normalise to PNG so jsPDF accepts any format (JPG, WebP, SVG) and keeps transparency.
       const scale = Math.min(1, 1200 / Math.max(w, h));
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(w * scale));
@@ -581,7 +856,22 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas unavailable");
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      setLogo({ src: canvas.toDataURL("image/png"), w, h, name: file.name });
+      const nextLogo = { src: canvas.toDataURL("image/png"), w, h, name: file.name };
+      setLogo(nextLogo);
+      if (hasCustomDesign) {
+        const ratio = w / h;
+        hist.patchSilently((d) => {
+          const updateSide = (s: SideDesign): SideDesign => ({
+            ...s,
+            layers: s.layers.map((l) =>
+              l.kind === "image" && (l.fieldKey === "logo" || l.isLogo)
+                ? { ...l, src: nextLogo.src, originalSrc: nextLogo.src, ratio, h: Math.round((l.w / ratio) * 100) / 100 }
+                : l
+            ),
+          });
+          return { front: updateSide(d.front), back: updateSide(d.back) };
+        });
+      }
       setStatus(null);
     } catch {
       setStatus({ tone: "error", text: "Could not read that logo. Try a PNG or JPG." });
@@ -593,58 +883,70 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
     setIsExporting(true);
     setStatus(null);
     try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: [paper.widthMm, paper.heightMm],
-      });
-      const pdfFit = pdfFitFor(doc);
-      const { cells } = geo;
-      const marks = (g = geo) =>
-        showCropMarks &&
-        drawGridCropMarks(doc, { startX: g.startX, startY: g.startY, sheet, paperW: paper.widthMm, paperH: paper.heightMm });
-
-      if (mode === "upload" && uploadedFront) {
-        const prepared = await renderImageToBoxDataUrl(uploadedFront, sheet.cardW / sheet.cardH, "cover");
-        for (const [x, y] of cells) {
-          doc.addImage(prepared.dataUrl, prepared.format, x, y, sheet.cardW, sheet.cardH);
-        }
+      if (mode === "design" && (hasCustomDesign || includeBleed) && !blankView) {
+        const effectiveDesign = hasCustomDesign ? design : buildCurrentSimpleDesign();
+        await exportAdvancedPdf({
+          mode: "sheet",
+          design: effectiveDesign,
+          sheet,
+          includeBack: backOn,
+          showCropMarks,
+          includeBleed,
+          offsetX,
+          offsetY,
+          filename: `business-cards-${pageId.toLowerCase()}-${sheet.paper}.pdf`,
+        });
       } else {
-        const els = custom
-          ? compileSide(design.front, sheet.cardW, sheet.cardH, pdfFit).els
-          : isBlank
+        const { jsPDF } = await import("jspdf");
+        const doc = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: [paper.widthMm, paper.heightMm],
+        });
+        const pdfFit = pdfFitFor(doc);
+        const { cells } = geo;
+        const marks = (g = geo) =>
+          showCropMarks &&
+          drawGridCropMarks(doc, { startX: g.startX, startY: g.startY, sheet, paperW: paper.widthMm, paperH: paper.heightMm });
+
+        if (mode === "upload" && uploadedFront) {
+          const prepared = await renderImageToBoxDataUrl(uploadedFront, sheet.cardW / sheet.cardH, "cover");
+          for (const [x, y] of cells) {
+            doc.addImage(prepared.dataUrl, prepared.format, x, y, sheet.cardW, sheet.cardH);
+          }
+        } else {
+          const els = isBlank
             ? []
             : layoutCardFront(sheet.cardW, sheet.cardH, styleId, accent, content, logo, showQr, pdfFit, fonts);
-        const images = { logo: logo?.src, qr: qrDataUrl || undefined };
-        for (const [x, y] of cells) {
-          doc.setFillColor(255, 255, 255);
-          doc.rect(x, y, sheet.cardW, sheet.cardH, "F");
-          if (blankView) {
-            doc.setDrawColor(212, 212, 216);
-            doc.setLineWidth(0.2);
-            doc.rect(x, y, sheet.cardW, sheet.cardH);
-          } else {
-            drawCardElsPdf(doc, els, x, y, images);
+          const images = { logo: logo?.src, qr: qrDataUrl || undefined };
+          for (const [x, y] of cells) {
+            doc.setFillColor(255, 255, 255);
+            doc.rect(x, y, sheet.cardW, sheet.cardH, "F");
+            if (blankView) {
+              doc.setDrawColor(212, 212, 216);
+              doc.setLineWidth(0.2);
+              doc.rect(x, y, sheet.cardW, sheet.cardH);
+            } else {
+              drawCardElsPdf(doc, els, x, y, images);
+            }
           }
         }
-      }
-      marks();
+        marks();
 
-      if (backOn) {
-        doc.addPage([paper.widthMm, paper.heightMm], "portrait");
-        const els = custom
-          ? compileSide(design.back, sheet.cardW, sheet.cardH, pdfFit).els
-          : layoutCardBack(sheet.cardW, sheet.cardH, backStyle, accent, backContent, logo, pdfFit, fonts);
-        for (const [x, y] of geoBack.cells) {
-          doc.setFillColor(255, 255, 255);
-          doc.rect(x, y, sheet.cardW, sheet.cardH, "F");
-          drawCardElsPdf(doc, els, x, y, { logo: logo?.src });
+        if (backOn) {
+          doc.addPage([paper.widthMm, paper.heightMm], "portrait");
+          const els = layoutCardBack(sheet.cardW, sheet.cardH, backStyle, accent, backContent, logo, pdfFit, fonts);
+          for (const [x, y] of geoBack.cells) {
+            doc.setFillColor(255, 255, 255);
+            doc.rect(x, y, sheet.cardW, sheet.cardH, "F");
+            drawCardElsPdf(doc, els, x, y, { logo: logo?.src });
+          }
+          marks(geoBack);
         }
-        marks(geoBack);
+
+        doc.save(`business-cards-${pageId.toLowerCase()}-${sheet.paper}.pdf`);
       }
 
-      doc.save(`business-cards-${pageId.toLowerCase()}-${sheet.paper}.pdf`);
       setStatus({
         tone: "success",
         text: backOn
@@ -697,13 +999,13 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
   if (isDarkDesign) {
     extraSteps.push(
       <>
-        Dark or coloured cards: cut exactly on the guides, or a hair inside them, so no white edge shows. If your
-        printer offers <strong>borderless</strong> printing, it gives the cleanest edges.
+        Dark or coloured cards: cut exactly on the guides, or a hair inside them, so no white edge shows. Turning on{" "}
+        <strong>Edge bleed (3 mm)</strong> adds extra ink margin for clean trimming.
       </>
     );
   }
 
-  const sheetStep = mode === "design" && !custom ? 3 : 2;
+  const sheetStep = mode === "design" ? 3 : 2;
   const downloadStep = sheetStep + 1;
 
   /* ---- Preview pieces ---- */
@@ -739,9 +1041,9 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
               ? "border border-dashed border-zinc-300"
               : side === "front" && blankView
                 ? "ring-[0.5px] ring-zinc-300"
-              : side === "front" && mode === "design"
-                ? "ring-[0.5px] ring-zinc-200"
-                : ""
+                : side === "front" && mode === "design"
+                  ? "ring-[0.5px] ring-zinc-200"
+                  : ""
           }`}
           style={{
             left: pct(x, paper.widthMm),
@@ -812,13 +1114,21 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
             </button>
           ))}
         </div>
-        <div className="text-xs text-zinc-600">
-          {cardCount} cards per {paperShort} page · each {sheet.cardW} × {sheet.cardH} mm
+        <div className="flex flex-wrap items-center gap-2.5 text-xs text-zinc-600">
+          <span>
+            {cardCount} cards per {paperShort} page · each {sheet.cardW} × {sheet.cardH} mm
+          </span>
+          {hydrated && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[11px] font-semibold text-[#365314]">
+              <Check aria-hidden="true" className="h-3 w-3" />
+              {saveStatus === "saving" ? "Saving…" : "Auto-saved"}
+            </span>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-5 items-start">
-        {/* ---------------- Controls ---------------- */}
+        {/* ---------------- Controls (Simple Mode) ---------------- */}
         <div className="order-2 lg:order-1 lg:col-span-5 rounded-2xl bg-white p-4 sm:p-6 space-y-7">
           {mode === "upload" ? (
             <section aria-labelledby={`${uid}-s1`}>
@@ -853,81 +1163,51 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                 />
               )}
               <div className="mt-4 rounded-2xl border border-dashed border-[#4d7c0f]/50 bg-[#f7fbf1] p-3.5">
-                <p className="text-sm font-bold text-zinc-950">No design yet? Make one here</p>
+                <p className="text-sm font-bold text-zinc-950">No design yet? Build one in the Advanced Editor</p>
                 <p className="mt-0.5 text-xs leading-relaxed text-zinc-600">
-                  Build your card from scratch and edit every part: text, fonts, colours, logo, shapes, QR codes, card size and sheet layout.
+                  Design your card from scratch with drag-and-drop text, shapes, icons, logos, gradients, QR codes, and front &amp; back layouts.
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    setMode("design");
-                    startCustom();
-                  }}
-                  className={`${secondaryButtonClass} mt-2.5 bg-white hover:bg-[#ebeced]`}
+                  onClick={openAdvancedEditor}
+                  className="mt-2.5 inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-4 py-2 text-xs font-bold text-white hover:bg-[#3f6212] transition cursor-pointer"
                 >
-                  <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
-                  Design &amp; edit my card
+                  <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+                  Open Advanced Editor
                 </button>
               </div>
             </section>
-          ) : custom ? (
-            <section aria-labelledby={`${uid}-s1`}>
-              <StepHeader
-                id={`${uid}-s1`}
-                step={1}
-                title="Edit your card"
-                hint="Everything is editable: click an item on the card to change it, drag to move it, add your own text, shapes, images and QR codes."
-              />
-              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-[#eef6e4] p-3 text-xs text-[#365314]">
-                <SlidersHorizontal aria-hidden="true" className="h-4 w-4 shrink-0" />
-                <span className="min-w-0 flex-1">
-                  Free-edit mode is on. Your preset details are now ordinary items you can change.
-                </span>
-                {confirmExit ? (
-                  <span className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-semibold">Discard your edits?</span>
-                    <button type="button" onClick={exitCustom} className={`${secondaryButtonClass} !min-h-[36px] bg-white`}>
-                      Yes, go back
-                    </button>
-                    <button type="button" onClick={() => setConfirmExit(false)} className={`${secondaryButtonClass} !min-h-[36px] bg-white`}>
-                      Keep editing
-                    </button>
-                  </span>
-                ) : (
-                  <button type="button" onClick={() => setConfirmExit(true)} className={`${secondaryButtonClass} !min-h-[36px] bg-white`}>
-                    <Undo2 aria-hidden="true" className="h-4 w-4" />
-                    Back to presets
-                  </button>
-                )}
-              </div>
-              <CardEditorPanel
-                W={sheet.cardW}
-                H={sheet.cardH}
-                side={editSide}
-                design={design[editSide]}
-                bounds={(editSide === "back" ? compiledBack : compiledFront)?.bounds ?? new Map()}
-                selectedId={selectedId}
-                defaultQrText={qrTarget}
-                canUndo={hist.canUndo}
-                canRedo={hist.canRedo}
-                onSelect={setSelectedId}
-                onChange={updateLayer}
-                onAdd={addLayer}
-                onRemove={removeLayer}
-                onDuplicate={duplicateLayer}
-                onReorder={reorderLayer}
-                onSetBg={(bg) => hist.set((d) => mapSide(d, (sd) => ({ ...sd, bg })), `bg-${editSide}`)}
-                onUndo={hist.undo}
-                onRedo={hist.redo}
-                onPatchSilently={patchSilently}
-                onError={(text) => setStatus({ tone: "error", text })}
-              />
-              {!backOn && (
-                <FieldHint>To design the back of the card too, tick &ldquo;Also print the back&rdquo; in the next step.</FieldHint>
-              )}
-            </section>
           ) : (
             <>
+              {hasCustomDesign && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#4d7c0f]/30 bg-[#eef6e4] px-3.5 py-3 text-xs text-[#365314]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0 text-[#4d7c0f]" />
+                    <span className="font-semibold">
+                      Your Advanced Editor design is active. Form edits below stay synced, or pick a style to switch back to a simple preset.
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setAdvancedOpen(true)}
+                      className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-[#4d7c0f] px-3 text-xs font-bold text-white hover:bg-[#3f6212] cursor-pointer"
+                    >
+                      <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+                      Continue editing
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetToSimplePreset}
+                      className="inline-flex min-h-[34px] items-center gap-1 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 cursor-pointer"
+                    >
+                      <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
+                      Simple preset
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <section aria-labelledby={`${uid}-s1`}>
                 <StepHeader
                   id={`${uid}-s1`}
@@ -935,38 +1215,43 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                   title="Your details"
                   hint="Type what should appear on the card. Leave a box empty to hide that line."
                 />
-                {isBlank ? (
+                {blankView ? (
                   <div className="space-y-3 rounded-2xl bg-[#f5f5f7] p-4">
                     <FieldHint>
-                      You picked <strong>Blank</strong> cards — they print as empty outlines, so no details are
-                      needed.
+                      You picked <strong>Blank</strong> cards — they print as empty outlines, so no details are needed.
                     </FieldHint>
-                    <button
-                      type="button"
-                      onClick={() => setStyleId("minimal")}
-                      className={`${secondaryButtonClass} bg-white hover:bg-[#ebeced]`}
-                    >
-                      <Pencil aria-hidden="true" className="h-4 w-4" />
-                      Add my details instead
-                    </button>{" "}
-                    <button type="button" onClick={startCustom} className={`${secondaryButtonClass} bg-white hover:bg-[#ebeced]`}>
-                      <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
-                      Design from scratch
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setStyleId("minimal")}
+                        className={`${secondaryButtonClass} bg-white hover:bg-[#ebeced]`}
+                      >
+                        <Pencil aria-hidden="true" className="h-4 w-4" />
+                        Add my details instead
+                      </button>
+                      <button
+                        type="button"
+                        onClick={openAdvancedEditor}
+                        className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#4d7c0f] px-4 py-2 text-sm font-bold text-white hover:bg-[#3f6212] transition cursor-pointer"
+                      >
+                        <Maximize2 aria-hidden="true" className="h-4 w-4" />
+                        Design from scratch
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {(
                         [
-                          ["card-full-name", "Your name", fullName, setFullName, "text", "name"],
-                          ["card-role", "Job title", role, setRole, "text", "organization-title"],
-                          ["card-company", "Company", company, setCompany, "text", "organization"],
-                          ["card-phone", "Phone", phone, setPhone, "tel", "tel"],
-                          ["card-email", "Email", email, setEmail, "email", "email"],
-                          ["card-website", "Website", website, setWebsite, "text", "url"],
+                          ["card-full-name", "Your name", "fullName", fullName, setFullName, "text", "name"],
+                          ["card-role", "Job title", "role", role, setRole, "text", "organization-title"],
+                          ["card-company", "Company", "company", company, setCompany, "text", "organization"],
+                          ["card-phone", "Phone", "phone", phone, setPhone, "tel", "tel"],
+                          ["card-email", "Email", "email", email, setEmail, "email", "email"],
+                          ["card-website", "Website", "website", website, setWebsite, "text", "url"],
                         ] as const
-                      ).map(([id, label, value, setter, type, auto]) => (
+                      ).map(([id, label, fieldKey, value, setter, type, auto]) => (
                         <div key={id}>
                           <label htmlFor={id} className={labelClass}>
                             {label}
@@ -976,7 +1261,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                             type={type}
                             autoComplete={auto}
                             value={value}
-                            onChange={(e) => setter(e.target.value)}
+                            onChange={(e) => updateSimpleField(fieldKey, e.target.value, setter)}
                             className={inputClass}
                           />
                         </div>
@@ -1004,7 +1289,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                           buttonLabel="Choose logo"
                           inputLabel="Upload company logo image"
                           accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                          hint="PNG with a see-through background looks best"
+                          hint="PNG with a see-through background looks best (or remove the background inside Advanced Editor)"
                           onFiles={(files) => void acceptLogoFile(files[0])}
                         />
                       )}
@@ -1022,7 +1307,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                 />
                 <div role="group" aria-label="Card style" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {STYLE_OPTIONS.map((st) => {
-                    const active = styleId === st.id;
+                    const active = !hasCustomDesign && styleId === st.id;
                     return (
                       <button
                         key={st.id}
@@ -1030,6 +1315,8 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                         aria-pressed={active}
                         onClick={() => {
                           setStyleId(st.id);
+                          setTemplateId(st.id);
+                          setHasCustomDesign(false);
                           clearStatus();
                         }}
                         className={`relative flex flex-col gap-2 rounded-xl p-2 text-left transition cursor-pointer ${
@@ -1051,12 +1338,11 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                   })}
                 </div>
 
-                {!isBlank && (
+                {!blankView && (
                   <div className="mt-4 space-y-4">
-                    {styleId === "dark" && (
+                    {styleId === "dark" && !hasCustomDesign && (
                       <FieldHint>
-                        Dark cards print ink right to the edge — cut exactly on the guides (or a hair inside) so no
-                        white edge shows.
+                        Dark cards print ink right to the edge — turn on <strong>Edge bleed (3 mm)</strong> below and cut cleanly along the guides.
                       </FieldHint>
                     )}
                     <div role="group" aria-labelledby={`${uid}-font-label`}>
@@ -1072,7 +1358,10 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                               key={f.id}
                               type="button"
                               aria-pressed={active}
-                              onClick={() => setFontPairId(f.id)}
+                              onClick={() => {
+                                setFontPairId(f.id);
+                                if (hasCustomDesign) setHasCustomDesign(false);
+                              }}
                               className={`flex min-h-[44px] flex-col items-start gap-0.5 rounded-xl px-3 py-2 text-left transition cursor-pointer ${
                                 active
                                   ? "bg-[#eef6e4] ring-2 ring-[#4d7c0f]"
@@ -1080,7 +1369,10 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                               }`}
                             >
                               <span className="text-lg font-bold leading-tight text-zinc-950" style={{ fontFamily: p.cssHeading }}>
-                                Aa <span className="text-sm font-normal text-zinc-600" style={{ fontFamily: p.cssBody }}>Aa</span>
+                                Aa{" "}
+                                <span className="text-sm font-normal text-zinc-600" style={{ fontFamily: p.cssBody }}>
+                                  Aa
+                                </span>
                               </span>
                               <span className="text-xs font-semibold text-zinc-900">{p.label}</span>
                               <span className="text-[11px] leading-snug text-zinc-600">{f.hint}</span>
@@ -1105,7 +1397,10 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                                 aria-pressed={active}
                                 aria-label={cp.name}
                                 title={cp.name}
-                                onClick={() => setAccentHex(cp.hex)}
+                                onClick={() => {
+                                  setAccentHex(cp.hex);
+                                  if (hasCustomDesign) setHasCustomDesign(false);
+                                }}
                                 className={`grid h-10 w-10 place-items-center rounded-full transition cursor-pointer ${
                                   active ? "ring-2 ring-[#4d7c0f] ring-offset-2" : "ring-1 ring-black/10 hover:scale-105"
                                 }`}
@@ -1126,7 +1421,10 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                             id="card-accent-color"
                             type="color"
                             value={accentHex}
-                            onChange={(e) => setAccentHex(e.target.value)}
+                            onChange={(e) => {
+                              setAccentHex(e.target.value);
+                              if (hasCustomDesign) setHasCustomDesign(false);
+                            }}
                             className="h-8 w-10 cursor-pointer rounded-md bg-white"
                           />
                         </label>
@@ -1137,7 +1435,10 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                         <input
                           type="checkbox"
                           checked={includeQr}
-                          onChange={(e) => setIncludeQr(e.target.checked)}
+                          onChange={(e) => {
+                            setIncludeQr(e.target.checked);
+                            if (hasCustomDesign) setHasCustomDesign(false);
+                          }}
                           className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
                         />
                         <QrCode aria-hidden="true" className="h-4 w-4 text-zinc-600" />
@@ -1152,14 +1453,17 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                       </FieldHint>
                     </div>
                     <div className="rounded-2xl border border-dashed border-[#4d7c0f]/50 bg-[#f7fbf1] p-3.5">
-                      <p className="text-sm font-bold text-zinc-950">Want full control?</p>
+                      <p className="text-sm font-bold text-zinc-950">Want full studio control?</p>
                       <p className="mt-0.5 text-xs leading-relaxed text-zinc-600">
-                        Edit every part by hand: move, resize or delete any item, change each font, size and colour, and add extra text,
-                        shapes, images and QR codes. Your current design is the starting point.
+                        Open the full-screen editor to drag, resize, rotate, pick custom fonts &amp; gradients, remove logo backgrounds, add icons, and export PDF, PNG or SVG.
                       </p>
-                      <button type="button" onClick={startCustom} className={`${secondaryButtonClass} mt-2.5 bg-white hover:bg-[#ebeced]`}>
-                        <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
-                        Edit every detail
+                      <button
+                        type="button"
+                        onClick={openAdvancedEditor}
+                        className="mt-2.5 inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-4 py-2 text-xs font-bold text-white hover:bg-[#3f6212] transition cursor-pointer"
+                      >
+                        <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+                        Open Advanced Editor
                       </button>
                     </div>
                   </div>
@@ -1261,7 +1565,6 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                 ) : (
                   <FieldHint>
                     {cardCount} cards, each {sheet.cardW} × {sheet.cardH} mm, centred on the page.
-                    {custom && " Items on your card keep their position when you change the card size."}
                   </FieldHint>
                 )}
               </div>
@@ -1271,22 +1574,28 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
               <summary className="cursor-pointer text-sm font-medium text-zinc-900">Fine-tune print alignment</summary>
               <div className="mt-3 space-y-2.5">
                 <FieldHint>
-                  If your printer prints a little off-centre, nudge the whole grid. Use a negative number to move left or up. The back page is
-                  mirrored automatically for flip-over printing.
+                  If your printer prints a little off-centre, nudge the whole grid. Use a negative number to move left or up. The back page is mirrored automatically for flip-over printing.
                 </FieldHint>
                 <div className="grid grid-cols-2 gap-2.5">
                   <SheetNumber label="Shift right (mm)" value={offsetX} min={-10} max={10} onChange={setOffsetX} />
                   <SheetNumber label="Shift down (mm)" value={offsetY} min={-10} max={10} onChange={setOffsetY} />
                 </div>
                 {(offsetX !== 0 || offsetY !== 0) && (
-                  <button type="button" onClick={() => { setOffsetX(0); setOffsetY(0); }} className={`${secondaryButtonClass} bg-white`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOffsetX(0);
+                      setOffsetY(0);
+                    }}
+                    className={`${secondaryButtonClass} bg-white`}
+                  >
                     Reset to centred
                   </button>
                 )}
               </div>
             </details>
 
-            <div className="mt-4 space-y-1.5">
+            <div className="mt-4 space-y-2">
               <label className={checkRowClass}>
                 <input
                   type="checkbox"
@@ -1295,12 +1604,26 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                   className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
                 />
                 <Scissors aria-hidden="true" className="h-4 w-4 text-zinc-600" />
-                Show cut guides
+                Show cut guides (crop marks)
               </label>
-              <FieldHint>
-                Small lines printed outside the cards that show exactly where to cut. They are not printed on the
-                cards themselves.
-              </FieldHint>
+              <label className={checkRowClass}>
+                <input
+                  type="checkbox"
+                  checked={includeBleed}
+                  onChange={(e) => setIncludeBleed(e.target.checked)}
+                  className="h-5 w-5 shrink-0 accent-[#4d7c0f]"
+                />
+                <SlidersHorizontal aria-hidden="true" className="h-4 w-4 text-zinc-600" />
+                Add edge bleed (3 mm)
+              </label>
+              {isDarkDesign && (
+                <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                  <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <span>
+                    <strong>Dark / edge-to-edge card:</strong> Keep cut guides and bleed enabled so trimming won&rsquo;t leave thin white borders.
+                  </span>
+                </div>
+              )}
             </div>
 
             {canBack && (
@@ -1321,7 +1644,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
               </div>
             )}
 
-            {backOn && !custom && (
+            {backOn && !hasCustomDesign && (
               <div className="mt-3 grid grid-cols-1 gap-3 rounded-2xl bg-[#f5f5f7] p-3.5">
                 <fieldset>
                   <legend className={labelClass}>Back design</legend>
@@ -1363,7 +1686,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                     id="card-back-tagline"
                     type="text"
                     value={tagline}
-                    onChange={(e) => setTagline(e.target.value)}
+                    onChange={(e) => updateSimpleField("tagline", e.target.value, setTagline)}
                     placeholder="e.g. what you do, in a few words"
                     className={`${inputClass} bg-white`}
                   />
@@ -1402,28 +1725,50 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
 
         {/* ---------------- Preview ---------------- */}
         <div className="order-1 lg:order-2 lg:col-span-7 lg:sticky lg:top-24 rounded-2xl bg-white p-4 sm:p-6 lg:p-8">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <h3 className="text-sm font-bold tracking-tight text-zinc-950">Preview</h3>
-            {backOn && (
-              <div role="tablist" aria-label="Card side" className="inline-flex rounded-xl bg-[#f5f5f7] p-1">
-                {(["front", "back"] as const).map((s) => (
-                  <button
-                    key={s}
-                    id={`${uid}-tab-${s}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={side === s}
-                    aria-controls={`${uid}-panel`}
-                    onClick={() => setPreviewSide(s)}
-                    className={`min-h-[36px] rounded-lg px-4 text-sm font-semibold transition cursor-pointer ${
-                      side === s ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-600 hover:text-zinc-900"
-                    }`}
-                  >
-                    {s === "front" ? "Front" : "Back"}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <h3 className="text-sm font-bold tracking-tight text-zinc-950">Preview</h3>
+              {hasCustomDesign && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">
+                  Custom layout
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {backOn && (
+                <div role="tablist" aria-label="Card side" className="inline-flex rounded-xl bg-[#f5f5f7] p-1">
+                  {(["front", "back"] as const).map((s) => (
+                    <button
+                      key={s}
+                      id={`${uid}-tab-${s}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={side === s}
+                      aria-controls={`${uid}-panel`}
+                      onClick={() => setPreviewSide(s)}
+                      className={`min-h-[34px] rounded-lg px-3.5 text-xs font-semibold transition cursor-pointer ${
+                        side === s ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-600 hover:text-zinc-900"
+                      }`}
+                    >
+                      {s === "front" ? "Front" : "Back"}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Primary Entry Point: Open Advanced Editor */}
+              {mode === "design" && (
+                <button
+                  type="button"
+                  onClick={openAdvancedEditor}
+                  className="inline-flex min-h-[38px] items-center gap-2 rounded-xl bg-[#4d7c0f] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#3f6212] transition cursor-pointer"
+                >
+                  <Maximize2 aria-hidden="true" className="h-3.5 w-3.5" />
+                  Open Advanced Editor
+                </button>
+              )}
+            </div>
           </div>
 
           <div
@@ -1446,9 +1791,7 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                 <div
                   role="region"
                   aria-label={`One business card, ${side}`}
-                  className={`relative overflow-hidden rounded-md bg-white shadow-sm ${
-                    "ring-1 ring-zinc-300"
-                  }`}
+                  className="relative overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-zinc-300"
                   style={{ aspectRatio: `${sheet.cardW} / ${sheet.cardH}`, containerType: "inline-size" }}
                 >
                   {side === "front" && blankView ? (
@@ -1458,27 +1801,11 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
                   ) : (
                     cardFace(side)
                   )}
-                  {custom && (
-                    <CardEditorOverlay
-                      W={sheet.cardW}
-                      H={sheet.cardH}
-                      layers={design[editSide].layers}
-                      bounds={(editSide === "back" ? compiledBack : compiledFront)?.bounds ?? new Map()}
-                      selectedId={selectedId}
-                      onSelect={setSelectedId}
-                      onChange={updateLayer}
-                      onDelete={removeLayer}
-                      onDuplicate={duplicateLayer}
-                      onUndo={hist.undo}
-                      onRedo={hist.redo}
-                    />
-                  )}
                 </div>
               )}
               <figcaption className="mt-2 text-center text-xs text-zinc-600">
                 One card, actual shape · {sheet.cardW} × {sheet.cardH} mm
                 {backOn && (side === "front" ? " · page 1" : " · page 2")}
-                {custom && <span className="block">Click to select · drag to move · green dot resizes · arrow keys nudge</span>}
               </figcaption>
             </figure>
 
@@ -1496,6 +1823,55 @@ export function BusinessCardTool({ pageId }: { pageId: PageId }) {
       <MobileActionBar summary={`${cardCount} cards · ${paperShort}${backOn ? " · 2 pages" : ""}`}>
         {downloadButton("px-4")}
       </MobileActionBar>
+
+      {/* ==================== FULL-SCREEN ADVANCED EDITOR ==================== */}
+      <AdvancedCardEditor
+        open={advancedOpen}
+        design={design}
+        activeSide={previewSide}
+        includeBack={includeBack}
+        sheetId={sheetId}
+        customSheet={customSheet}
+        sheet={sheet}
+        showCropMarks={showCropMarks}
+        includeBleed={includeBleed}
+        offsetX={offsetX}
+        offsetY={offsetY}
+        templateId={templateId}
+        accentHex={accentHex}
+        content={content}
+        tagline={tagline}
+        backStyle={backStyle}
+        logo={logo}
+        qr={qrDataUrl ? { src: qrDataUrl, target: qrTarget } : null}
+        fonts={fonts}
+        canUndo={hist.canUndo}
+        canRedo={hist.canRedo}
+        saveStatus={saveStatus}
+        persistedPayload={persistedPayload}
+        onSetSide={setPreviewSide}
+        onToggleBack={(on) => {
+          setIncludeBack(on);
+          if (!on && previewSide === "back") setPreviewSide("front");
+        }}
+        onChangeLayer={handleChangeLayer}
+        onAddLayer={handleAddLayer}
+        onRemoveLayer={handleRemoveLayer}
+        onDuplicateLayer={handleDuplicateLayer}
+        onReorderLayer={handleReorderLayer}
+        onSetBackground={handleSetBackground}
+        onReplaceSide={handleReplaceSide}
+        onApplyTemplate={handleApplyTemplate}
+        onPatchSilently={patchSilently}
+        onUndo={hist.undo}
+        onRedo={hist.redo}
+        onChangeSheetId={setSheetId}
+        onChangeCustomSheet={(patch) => setCustomSheet((c) => ({ ...c, ...patch }))}
+        onToggleCropMarks={setShowCropMarks}
+        onToggleBleed={setIncludeBleed}
+        onLoadPayload={applyPersistedPayload}
+        onClose={closeAdvancedEditor}
+      />
     </div>
   );
 }

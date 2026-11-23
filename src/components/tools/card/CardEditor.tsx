@@ -326,7 +326,18 @@ async function readImage(file: File) {
   return { src: canvas.toDataURL("image/png"), ratio: w / h };
 }
 
-const KIND_ICON = { text: Type, rect: Square, ellipse: Circle, frame: SquareDashed, image: ImagePlus } as const;
+const KIND_ICON: Record<Layer["kind"], typeof Type> = {
+  text: Type,
+  rect: Square,
+  "rounded-rect": Square,
+  ellipse: Circle,
+  frame: SquareDashed,
+  triangle: Square,
+  star: Square,
+  line: Square,
+  image: ImagePlus,
+  icon: Circle,
+};
 
 export function CardEditorPanel({
   W,
